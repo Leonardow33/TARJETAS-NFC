@@ -199,20 +199,47 @@
 
   .valtag { font-variant-numeric: tabular-nums; color: var(--ink); font-size: .82rem; min-width: 42px; text-align: right; }
 
+
   .stack { display: flex; flex-direction: column; gap: 8px; }
+  .hidden { display: none !important; }
+
+  /* ---- Pestañas ---- */
+  .tabs { margin-bottom: 18px; max-width: 420px; }
+  .tabs button { font-size: .92rem; padding: 9px 6px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+    background: var(--accent); color: var(--accent-ink); font-size: .74rem; font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  .badge.zero { background: var(--line-strong); color: var(--ink); }
+
+  .added {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+    background: var(--accent-soft); font-size: .88rem;
+  }
+  .added svg { color: var(--ok); flex: none; }
+  .added span { flex: 1; min-width: 140px; }
+  .linkbtn { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 620; cursor: pointer; padding: 0; }
 
   /* ---- Hoja A4 ---- */
-  .sheetframe {
-    display: flex; justify-content: center; padding: 10px;
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
-  }
-  canvas#sheet {
-    display: block; width: 100%; max-width: 230px; height: auto;
-    background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 6px 16px rgba(20,22,28,.14);
-  }
-  .sheetstat { text-align: center; font-size: .86rem; margin: 10px 0 2px; }
+  .sheethead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sheetstat { font-size: .9rem; margin: 0; }
   .sheetstat b { font-variant-numeric: tabular-nums; }
-  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .sheethead .btn { width: auto; font-size: .82rem; padding: 7px 12px; }
+  .pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
+  .pages.single { grid-template-columns: minmax(0, 320px); justify-content: center; }
+  .page figure { margin: 0; }
+  .page canvas {
+    display: block; width: 100%; height: auto; background: #ffffff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 6px 16px rgba(20,22,28,.14);
+  }
+  .page figcaption { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 6px; }
+  .emptysheet { text-align: center; color: var(--muted); padding: 40px 16px; font-size: .9rem; }
+  .emptysheet .btn { width: auto; margin-top: 14px; }
+
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .opts .field { margin-top: 0; }
   select, input[type="number"] {
     width: 100%; font: inherit; font-size: .88rem; color: var(--ink);
@@ -220,6 +247,23 @@
     padding: 8px 9px;
   }
   select:focus, input[type="number"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+
+  /* ---- Lista de diseños ---- */
+  .qlist { display: flex; flex-direction: column; gap: 10px; }
+  .qitem { display: flex; align-items: center; gap: 10px; }
+  .qitem img { width: 64px; height: 64px; object-fit: contain; flex: none; background: var(--panel-2); border-radius: 8px; border: 1px solid var(--line); }
+  .qinfo { flex: 1; min-width: 0; }
+  .qname { font-size: .86rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
+  .qty { display: flex; align-items: center; gap: 4px; }
+  .qty button, .qact button {
+    width: 30px; height: 30px; flex: none; border: 1px solid var(--line-strong); background: var(--panel-2);
+    color: var(--ink); border-radius: 8px; font: inherit; font-size: 1rem; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .qty input { width: 52px; text-align: center; padding: 5px 4px; }
+  .qact { display: flex; flex-direction: column; gap: 4px; }
+  .qact button.del { color: var(--danger); }
+  .qempty { color: var(--muted); font-size: .86rem; margin: 0; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -227,11 +271,17 @@
 <div class="wrap">
   <header class="top">
     <h1>Diseñador de tarjeta NFC</h1>
-    <p>Sube una foto, acomódala y descárgala lista para imprimir y pegar sobre tu tarjeta.</p>
+    <p>Diseña tus tarjetas, agrégalas a la hoja e imprímelas en papel de stickers.</p>
     <span class="sizepill">Tamaño carnet · <b id="mmlabel">85.6 × 54 mm</b> · <b>300 DPI</b></span>
   </header>
 
-  <div class="layout">
+  <nav class="seg tabs" id="tabs">
+    <button data-v="design" aria-pressed="true">1 · Diseñar</button>
+    <button data-v="print" aria-pressed="false">2 · Imprimir <span class="badge zero" id="qbadge">0</span></button>
+  </nav>
+
+  <!-- ================= VISTA: DISEÑAR ================= -->
+  <div class="layout" id="view-design">
     <!-- STAGE -->
     <section class="stage">
       <div class="cardframe" id="cardframe">
@@ -242,6 +292,11 @@
         </div>
       </div>
       <p class="draghint" id="draghint"></p>
+      <div class="added hidden" id="added">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <span id="addedmsg">Diseño agregado a la hoja. Sube otra foto para seguir.</span>
+        <button class="linkbtn" data-goto="print">Ver hoja →</button>
+      </div>
     </section>
 
     <!-- CONTROLS -->
@@ -323,23 +378,57 @@
         </label>
       </div>
 
-      <div class="group">
-        <div class="glabel">Descargar una tarjeta</div>
-        <div class="stack">
-          <button class="btn primary" id="downloadPdf" disabled>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
-            PDF tamaño real
-          </button>
-          <button class="btn" id="download" disabled>Imagen PNG (300 DPI)</button>
-        </div>
+      <div class="stack">
+        <button class="btn primary" id="addPrint" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <span id="addPrintLabel">Listo, agregar a impresión</span>
+        </button>
+        <button class="btn ghost hidden" id="cancelEdit">Cancelar edición</button>
       </div>
 
       <div class="group">
-        <div class="glabel">Hoja A4 de stickers</div>
-        <div class="sheetframe">
-          <canvas id="sheet" width="420" height="594" role="img" aria-label="Vista previa de la hoja A4"></canvas>
+        <div class="glabel">Descargar solo esta tarjeta</div>
+        <div class="btnrow" style="margin-top:0">
+          <button class="btn" id="downloadPdf" disabled>PDF tamaño real</button>
+          <button class="btn" id="download" disabled>PNG 300 DPI</button>
         </div>
+      </div>
+
+      <div class="group result" id="result">
+        <div class="glabel">Lista para imprimir</div>
+        <img id="resultimg" alt="Imagen final de la tarjeta">
+        <a class="btn" id="resultdl" download="tarjeta-nfc.png" href="#">Guardar archivo</a>
+        <p class="note" style="margin-top:10px"><b>En iPhone:</b> mantén presionada la imagen de arriba y elige <b>Guardar en Fotos</b>. Luego imprímela a tamaño real (sin ajustar/escalar) y recórtala.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= VISTA: IMPRIMIR ================= -->
+  <div class="layout hidden" id="view-print">
+    <section class="stage">
+      <div class="sheethead" id="sheethead">
         <p class="sheetstat" id="sheetstat"></p>
+        <button class="btn" id="fillSheet">Completar hoja</button>
+      </div>
+      <div class="pages" id="pages"></div>
+      <div class="emptysheet hidden" id="emptysheet">
+        Todavía no hay diseños en la hoja.<br>Diseña una tarjeta y pulsa <b>Listo, agregar a impresión</b>.
+        <br><button class="btn primary" data-goto="design">Ir a diseñar</button>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="group">
+        <div class="glabel">Diseños en la hoja</div>
+        <div class="qlist" id="qlist"></div>
+        <button class="btn" id="addAnother" style="margin-top:12px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Añadir otra foto
+        </button>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Ajustes de la hoja A4</div>
         <div class="opts">
           <div class="field">
             <label for="margin">Margen hoja</label>
@@ -369,33 +458,25 @@
               <option value="2">2 mm</option>
             </select>
           </div>
-          <div class="field">
-            <label for="copies">Cantidad</label>
-            <input type="number" id="copies" min="1" step="1" inputmode="numeric">
+          <div class="field" style="display:flex;align-items:flex-end">
+            <label class="check" style="margin:0 0 8px">
+              <input type="checkbox" id="cutlines" checked> Línea de corte
+            </label>
           </div>
         </div>
-        <label class="check" style="margin-top:12px">
-          <input type="checkbox" id="cutlines" checked> Línea de corte
-        </label>
-        <div class="stack" style="margin-top:12px">
-          <button class="btn primary" id="sheetPdf" disabled>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
-            Descargar PDF A4
-          </button>
-          <button class="btn" id="sheetPrint" disabled>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>
-            Imprimir hoja
-          </button>
-        </div>
-        <p class="note" style="margin-top:10px">Al imprimir elige <b>A4</b> y escala <b>100% / Tamaño real</b> (no "Ajustar a página") para que las medidas sean exactas. El sangrado extiende la foto fuera de la línea de corte para que no queden bordes blancos al recortar.</p>
       </div>
 
-      <div class="group result" id="result">
-        <div class="glabel">Lista para imprimir</div>
-        <img id="resultimg" alt="Imagen final de la tarjeta">
-        <a class="btn" id="resultdl" download="tarjeta-nfc.png" href="#">Guardar archivo</a>
-        <p class="note" style="margin-top:10px"><b>En iPhone:</b> mantén presionada la imagen de arriba y elige <b>Guardar en Fotos</b>. Luego imprímela a tamaño real (sin ajustar/escalar) y recórtala.</p>
+      <div class="stack">
+        <button class="btn primary" id="sheetPdf" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          Descargar PDF A4
+        </button>
+        <button class="btn" id="sheetPrint" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>
+          Imprimir
+        </button>
       </div>
+      <p class="note">Al imprimir elige <b>A4</b> y escala <b>100% / Tamaño real</b> (no "Ajustar a página") para que las medidas sean exactas. El sangrado extiende la foto fuera de la línea de corte para que no queden bordes blancos al recortar.</p>
     </section>
   </div>
 
@@ -411,9 +492,10 @@
   var CORNER_MM = 3.18;                  // radio estándar
   var PREVIEW_PPMM = 8;                  // resolución interna de la vista previa
   var EXPORT_PPMM = 300 / 25.4;          // 300 DPI
+  var A4 = { w: 210, h: 297 };
 
-  // ---- Estado ----
-  var state = {
+  // ---- Estado del editor ----
+  var DEFAULTS = {
     orientation: "landscape",
     img: null,
     baseK: 1,      // mm por pixel de la imagen (preset activo)
@@ -426,6 +508,12 @@
     textBar: false,
     rounded: true
   };
+  var state = Object.assign({}, DEFAULTS);
+
+  // ---- Cola de impresión ----
+  var queue = [];        // { id, d (copia del estado), qty, thumb (canvas), thumbURL }
+  var nextId = 1;
+  var editingId = null;  // id del diseño que se está editando desde la cola
 
   var canvas = document.getElementById("preview");
   var ctx = canvas.getContext("2d");
@@ -433,8 +521,11 @@
   var draghint = document.getElementById("draghint");
   var cardframe = document.getElementById("cardframe");
 
-  function cardMM() {
-    return state.orientation === "landscape"
+  function $(id) { return document.getElementById(id); }
+
+  function cardMM(d) {
+    d = d || state;
+    return d.orientation === "landscape"
       ? { w: CARD.w, h: CARD.h }
       : { w: CARD.h, h: CARD.w };
   }
@@ -450,55 +541,56 @@
     c.closePath();
   }
 
-  // Dibuja la tarjeta completa a una resolución dada (mm * S).
+  // Dibuja un diseño completo a una resolución dada (mm * S).
   // bleed (mm) agrega sangrado alrededor: el lienzo mide (w + 2·bleed) × (h + 2·bleed).
-  function draw(c, S, bleed) {
-    var cm = cardMM();
+  function draw(c, S, bleed, d) {
+    d = d || state;
+    var cm = cardMM(d);
     var W = cm.w * S, H = cm.h * S, B = (bleed || 0) * S;
     c.clearRect(0, 0, W + 2 * B, H + 2 * B);
 
     c.save();
     c.translate(B, B);
     if (B > 0) { c.beginPath(); c.rect(-B, -B, W + 2 * B, H + 2 * B); }
-    else if (state.rounded) roundRect(c, 0, 0, W, H, CORNER_MM * S);
+    else if (d.rounded) roundRect(c, 0, 0, W, H, CORNER_MM * S);
     else { c.beginPath(); c.rect(0, 0, W, H); }
     c.clip();
 
     // fondo
-    c.fillStyle = state.bg;
+    c.fillStyle = d.bg;
     c.fillRect(-B, -B, W + 2 * B, H + 2 * B);
 
     // imagen
-    if (state.img) {
-      var k = state.baseK * state.zoom;       // mm por px de imagen
-      var iw = state.img.naturalWidth * k * S;
-      var ih = state.img.naturalHeight * k * S;
-      var ix = state.cx * S - iw / 2;
-      var iy = state.cy * S - ih / 2;
+    if (d.img) {
+      var k = d.baseK * d.zoom;       // mm por px de imagen
+      var iw = d.img.naturalWidth * k * S;
+      var ih = d.img.naturalHeight * k * S;
+      var ix = d.cx * S - iw / 2;
+      var iy = d.cy * S - ih / 2;
       c.imageSmoothingQuality = "high";
-      c.drawImage(state.img, ix, iy, iw, ih);
+      c.drawImage(d.img, ix, iy, iw, ih);
     }
 
     // texto
-    if (state.text && state.textPos !== "none") {
+    if (d.text && d.textPos !== "none") {
       var fontMM = 6;
       var fs = fontMM * S;
       c.font = "600 " + fs + "px -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
       c.textAlign = "center";
       c.textBaseline = "middle";
       var pad = 3 * S;
-      var ty = state.textPos === "top" ? (fs / 2 + pad + 1 * S) : (H - fs / 2 - pad - 1 * S);
+      var ty = d.textPos === "top" ? (fs / 2 + pad + 1 * S) : (H - fs / 2 - pad - 1 * S);
 
-      if (state.textBar) {
+      if (d.textBar) {
         var barH = fs + pad * 1.6;
-        var barY = state.textPos === "top" ? -B : H - barH;
+        var barY = d.textPos === "top" ? -B : H - barH;
         c.fillStyle = "rgba(0,0,0,0.42)";
         c.fillRect(-B, barY, W + 2 * B, barH + B);
       }
-      c.fillStyle = state.textColor;
+      c.fillStyle = d.textColor;
       c.shadowColor = "rgba(0,0,0,0.5)";
-      c.shadowBlur = state.textBar ? 0 : 3 * S;
-      c.fillText(state.text, W / 2, ty);
+      c.shadowBlur = d.textBar ? 0 : 3 * S;
+      c.fillText(d.text, W / 2, ty);
       c.shadowBlur = 0;
     }
 
@@ -518,20 +610,9 @@
 
     emptyhint.style.display = state.img ? "none" : "flex";
     draghint.textContent = state.img ? "Arrastra la foto para moverla · usa el zoom para acercar" : "";
-    document.getElementById("mmlabel").textContent =
+    $("mmlabel").textContent =
       cm.w.toFixed(1).replace(".0", "") + " × " + cm.h.toFixed(1).replace(".0", "") + " mm";
-    updateFrameMax();
-    renderSheet();
-  }
-
-  // Limita el ancho del marco para que la vertical no se vea gigante
-  function updateFrameMax() {
-    var cm = cardMM();
-    if (state.orientation === "portrait") {
-      cardframe.style.maxWidth = "300px";
-    } else {
-      cardframe.style.maxWidth = "100%";
-    }
+    cardframe.style.maxWidth = state.orientation === "portrait" ? "300px" : "100%";
   }
 
   // ---- Presets de encuadre ----
@@ -559,13 +640,41 @@
   }
   function setZoom(z) {
     state.zoom = z;
-    var zi = document.getElementById("zoom");
-    zi.value = z;
-    document.getElementById("zoomval").textContent = Math.round(z * 100) + "%";
+    $("zoom").value = z;
+    $("zoomval").textContent = Math.round(z * 100) + "%";
+  }
+
+  // Refleja el estado del editor en todos los controles
+  function syncUI() {
+    var has = !!state.img;
+    setSeg("orient", document.querySelector('#orient button[data-o="' + state.orientation + '"]'));
+    setSeg("textpos", document.querySelector('#textpos button[data-p="' + state.textPos + '"]'));
+    pressSwatch("bgswatches", state.bg); $("bgcustom").value = state.bg;
+    pressSwatch("txtswatches", state.textColor); $("txtcustom").value = state.textColor;
+    $("text").value = state.text;
+    $("textbar").checked = state.textBar;
+    $("rounded").checked = state.rounded;
+    setZoom(state.zoom);
+    $("uploadlabel").textContent = has ? "Cambiar foto" : "Subir foto";
+    $("fitrow").style.display = has ? "flex" : "none";
+    $("zoomfield").style.display = has ? "block" : "none";
+    $("zoom").disabled = !has;
+    ["download", "downloadPdf", "addPrint"].forEach(function (id) { $(id).disabled = !has; });
+    $("addPrintLabel").textContent = editingId ? "Guardar cambios" : "Listo, agregar a impresión";
+    $("cancelEdit").classList.toggle("hidden", !editingId);
+  }
+
+  // Deja el editor listo para la siguiente foto (conserva orientación, fondo y esquinas)
+  function resetEditor() {
+    var keep = { orientation: state.orientation, bg: state.bg, rounded: state.rounded, textColor: state.textColor, textBar: state.textBar };
+    state = Object.assign({}, DEFAULTS, keep);
+    editingId = null;
+    $("file").value = "";
+    center(); syncUI(); hideResult(); render();
   }
 
   // ---- Carga de imagen ----
-  document.getElementById("file").addEventListener("change", function (e) {
+  $("file").addEventListener("change", function (e) {
     var f = e.target.files && e.target.files[0];
     if (!f) return;
     var url = URL.createObjectURL(f);
@@ -573,12 +682,9 @@
     img.onload = function () {
       state.img = img;
       applyFill();
-      document.getElementById("uploadlabel").textContent = "Cambiar foto";
-      document.getElementById("fitrow").style.display = "flex";
-      document.getElementById("zoomfield").style.display = "block";
-      document.getElementById("zoom").disabled = false;
-      setExportEnabled(true);
+      syncUI();
       hideResult();
+      $("added").classList.add("hidden");
       URL.revokeObjectURL(url);
     };
     img.onerror = function () {
@@ -588,28 +694,22 @@
     img.src = url;
   });
 
-  document.getElementById("btnFill").addEventListener("click", applyFill);
-  document.getElementById("btnFit").addEventListener("click", applyFit);
-  document.getElementById("btnRemove").addEventListener("click", function () {
+  $("btnFill").addEventListener("click", applyFill);
+  $("btnFit").addEventListener("click", applyFit);
+  $("btnRemove").addEventListener("click", function () {
     state.img = null;
-    document.getElementById("uploadlabel").textContent = "Subir foto";
-    document.getElementById("fitrow").style.display = "none";
-    document.getElementById("zoomfield").style.display = "none";
-    document.getElementById("zoom").disabled = true;
-    setExportEnabled(false);
-    document.getElementById("file").value = "";
-    hideResult();
-    render();
+    $("file").value = "";
+    syncUI(); hideResult(); render();
   });
 
   // ---- Zoom ----
-  document.getElementById("zoom").addEventListener("input", function (e) {
+  $("zoom").addEventListener("input", function (e) {
     setZoom(parseFloat(e.target.value));
     hideResult(); render();
   });
 
   // ---- Orientación ----
-  document.getElementById("orient").addEventListener("click", function (e) {
+  $("orient").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
     setSeg("orient", b);
     state.orientation = b.dataset.o;
@@ -618,21 +718,21 @@
   });
 
   // ---- Color de fondo ----
-  document.getElementById("bgswatches").addEventListener("click", function (e) {
+  $("bgswatches").addEventListener("click", function (e) {
     var b = e.target.closest(".swatch"); if (!b) return;
     clearPressed("bgswatches");
     b.setAttribute("aria-pressed", "true");
     state.bg = b.dataset.c;
     hideResult(); render();
   });
-  document.getElementById("bgcustom").addEventListener("input", function (e) {
+  $("bgcustom").addEventListener("input", function (e) {
     clearPressed("bgswatches");
     state.bg = e.target.value;
     hideResult(); render();
   });
 
   // ---- Texto ----
-  document.getElementById("text").addEventListener("input", function (e) {
+  $("text").addEventListener("input", function (e) {
     state.text = e.target.value;
     if (state.textPos === "none" && state.text) {
       // activa "Abajo" por defecto al escribir
@@ -641,28 +741,28 @@
     }
     hideResult(); render();
   });
-  document.getElementById("textpos").addEventListener("click", function (e) {
+  $("textpos").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
     setSeg("textpos", b); state.textPos = b.dataset.p;
     hideResult(); render();
   });
-  document.getElementById("txtswatches").addEventListener("click", function (e) {
+  $("txtswatches").addEventListener("click", function (e) {
     var b = e.target.closest(".swatch"); if (!b) return;
     clearPressed("txtswatches"); b.setAttribute("aria-pressed", "true");
     state.textColor = b.dataset.c;
     hideResult(); render();
   });
-  document.getElementById("txtcustom").addEventListener("input", function (e) {
+  $("txtcustom").addEventListener("input", function (e) {
     clearPressed("txtswatches");
     state.textColor = e.target.value;
     hideResult(); render();
   });
-  document.getElementById("textbar").addEventListener("change", function (e) {
+  $("textbar").addEventListener("change", function (e) {
     state.textBar = e.target.checked; hideResult(); render();
   });
 
   // ---- Esquinas ----
-  document.getElementById("rounded").addEventListener("change", function (e) {
+  $("rounded").addEventListener("change", function (e) {
     state.rounded = e.target.checked; hideResult(); render();
   });
 
@@ -675,6 +775,11 @@
   function clearPressed(id) {
     document.querySelectorAll("#" + id + " .swatch").forEach(function (b) {
       b.setAttribute("aria-pressed", "false");
+    });
+  }
+  function pressSwatch(id, color) {
+    document.querySelectorAll("#" + id + " .swatch").forEach(function (b) {
+      b.setAttribute("aria-pressed", b.dataset.c.toLowerCase() === color.toLowerCase() ? "true" : "false");
     });
   }
 
@@ -745,22 +850,32 @@
   function dist(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return Math.hypot(dx, dy); }
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-  // ---- Descargar ----
-  function hideResult() { document.getElementById("result").classList.remove("show"); }
-
-  function setExportEnabled(on) {
-    ["download", "downloadPdf", "sheetPdf", "sheetPrint"].forEach(function (id) {
-      document.getElementById(id).disabled = !on;
-    });
+  // ---- Vistas ----
+  function showView(v) {
+    $("view-design").classList.toggle("hidden", v !== "design");
+    $("view-print").classList.toggle("hidden", v !== "print");
+    document.querySelector(".sizepill").classList.toggle("hidden", v !== "design");
+    setSeg("tabs", document.querySelector('#tabs button[data-v="' + v + '"]'));
+    if (v === "print") renderSheet(); else render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (b) showView(b.dataset.v);
+  });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-goto]"); if (b) showView(b.dataset.goto);
+  });
 
-  // Renderiza la tarjeta en un canvas nuevo (con sangrado opcional en mm)
-  function renderCard(ppmm, bleed) {
-    var cm = cardMM();
+  // ---- Renderizado para exportar ----
+  function hideResult() { $("result").classList.remove("show"); }
+
+  // Renderiza un diseño en un canvas nuevo (con sangrado opcional en mm)
+  function renderCard(ppmm, bleed, d) {
+    var cm = cardMM(d);
     var out = document.createElement("canvas");
     out.width = Math.round((cm.w + 2 * bleed) * ppmm);
     out.height = Math.round((cm.h + 2 * bleed) * ppmm);
-    draw(out.getContext("2d"), ppmm, bleed);
+    draw(out.getContext("2d"), ppmm, bleed, d);
     return out;
   }
 
@@ -781,13 +896,8 @@
     return null;
   }
 
-  function pdfName(base) {
-    var cm = cardMM();
-    return base + "-" + String(cm.w).replace(".", ",") + "x" + String(cm.h).replace(".", ",") + "mm.pdf";
-  }
-
-  // ---- PDF de una tarjeta a tamaño real ----
-  document.getElementById("downloadPdf").addEventListener("click", function () {
+  // ---- Descargar solo esta tarjeta ----
+  $("downloadPdf").addEventListener("click", function () {
     if (!state.img) return;
     var JsPDF = getJsPDF(); if (!JsPDF) return;
     var cm = cardMM();
@@ -796,32 +906,148 @@
       orientation: cm.w > cm.h ? "landscape" : "portrait", compress: true
     });
     doc.addImage(renderCard(EXPORT_PPMM, 0).toDataURL("image/png"), "PNG", 0, 0, cm.w, cm.h, "card", "FAST");
-    doc.save(pdfName("tarjeta-nfc"));
+    doc.save("tarjeta-nfc-" + String(cm.w).replace(".", ",") + "x" + String(cm.h).replace(".", ",") + "mm.pdf");
   });
 
-  // ---- Hoja A4: distribución ----
-  var A4 = { w: 210, h: 297 };
-  var copiesAuto = true;
+  $("download").addEventListener("click", function () {
+    if (!state.img) return;
+    var out = renderCard(EXPORT_PPMM, 0);
 
+    out.toBlob(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var img = $("resultimg");
+      var a = $("resultdl");
+      img.src = url;
+      a.href = url;
+      a.download = "tarjeta-nfc-" + out.width + "x" + out.height + ".png";
+      $("result").classList.add("show");
+      $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, "image/png");
+  });
+
+  // ---- Agregar a impresión ----
+  $("addPrint").addEventListener("click", function () {
+    if (!state.img) return;
+    var d = Object.assign({}, state);
+    var thumb = renderCard(PREVIEW_PPMM, 0, d);
+    var item = editingId && queue.filter(function (q) { return q.id === editingId; })[0];
+    if (item) {
+      item.d = d; item.thumb = thumb; item.thumbURL = thumb.toDataURL("image/png");
+    } else {
+      queue.push({ id: nextId++, d: d, qty: 1, thumb: thumb, thumbURL: thumb.toDataURL("image/png") });
+    }
+    $("addedmsg").textContent = item
+      ? "Cambios guardados."
+      : "Diseño agregado a la hoja (" + queue.length + " en total). Sube otra foto para seguir.";
+    $("added").classList.remove("hidden");
+    resetEditor();
+    updateQueue();
+  });
+
+  $("cancelEdit").addEventListener("click", function () {
+    resetEditor();
+    showView("print");
+  });
+
+  $("addAnother").addEventListener("click", function () {
+    resetEditor();
+    $("added").classList.add("hidden");
+    showView("design");
+    $("file").click();
+  });
+
+  function itemName(q, i) {
+    return q.d.text ? q.d.text : "Diseño " + (i + 1);
+  }
+
+  function totalQty() {
+    return queue.reduce(function (s, q) { return s + q.qty; }, 0);
+  }
+
+  // Redibuja la lista de diseños y el contador
+  function updateQueue() {
+    var list = $("qlist");
+    list.innerHTML = "";
+    if (!queue.length) {
+      var p = document.createElement("p");
+      p.className = "qempty"; p.textContent = "Aún no has agregado diseños.";
+      list.appendChild(p);
+    }
+    queue.forEach(function (q, i) {
+      var row = document.createElement("div");
+      row.className = "qitem";
+      row.innerHTML =
+        '<img alt="">' +
+        '<div class="qinfo"><div class="qname"></div>' +
+        '<div class="qty"><button data-a="minus" aria-label="Menos">−</button>' +
+        '<input type="number" min="0" max="999" step="1" inputmode="numeric" aria-label="Cantidad">' +
+        '<button data-a="plus" aria-label="Más">+</button></div></div>' +
+        '<div class="qact"><button data-a="edit" title="Editar" aria-label="Editar">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>' +
+        '<button data-a="del" class="del" title="Quitar" aria-label="Quitar">×</button></div>';
+      row.querySelector("img").src = q.thumbURL;
+      row.querySelector(".qname").textContent = itemName(q, i);
+      var input = row.querySelector("input");
+      input.value = q.qty;
+      input.addEventListener("input", function () {
+        q.qty = clamp(parseInt(input.value, 10) || 0, 0, 999);
+        refreshCounts();
+      });
+      input.addEventListener("blur", function () { input.value = q.qty; });
+      row.addEventListener("click", function (e) {
+        var b = e.target.closest("button"); if (!b) return;
+        var a = b.dataset.a;
+        if (a === "minus" || a === "plus") {
+          q.qty = clamp(q.qty + (a === "plus" ? 1 : -1), 0, 999);
+          input.value = q.qty;
+          refreshCounts();
+        } else if (a === "del") {
+          queue.splice(queue.indexOf(q), 1);
+          if (editingId === q.id) resetEditor();
+          updateQueue();
+        } else if (a === "edit") {
+          editingId = q.id;
+          state = Object.assign({}, q.d);
+          syncUI(); hideResult();
+          $("added").classList.add("hidden");
+          showView("design");
+        }
+      });
+      list.appendChild(row);
+    });
+    refreshCounts();
+  }
+
+  function refreshCounts() {
+    var n = totalQty();
+    var badge = $("qbadge");
+    badge.textContent = queue.length;
+    badge.classList.toggle("zero", queue.length === 0);
+    $("sheetPdf").disabled = $("sheetPrint").disabled = n === 0;
+    if (!$("view-print").classList.contains("hidden")) renderSheet();
+  }
+
+  // ---- Hoja A4: distribución ----
   function sheetOpts() {
-    var bleed = parseFloat(document.getElementById("bleed").value) || 0;
-    var gap = parseFloat(document.getElementById("gap").value) || 0;
+    var bleed = parseFloat($("bleed").value) || 0;
+    var gap = parseFloat($("gap").value) || 0;
     return {
-      margin: parseFloat(document.getElementById("margin").value) || 0,
+      margin: parseFloat($("margin").value) || 0,
       gap: Math.max(gap, 2 * bleed),      // el sangrado no puede invadir la tarjeta vecina
       bleed: bleed,
-      cutlines: document.getElementById("cutlines").checked
+      cutlines: $("cutlines").checked
     };
   }
 
   // Busca la distribución con más tarjetas: cuadrícula en una orientación,
   // o bandas mixtas (filas/columnas normales + giradas 90° en el espacio sobrante).
+  // Cada hueco: { x, y, w, h, rot } en mm; rot = hueco vertical.
   function sheetLayout(o) {
-    var cm = cardMM();
+    var cw = CARD.w, ch = CARD.h;
     var UW = A4.w - 2 * o.margin, UH = A4.h - 2 * o.margin, g = o.gap;
     function fit(len, size) { return Math.max(0, Math.floor((len + g) / (size + g) + 1e-9)); }
     function grid(x0, y0, w, h, rot, out) {
-      var sw = rot ? cm.h : cm.w, sh = rot ? cm.w : cm.h;
+      var sw = rot ? ch : cw, sh = rot ? cw : ch;
       var cols = fit(w, sw), rows = fit(h, sh);
       for (var r = 0; r < rows; r++)
         for (var c = 0; c < cols; c++)
@@ -829,7 +1055,7 @@
     }
     var best = [];
     [false, true].forEach(function (rot) {
-      var sw = rot ? cm.h : cm.w, sh = rot ? cm.w : cm.h;
+      var sw = rot ? ch : cw, sh = rot ? cw : ch;
       var k, used, out;
       for (k = 0; k <= fit(UH, sh); k++) {          // k filas arriba, resto girado abajo
         out = []; used = k * (sh + g);
@@ -852,128 +1078,168 @@
     return best;
   }
 
-  function sheetSlots(o) {
-    var slots = sheetLayout(o);
-    var max = slots.length;
-    var ci = document.getElementById("copies");
-    ci.max = max;
-    if (copiesAuto || !ci.value) ci.value = max;
-    var n = Math.max(1, Math.min(max, parseInt(ci.value, 10) || max));
-    return { max: max, slots: slots.slice(0, n) };
+  // Reparte las copias de cada diseño en hojas: [[{slot, item}], ...]
+  function paginate(slots) {
+    var seq = [];
+    queue.forEach(function (q) { for (var i = 0; i < q.qty; i++) seq.push(q); });
+    var pages = [];
+    if (!slots.length) return pages;
+    for (var p = 0; p < seq.length; p += slots.length) {
+      pages.push(seq.slice(p, p + slots.length).map(function (q, i) { return { slot: slots[i], item: q }; }));
+    }
+    return pages;
   }
 
-  var sheetCanvas = document.getElementById("sheet");
-  var sctx = sheetCanvas.getContext("2d");
+  // ¿Hay que girar el diseño para que entre en el hueco?
+  function needsRotate(item, slot) {
+    return (item.d.orientation === "landscape") === slot.rot;
+  }
+
+  function drawSheetPage(cv, page, slots, o) {
+    var c = cv.getContext("2d");
+    var k = cv.width / A4.w;
+    c.fillStyle = "#ffffff";
+    c.fillRect(0, 0, cv.width, cv.height);
+    if (o.margin > 0) {
+      c.setLineDash([4, 4]); c.strokeStyle = "#d4d6dc"; c.lineWidth = 1;
+      c.strokeRect(o.margin * k, o.margin * k, (A4.w - 2 * o.margin) * k, (A4.h - 2 * o.margin) * k);
+      c.setLineDash([]);
+    }
+    // huecos libres
+    c.setLineDash([3, 3]); c.strokeStyle = "#c3c6ce"; c.lineWidth = 1;
+    slots.slice(page.length).forEach(function (s) { c.strokeRect(s.x * k, s.y * k, s.w * k, s.h * k); });
+    c.setLineDash([]);
+
+    page.forEach(function (p) {
+      var s = p.slot, cm = cardMM(p.item.d);
+      c.save();
+      if (needsRotate(p.item, s)) {
+        c.translate((s.x + s.w) * k, s.y * k);
+        c.rotate(Math.PI / 2);
+      } else {
+        c.translate(s.x * k, s.y * k);
+      }
+      c.drawImage(p.item.thumb, 0, 0, cm.w * k, cm.h * k);
+      if (o.cutlines) {
+        c.strokeStyle = "#9aa0ab"; c.lineWidth = 0.6;
+        if (p.item.d.rounded) { roundRect(c, 0, 0, cm.w * k, cm.h * k, CORNER_MM * k); c.stroke(); }
+        else c.strokeRect(0, 0, cm.w * k, cm.h * k);
+      }
+      c.restore();
+    });
+  }
 
   function renderSheet() {
     var o = sheetOpts();
-    var res = sheetSlots(o);
-    var k = sheetCanvas.width / A4.w;
-    var cm = cardMM();
-    sctx.clearRect(0, 0, sheetCanvas.width, sheetCanvas.height);
-    sctx.fillStyle = "#ffffff";
-    sctx.fillRect(0, 0, sheetCanvas.width, sheetCanvas.height);
-    if (o.margin > 0) {
-      sctx.setLineDash([4, 4]); sctx.strokeStyle = "#c9ccd3"; sctx.lineWidth = 1;
-      sctx.strokeRect(o.margin * k, o.margin * k, (A4.w - 2 * o.margin) * k, (A4.h - 2 * o.margin) * k);
-      sctx.setLineDash([]);
-    }
-    res.slots.forEach(function (s) {
-      sctx.save();
-      if (s.rot) {
-        sctx.translate((s.x + s.w) * k, s.y * k);
-        sctx.rotate(Math.PI / 2);
-      } else {
-        sctx.translate(s.x * k, s.y * k);
+    var slots = sheetLayout(o);
+    var pages = paginate(slots);
+    var n = totalQty(), cap = slots.length;
+    var wrap = $("pages");
+    wrap.innerHTML = "";
+    $("emptysheet").classList.toggle("hidden", queue.length > 0);
+    $("sheethead").classList.toggle("hidden", queue.length === 0);
+    if (!queue.length) return;
+
+    if (!pages.length) pages = [[]];   // muestra una hoja vacía si todo está en 0
+    wrap.classList.toggle("single", pages.length === 1);
+    pages.forEach(function (page, i) {
+      var fig = document.createElement("figure");
+      fig.className = "page";
+      var cv = document.createElement("canvas");
+      cv.width = 420; cv.height = 594;
+      fig.appendChild(cv);
+      if (pages.length > 1) {
+        var cap2 = document.createElement("figcaption");
+        cap2.textContent = "Hoja " + (i + 1) + " · " + page.length + (page.length === 1 ? " sticker" : " stickers");
+        fig.appendChild(cap2);
       }
-      sctx.drawImage(canvas, 0, 0, cm.w * k, cm.h * k);
-      if (o.cutlines) {
-        sctx.strokeStyle = "#9aa0ab"; sctx.lineWidth = 0.6;
-        if (state.rounded) { roundRect(sctx, 0, 0, cm.w * k, cm.h * k, CORNER_MM * k); sctx.stroke(); }
-        else sctx.strokeRect(0, 0, cm.w * k, cm.h * k);
-      }
-      sctx.restore();
+      wrap.appendChild(fig);
+      drawSheetPage(cv, page, slots, o);
     });
-    document.getElementById("sheetstat").innerHTML = res.max
-      ? "<b>" + res.slots.length + "</b> de <b>" + res.max + "</b> stickers por hoja A4"
+
+    var free = freeSlots(n, cap);
+    $("sheetstat").innerHTML = cap
+      ? "<b>" + n + "</b> stickers · <b>" + Math.max(1, Math.ceil(n / cap)) + "</b> hoja" + (Math.ceil(n / cap) > 1 ? "s" : "") +
+        " A4 · caben <b>" + cap + "</b> por hoja"
       : "No cabe ninguna tarjeta con estos márgenes";
+    var fb = $("fillSheet");
+    fb.textContent = free ? "Completar hoja (+" + free + ")" : "Hoja completa";
+    fb.disabled = !free;
   }
+
+  // Huecos libres en la última hoja
+  function freeSlots(n, cap) {
+    if (!cap) return 0;
+    return n ? (cap - (n % cap)) % cap : cap;
+  }
+
+  // Rellena los huecos libres de la última hoja repartiendo entre los diseños
+  $("fillSheet").addEventListener("click", function () {
+    if (!queue.length) return;
+    var free = freeSlots(totalQty(), sheetLayout(sheetOpts()).length);
+    for (var i = 0; i < free; i++) queue[i % queue.length].qty++;
+    updateQueue();
+  });
 
   function buildSheetPDF() {
     var JsPDF = getJsPDF(); if (!JsPDF) return null;
     var o = sheetOpts();
-    var slots = sheetSlots(o).slots;
-    var cm = cardMM(), b = o.bleed;
+    var pages = paginate(sheetLayout(o));
+    if (!pages.length) return null;
+    var b = o.bleed;
     var doc = new JsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
-    var src = renderCard(EXPORT_PPMM, b);
-    var data = src.toDataURL("image/png"), dataRot = null;
+    var cache = {};   // imágenes por diseño (normal y girada), se insertan una sola vez en el PDF
 
-    slots.forEach(function (s) {
-      if (s.rot) {
-        dataRot = dataRot || rotateCanvas(src).toDataURL("image/png");
-        doc.addImage(dataRot, "PNG", s.x - b, s.y - b, s.w + 2 * b, s.h + 2 * b, "cardRot", "FAST");
-      } else {
-        doc.addImage(data, "PNG", s.x - b, s.y - b, s.w + 2 * b, s.h + 2 * b, "card", "FAST");
+    function imageFor(item, rot) {
+      var key = "d" + item.id + (rot ? "r" : "");
+      if (!cache[key]) {
+        var base = cache["c" + item.id] || (cache["c" + item.id] = renderCard(EXPORT_PPMM, b, item.d));
+        cache[key] = (rot ? rotateCanvas(base) : base).toDataURL("image/png");
+      }
+      return { data: cache[key], alias: key };
+    }
+
+    pages.forEach(function (page, pi) {
+      if (pi > 0) doc.addPage("a4", "portrait");
+      page.forEach(function (p) {
+        var s = p.slot, im = imageFor(p.item, needsRotate(p.item, s));
+        doc.addImage(im.data, "PNG", s.x - b, s.y - b, s.w + 2 * b, s.h + 2 * b, im.alias, "FAST");
+      });
+      if (o.cutlines) {
+        doc.setDrawColor(150, 150, 150);
+        doc.setLineWidth(0.15);
+        page.forEach(function (p) {
+          var s = p.slot;
+          if (p.item.d.rounded) doc.roundedRect(s.x, s.y, s.w, s.h, CORNER_MM, CORNER_MM, "S");
+          else doc.rect(s.x, s.y, s.w, s.h, "S");
+        });
       }
     });
-    if (o.cutlines) {
-      doc.setDrawColor(150, 150, 150);
-      doc.setLineWidth(0.15);
-      slots.forEach(function (s) {
-        if (state.rounded) doc.roundedRect(s.x, s.y, s.w, s.h, CORNER_MM, CORNER_MM, "S");
-        else doc.rect(s.x, s.y, s.w, s.h, "S");
-      });
-    }
-    doc.setProperties({ title: "Stickers tarjeta NFC (" + slots.length + ") - A4" });
+    doc.setProperties({ title: "Stickers tarjeta NFC (" + totalQty() + ") - A4" });
     return doc;
   }
 
-  document.getElementById("sheetPdf").addEventListener("click", function () {
-    if (!state.img) return;
+  $("sheetPdf").addEventListener("click", function () {
     var doc = buildSheetPDF(); if (!doc) return;
-    doc.save(pdfName("stickers-a4"));
+    doc.save("stickers-nfc-a4.pdf");
   });
 
-  document.getElementById("sheetPrint").addEventListener("click", function () {
-    if (!state.img) return;
+  $("sheetPrint").addEventListener("click", function () {
     var doc = buildSheetPDF(); if (!doc) return;
     doc.autoPrint();
     var w = window.open(doc.output("bloburl"), "_blank");
-    if (!w) doc.save(pdfName("stickers-a4"));   // si bloquean la ventana, se descarga
+    if (!w) doc.save("stickers-nfc-a4.pdf");   // si bloquean la ventana, se descarga
   });
 
   ["margin", "gap", "bleed", "cutlines"].forEach(function (id) {
-    document.getElementById(id).addEventListener("change", renderSheet);
-  });
-  document.getElementById("copies").addEventListener("input", function (e) {
-    copiesAuto = e.target.value === "" || parseInt(e.target.value, 10) >= parseInt(e.target.max, 10);
-    renderSheet();
-  });
-  document.getElementById("copies").addEventListener("blur", function (e) {
-    var max = parseInt(e.target.max, 10) || 1;
-    e.target.value = Math.max(1, Math.min(max, parseInt(e.target.value, 10) || max));
-  });
-
-  // ---- Descargar PNG ----
-  document.getElementById("download").addEventListener("click", function () {
-    if (!state.img) return;
-    var out = renderCard(EXPORT_PPMM, 0);
-
-    out.toBlob(function (blob) {
-      var url = URL.createObjectURL(blob);
-      var img = document.getElementById("resultimg");
-      var a = document.getElementById("resultdl");
-      img.src = url;
-      a.href = url;
-      a.download = "tarjeta-nfc-" + out.width + "x" + out.height + ".png";
-      document.getElementById("result").classList.add("show");
-      document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, "image/png");
+    $(id).addEventListener("change", renderSheet);
   });
 
   // ---- Init ----
   center();
+  syncUI();
   render();
+  updateQueue();
   window.addEventListener("resize", render);
 })();
 </script>
