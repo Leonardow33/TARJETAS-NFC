@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diseñador de tarjeta NFC</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #eceae4;
+    --panel: #ffffff;
+    --panel-2: #f6f5f1;
+    --ink: #1b1d21;
+    --muted: #6f7178;
+    --line: #dcdad2;
+    --line-strong: #c7c4b8;
+    --accent: #2f5bd7;
+    --accent-ink: #ffffff;
+    --accent-soft: #e6ecfb;
+    --ok: #157f4a;
+    --danger: #b23b3b;
+    --shadow: 0 1px 2px rgba(20,22,28,.08), 0 10px 28px rgba(20,22,28,.12);
+    --radius: 14px;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #101217;
+      --panel: #191c23;
+      --panel-2: #20242d;
+      --ink: #e8eaed;
+      --muted: #9aa0ab;
+      --line: #2a2f3a;
+      --line-strong: #39404e;
+      --accent: #5f84f0;
+      --accent-ink: #0c0f16;
+      --accent-soft: #1d2740;
+      --ok: #4cc384;
+      --danger: #e06a6a;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 32px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #101217; --panel: #191c23; --panel-2: #20242d; --ink: #e8eaed;
+    --muted: #9aa0ab; --line: #2a2f3a; --line-strong: #39404e; --accent: #5f84f0;
+    --accent-ink: #0c0f16; --accent-soft: #1d2740; --ok: #4cc384; --danger: #e06a6a;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 32px rgba(0,0,0,.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100%;
+  }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 22px 16px 56px; }
+
+  header.top { margin-bottom: 20px; }
+  header.top h1 {
+    font-size: clamp(1.4rem, 1.1rem + 1.4vw, 2rem);
+    font-weight: 680; letter-spacing: -0.02em; margin: 0 0 4px;
+  }
+  header.top p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .sizepill {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 10px; padding: 5px 11px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line);
+    font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .sizepill b { color: var(--ink); font-weight: 620; }
+
+  .layout { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 760px) {
+    .layout { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+  }
+
+  /* ---- Stage ---- */
+  .stage {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .cardframe {
+    position: relative;
+    margin: 4px auto 0;
+    width: 100%;
+    /* checker shows transparent corners */
+    background-color: var(--panel-2);
+    background-image:
+      linear-gradient(45deg, var(--line) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--line) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--line) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--line) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: max-width .2s ease;
+  }
+  canvas#preview {
+    display: block; width: 100%; height: auto;
+    touch-action: none; cursor: grab;
+    filter: drop-shadow(0 6px 16px rgba(20,22,28,.18));
+  }
+  canvas#preview:active { cursor: grabbing; }
+  .emptyhint {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px;
+    pointer-events: none; text-align: center; padding: 20px; color: var(--muted);
+  }
+  .emptyhint svg { width: 34px; height: 34px; opacity: .6; }
+  .emptyhint span { font-size: .88rem; }
+  .draghint {
+    text-align: center; color: var(--muted); font-size: .8rem; margin-top: 12px;
+    min-height: 1em;
+  }
+
+  /* ---- Controls ---- */
+  .controls { display: flex; flex-direction: column; gap: 14px; }
+  .group {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow);
+  }
+  .group > .glabel {
+    font-size: .74rem; letter-spacing: .01em; text-transform: none;
+    color: var(--muted); font-weight: 600; margin-bottom: 10px;
+  }
+
+  .seg { display: flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
+  .seg button {
+    flex: 1; border: 0; background: transparent; color: var(--muted);
+    font: inherit; font-size: .86rem; font-weight: 560; padding: 7px 4px;
+    border-radius: 8px; cursor: pointer; transition: background .12s, color .12s;
+  }
+  .seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+  button.btn {
+    width: 100%; border: 1px solid var(--line-strong); background: var(--panel-2);
+    color: var(--ink); font: inherit; font-weight: 580; font-size: .9rem;
+    padding: 11px 12px; border-radius: 10px; cursor: pointer;
+    transition: background .12s, border-color .12s, transform .04s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  button.btn:hover { background: var(--panel); }
+  button.btn:active { transform: translateY(1px); }
+  button.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  button.btn.primary:hover { filter: brightness(1.05); background: var(--accent); }
+  button.btn.ghost { background: transparent; }
+  button.btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btnrow { display: flex; gap: 8px; margin-top: 8px; }
+  .btnrow .btn { font-size: .82rem; padding: 9px 8px; }
+
+  input[type="file"] { display: none; }
+
+  .field { margin-top: 12px; }
+  .field:first-child { margin-top: 0; }
+  .field label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: 6px; }
+  .field .row { display: flex; align-items: center; gap: 10px; }
+
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 4px; background: var(--line-strong); outline: none; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid var(--panel); box-shadow: 0 1px 3px rgba(0,0,0,.25); cursor: pointer; }
+  input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid var(--panel); cursor: pointer; }
+  input[type="range"][disabled] { opacity: .4; }
+
+  input[type="text"] {
+    width: 100%; font: inherit; font-size: .9rem; color: var(--ink);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px;
+    padding: 9px 11px;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+
+  .swatches { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .swatch { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line-strong); cursor: pointer; padding: 0; }
+  .swatch[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .colorbtn { position: relative; width: 28px; height: 28px; border-radius: 7px; overflow: hidden; border: 1px solid var(--line-strong); cursor: pointer; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); }
+  .colorbtn input[type="color"] { position: absolute; inset: -6px; width: 140%; height: 140%; border: 0; padding: 0; cursor: pointer; opacity: 0; }
+
+  .check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: .9rem; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+  .result { display: none; }
+  .result.show { display: block; }
+  .result img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); display: block; margin-bottom: 10px; background: var(--panel-2); }
+  .note { font-size: .82rem; color: var(--muted); margin: 0; }
+  .note b { color: var(--ink); font-weight: 600; }
+
+  .foot { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 26px; }
+
+  .valtag { font-variant-numeric: tabular-nums; color: var(--ink); font-size: .82rem; min-width: 42px; text-align: right; }
+
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ---- Hoja A4 ---- */
+  .sheetframe {
+    display: flex; justify-content: center; padding: 10px;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  }
+  canvas#sheet {
+    display: block; width: 100%; max-width: 230px; height: auto;
+    background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 6px 16px rgba(20,22,28,.14);
+  }
+  .sheetstat { text-align: center; font-size: .86rem; margin: 10px 0 2px; }
+  .sheetstat b { font-variant-numeric: tabular-nums; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .opts .field { margin-top: 0; }
+  select, input[type="number"] {
+    width: 100%; font: inherit; font-size: .88rem; color: var(--ink);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px;
+    padding: 8px 9px;
+  }
+  select:focus, input[type="number"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Diseñador de tarjeta NFC</h1>
+    <p>Sube una foto, acomódala y descárgala lista para imprimir y pegar sobre tu tarjeta.</p>
+    <span class="sizepill">Tamaño carnet · <b id="mmlabel">85.6 × 54 mm</b> · <b>300 DPI</b></span>
+  </header>
+
+  <div class="layout">
+    <!-- STAGE -->
+    <section class="stage">
+      <div class="cardframe" id="cardframe">
+        <canvas id="preview" width="685" height="432" role="img" aria-label="Vista previa de la tarjeta"></canvas>
+        <div class="emptyhint" id="emptyhint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5L5 19"/></svg>
+          <span>Sube una foto para empezar</span>
+        </div>
+      </div>
+      <p class="draghint" id="draghint"></p>
+    </section>
+
+    <!-- CONTROLS -->
+    <section class="controls">
+      <div class="group">
+        <div class="glabel">Orientación</div>
+        <div class="seg" id="orient">
+          <button data-o="landscape" aria-pressed="true">Horizontal</button>
+          <button data-o="portrait" aria-pressed="false">Vertical</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Foto</div>
+        <label class="btn primary" for="file">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span id="uploadlabel">Subir foto</span>
+        </label>
+        <input type="file" id="file" accept="image/*">
+        <div class="btnrow" id="fitrow" style="display:none">
+          <button class="btn" id="btnFill">Llenar</button>
+          <button class="btn" id="btnFit">Ajustar</button>
+          <button class="btn ghost" id="btnRemove">Quitar</button>
+        </div>
+        <div class="field" id="zoomfield" style="display:none">
+          <label>Zoom</label>
+          <div class="row">
+            <input type="range" id="zoom" min="0.3" max="4" step="0.01" value="1" disabled>
+            <span class="valtag" id="zoomval">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Color de fondo</div>
+        <div class="swatches" id="bgswatches">
+          <button class="swatch" data-c="#ffffff" style="background:#ffffff" aria-pressed="true" title="Blanco"></button>
+          <button class="swatch" data-c="#111318" style="background:#111318" title="Negro"></button>
+          <button class="swatch" data-c="#2f5bd7" style="background:#2f5bd7" title="Azul"></button>
+          <button class="swatch" data-c="#157f4a" style="background:#157f4a" title="Verde"></button>
+          <button class="swatch" data-c="#b23b3b" style="background:#b23b3b" title="Rojo"></button>
+          <span class="colorbtn" title="Color personalizado">
+            <input type="color" id="bgcustom" value="#ffffff">
+          </span>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Texto (opcional)</div>
+        <div class="field">
+          <input type="text" id="text" placeholder="Nombre, área, etc." maxlength="40">
+        </div>
+        <div class="field">
+          <label>Posición</label>
+          <div class="seg" id="textpos">
+            <button data-p="none" aria-pressed="true">Ninguno</button>
+            <button data-p="top" aria-pressed="false">Arriba</button>
+            <button data-p="bottom" aria-pressed="false">Abajo</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Color del texto</label>
+          <div class="swatches" id="txtswatches">
+            <button class="swatch" data-c="#ffffff" style="background:#ffffff" aria-pressed="true" title="Blanco"></button>
+            <button class="swatch" data-c="#111318" style="background:#111318" title="Negro"></button>
+            <span class="colorbtn" title="Color personalizado">
+              <input type="color" id="txtcustom" value="#ffffff">
+            </span>
+          </div>
+        </div>
+        <label class="check" style="margin-top:12px">
+          <input type="checkbox" id="textbar"> Barra de fondo para leer mejor
+        </label>
+      </div>
+
+      <div class="group">
+        <label class="check">
+          <input type="checkbox" id="rounded" checked> Esquinas redondeadas
+        </label>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Descargar una tarjeta</div>
+        <div class="stack">
+          <button class="btn primary" id="downloadPdf" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            PDF tamaño real
+          </button>
+          <button class="btn" id="download" disabled>Imagen PNG (300 DPI)</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Hoja A4 de stickers</div>
+        <div class="sheetframe">
+          <canvas id="sheet" width="420" height="594" role="img" aria-label="Vista previa de la hoja A4"></canvas>
+        </div>
+        <p class="sheetstat" id="sheetstat"></p>
+        <div class="opts">
+          <div class="field">
+            <label for="margin">Margen hoja</label>
+            <select id="margin">
+              <option value="0">0 mm</option>
+              <option value="3">3 mm</option>
+              <option value="5" selected>5 mm</option>
+              <option value="8">8 mm</option>
+              <option value="10">10 mm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="gap">Separación</label>
+            <select id="gap">
+              <option value="0">0 mm</option>
+              <option value="1">1 mm</option>
+              <option value="2" selected>2 mm</option>
+              <option value="3">3 mm</option>
+              <option value="5">5 mm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bleed">Sangrado</label>
+            <select id="bleed">
+              <option value="0" selected>Sin sangrado</option>
+              <option value="1">1 mm</option>
+              <option value="2">2 mm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="copies">Cantidad</label>
+            <input type="number" id="copies" min="1" step="1" inputmode="numeric">
+          </div>
+        </div>
+        <label class="check" style="margin-top:12px">
+          <input type="checkbox" id="cutlines" checked> Línea de corte
+        </label>
+        <div class="stack" style="margin-top:12px">
+          <button class="btn primary" id="sheetPdf" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            Descargar PDF A4
+          </button>
+          <button class="btn" id="sheetPrint" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>
+            Imprimir hoja
+          </button>
+        </div>
+        <p class="note" style="margin-top:10px">Al imprimir elige <b>A4</b> y escala <b>100% / Tamaño real</b> (no "Ajustar a página") para que las medidas sean exactas. El sangrado extiende la foto fuera de la línea de corte para que no queden bordes blancos al recortar.</p>
+      </div>
+
+      <div class="group result" id="result">
+        <div class="glabel">Lista para imprimir</div>
+        <img id="resultimg" alt="Imagen final de la tarjeta">
+        <a class="btn" id="resultdl" download="tarjeta-nfc.png" href="#">Guardar archivo</a>
+        <p class="note" style="margin-top:10px"><b>En iPhone:</b> mantén presionada la imagen de arriba y elige <b>Guardar en Fotos</b>. Luego imprímela a tamaño real (sin ajustar/escalar) y recórtala.</p>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">Las imágenes se procesan en tu dispositivo. Nada se sube a internet.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Constantes de tarjeta (CR80) ----
+  var CARD = { w: 85.6, h: 54 };        // mm, horizontal base
+  var CORNER_MM = 3.18;                  // radio estándar
+  var PREVIEW_PPMM = 8;                  // resolución interna de la vista previa
+  var EXPORT_PPMM = 300 / 25.4;          // 300 DPI
+
+  // ---- Estado ----
+  var state = {
+    orientation: "landscape",
+    img: null,
+    baseK: 1,      // mm por pixel de la imagen (preset activo)
+    zoom: 1,
+    cx: 0, cy: 0,  // centro de la imagen en mm (coords de la tarjeta)
+    bg: "#ffffff",
+    text: "",
+    textPos: "none",
+    textColor: "#ffffff",
+    textBar: false,
+    rounded: true
+  };
+
+  var canvas = document.getElementById("preview");
+  var ctx = canvas.getContext("2d");
+  var emptyhint = document.getElementById("emptyhint");
+  var draghint = document.getElementById("draghint");
+  var cardframe = document.getElementById("cardframe");
+
+  function cardMM() {
+    return state.orientation === "landscape"
+      ? { w: CARD.w, h: CARD.h }
+      : { w: CARD.h, h: CARD.w };
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  // Dibuja la tarjeta completa a una resolución dada (mm * S).
+  // bleed (mm) agrega sangrado alrededor: el lienzo mide (w + 2·bleed) × (h + 2·bleed).
+  function draw(c, S, bleed) {
+    var cm = cardMM();
+    var W = cm.w * S, H = cm.h * S, B = (bleed || 0) * S;
+    c.clearRect(0, 0, W + 2 * B, H + 2 * B);
+
+    c.save();
+    c.translate(B, B);
+    if (B > 0) { c.beginPath(); c.rect(-B, -B, W + 2 * B, H + 2 * B); }
+    else if (state.rounded) roundRect(c, 0, 0, W, H, CORNER_MM * S);
+    else { c.beginPath(); c.rect(0, 0, W, H); }
+    c.clip();
+
+    // fondo
+    c.fillStyle = state.bg;
+    c.fillRect(-B, -B, W + 2 * B, H + 2 * B);
+
+    // imagen
+    if (state.img) {
+      var k = state.baseK * state.zoom;       // mm por px de imagen
+      var iw = state.img.naturalWidth * k * S;
+      var ih = state.img.naturalHeight * k * S;
+      var ix = state.cx * S - iw / 2;
+      var iy = state.cy * S - ih / 2;
+      c.imageSmoothingQuality = "high";
+      c.drawImage(state.img, ix, iy, iw, ih);
+    }
+
+    // texto
+    if (state.text && state.textPos !== "none") {
+      var fontMM = 6;
+      var fs = fontMM * S;
+      c.font = "600 " + fs + "px -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      var pad = 3 * S;
+      var ty = state.textPos === "top" ? (fs / 2 + pad + 1 * S) : (H - fs / 2 - pad - 1 * S);
+
+      if (state.textBar) {
+        var barH = fs + pad * 1.6;
+        var barY = state.textPos === "top" ? -B : H - barH;
+        c.fillStyle = "rgba(0,0,0,0.42)";
+        c.fillRect(-B, barY, W + 2 * B, barH + B);
+      }
+      c.fillStyle = state.textColor;
+      c.shadowColor = "rgba(0,0,0,0.5)";
+      c.shadowBlur = state.textBar ? 0 : 3 * S;
+      c.fillText(state.text, W / 2, ty);
+      c.shadowBlur = 0;
+    }
+
+    c.restore();
+  }
+
+  function render() {
+    var cm = cardMM();
+    canvas.width = Math.round(cm.w * PREVIEW_PPMM);
+    canvas.height = Math.round(cm.h * PREVIEW_PPMM);
+    draw(ctx, PREVIEW_PPMM, 0);
+
+    // esquina redondeada cosmética del canvas en pantalla
+    var rect = canvas.getBoundingClientRect();
+    var cssR = (CORNER_MM / cm.w) * (rect.width || 1);
+    canvas.style.borderRadius = state.rounded ? cssR + "px" : "0px";
+
+    emptyhint.style.display = state.img ? "none" : "flex";
+    draghint.textContent = state.img ? "Arrastra la foto para moverla · usa el zoom para acercar" : "";
+    document.getElementById("mmlabel").textContent =
+      cm.w.toFixed(1).replace(".0", "") + " × " + cm.h.toFixed(1).replace(".0", "") + " mm";
+    updateFrameMax();
+    renderSheet();
+  }
+
+  // Limita el ancho del marco para que la vertical no se vea gigante
+  function updateFrameMax() {
+    var cm = cardMM();
+    if (state.orientation === "portrait") {
+      cardframe.style.maxWidth = "300px";
+    } else {
+      cardframe.style.maxWidth = "100%";
+    }
+  }
+
+  // ---- Presets de encuadre ----
+  function coverK() {
+    var cm = cardMM();
+    return Math.max(cm.w / state.img.naturalWidth, cm.h / state.img.naturalHeight);
+  }
+  function containK() {
+    var cm = cardMM();
+    return Math.min(cm.w / state.img.naturalWidth, cm.h / state.img.naturalHeight);
+  }
+  function applyFill() {
+    if (!state.img) return;
+    state.baseK = coverK(); state.zoom = 1; center();
+    setZoom(1); render();
+  }
+  function applyFit() {
+    if (!state.img) return;
+    state.baseK = containK(); state.zoom = 1; center();
+    setZoom(1); render();
+  }
+  function center() {
+    var cm = cardMM();
+    state.cx = cm.w / 2; state.cy = cm.h / 2;
+  }
+  function setZoom(z) {
+    state.zoom = z;
+    var zi = document.getElementById("zoom");
+    zi.value = z;
+    document.getElementById("zoomval").textContent = Math.round(z * 100) + "%";
+  }
+
+  // ---- Carga de imagen ----
+  document.getElementById("file").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var url = URL.createObjectURL(f);
+    var img = new Image();
+    img.onload = function () {
+      state.img = img;
+      applyFill();
+      document.getElementById("uploadlabel").textContent = "Cambiar foto";
+      document.getElementById("fitrow").style.display = "flex";
+      document.getElementById("zoomfield").style.display = "block";
+      document.getElementById("zoom").disabled = false;
+      setExportEnabled(true);
+      hideResult();
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = function () {
+      draghint.textContent = "No se pudo abrir esa imagen. Prueba con otra foto (JPG o PNG).";
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
+
+  document.getElementById("btnFill").addEventListener("click", applyFill);
+  document.getElementById("btnFit").addEventListener("click", applyFit);
+  document.getElementById("btnRemove").addEventListener("click", function () {
+    state.img = null;
+    document.getElementById("uploadlabel").textContent = "Subir foto";
+    document.getElementById("fitrow").style.display = "none";
+    document.getElementById("zoomfield").style.display = "none";
+    document.getElementById("zoom").disabled = true;
+    setExportEnabled(false);
+    document.getElementById("file").value = "";
+    hideResult();
+    render();
+  });
+
+  // ---- Zoom ----
+  document.getElementById("zoom").addEventListener("input", function (e) {
+    setZoom(parseFloat(e.target.value));
+    hideResult(); render();
+  });
+
+  // ---- Orientación ----
+  document.getElementById("orient").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    setSeg("orient", b);
+    state.orientation = b.dataset.o;
+    if (state.img) applyFill(); else center();
+    hideResult(); render();
+  });
+
+  // ---- Color de fondo ----
+  document.getElementById("bgswatches").addEventListener("click", function (e) {
+    var b = e.target.closest(".swatch"); if (!b) return;
+    clearPressed("bgswatches");
+    b.setAttribute("aria-pressed", "true");
+    state.bg = b.dataset.c;
+    hideResult(); render();
+  });
+  document.getElementById("bgcustom").addEventListener("input", function (e) {
+    clearPressed("bgswatches");
+    state.bg = e.target.value;
+    hideResult(); render();
+  });
+
+  // ---- Texto ----
+  document.getElementById("text").addEventListener("input", function (e) {
+    state.text = e.target.value;
+    if (state.textPos === "none" && state.text) {
+      // activa "Abajo" por defecto al escribir
+      var btn = document.querySelector('#textpos button[data-p="bottom"]');
+      setSeg("textpos", btn); state.textPos = "bottom";
+    }
+    hideResult(); render();
+  });
+  document.getElementById("textpos").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    setSeg("textpos", b); state.textPos = b.dataset.p;
+    hideResult(); render();
+  });
+  document.getElementById("txtswatches").addEventListener("click", function (e) {
+    var b = e.target.closest(".swatch"); if (!b) return;
+    clearPressed("txtswatches"); b.setAttribute("aria-pressed", "true");
+    state.textColor = b.dataset.c;
+    hideResult(); render();
+  });
+  document.getElementById("txtcustom").addEventListener("input", function (e) {
+    clearPressed("txtswatches");
+    state.textColor = e.target.value;
+    hideResult(); render();
+  });
+  document.getElementById("textbar").addEventListener("change", function (e) {
+    state.textBar = e.target.checked; hideResult(); render();
+  });
+
+  // ---- Esquinas ----
+  document.getElementById("rounded").addEventListener("change", function (e) {
+    state.rounded = e.target.checked; hideResult(); render();
+  });
+
+  // ---- Helpers de UI ----
+  function setSeg(id, btn) {
+    document.querySelectorAll("#" + id + " button").forEach(function (b) {
+      b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+    });
+  }
+  function clearPressed(id) {
+    document.querySelectorAll("#" + id + " .swatch").forEach(function (b) {
+      b.setAttribute("aria-pressed", "false");
+    });
+  }
+
+  // ---- Arrastrar y pellizcar ----
+  var pointers = new Map();
+  var dragLast = null;
+  var pinchStart = null;
+
+  function mmPerCssPx() {
+    var cm = cardMM();
+    var rect = canvas.getBoundingClientRect();
+    return cm.w / (rect.width || 1);
+  }
+
+  canvas.addEventListener("pointerdown", function (e) {
+    if (!state.img) return;
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      dragLast = { x: e.clientX, y: e.clientY };
+    } else if (pointers.size === 2) {
+      var pts = Array.from(pointers.values());
+      pinchStart = { dist: dist(pts[0], pts[1]), zoom: state.zoom };
+      dragLast = null;
+    }
+  });
+
+  canvas.addEventListener("pointermove", function (e) {
+    if (!state.img || !pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size >= 2 && pinchStart) {
+      var pts = Array.from(pointers.values());
+      var d = dist(pts[0], pts[1]);
+      var z = clamp(pinchStart.zoom * (d / pinchStart.dist), 0.3, 4);
+      setZoom(z); hideResult(); render();
+      return;
+    }
+    if (dragLast) {
+      var f = mmPerCssPx();
+      state.cx += (e.clientX - dragLast.x) * f;
+      state.cy += (e.clientY - dragLast.y) * f;
+      dragLast = { x: e.clientX, y: e.clientY };
+      hideResult(); render();
+    }
+  });
+
+  function endPointer(e) {
+    if (pointers.has(e.pointerId)) pointers.delete(e.pointerId);
+    if (pointers.size === 1) {
+      var p = Array.from(pointers.values())[0];
+      dragLast = { x: p.x, y: p.y };
+      pinchStart = null;
+    } else if (pointers.size === 0) {
+      dragLast = null; pinchStart = null;
+    }
+  }
+  canvas.addEventListener("pointerup", endPointer);
+  canvas.addEventListener("pointercancel", endPointer);
+
+  canvas.addEventListener("wheel", function (e) {
+    if (!state.img) return;
+    e.preventDefault();
+    var z = clamp(state.zoom * (e.deltaY < 0 ? 1.06 : 0.94), 0.3, 4);
+    setZoom(z); hideResult(); render();
+  }, { passive: false });
+
+  function dist(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return Math.hypot(dx, dy); }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  // ---- Descargar ----
+  function hideResult() { document.getElementById("result").classList.remove("show"); }
+
+  function setExportEnabled(on) {
+    ["download", "downloadPdf", "sheetPdf", "sheetPrint"].forEach(function (id) {
+      document.getElementById(id).disabled = !on;
+    });
+  }
+
+  // Renderiza la tarjeta en un canvas nuevo (con sangrado opcional en mm)
+  function renderCard(ppmm, bleed) {
+    var cm = cardMM();
+    var out = document.createElement("canvas");
+    out.width = Math.round((cm.w + 2 * bleed) * ppmm);
+    out.height = Math.round((cm.h + 2 * bleed) * ppmm);
+    draw(out.getContext("2d"), ppmm, bleed);
+    return out;
+  }
+
+  // Gira un canvas 90° en sentido horario
+  function rotateCanvas(src) {
+    var out = document.createElement("canvas");
+    out.width = src.height; out.height = src.width;
+    var c = out.getContext("2d");
+    c.translate(out.width, 0);
+    c.rotate(Math.PI / 2);
+    c.drawImage(src, 0, 0);
+    return out;
+  }
+
+  function getJsPDF() {
+    if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+    alert("No se pudo cargar el generador de PDF. Revisa tu conexión a internet y recarga la página.");
+    return null;
+  }
+
+  function pdfName(base) {
+    var cm = cardMM();
+    return base + "-" + String(cm.w).replace(".", ",") + "x" + String(cm.h).replace(".", ",") + "mm.pdf";
+  }
+
+  // ---- PDF de una tarjeta a tamaño real ----
+  document.getElementById("downloadPdf").addEventListener("click", function () {
+    if (!state.img) return;
+    var JsPDF = getJsPDF(); if (!JsPDF) return;
+    var cm = cardMM();
+    var doc = new JsPDF({
+      unit: "mm", format: [cm.w, cm.h],
+      orientation: cm.w > cm.h ? "landscape" : "portrait", compress: true
+    });
+    doc.addImage(renderCard(EXPORT_PPMM, 0).toDataURL("image/png"), "PNG", 0, 0, cm.w, cm.h, "card", "FAST");
+    doc.save(pdfName("tarjeta-nfc"));
+  });
+
+  // ---- Hoja A4: distribución ----
+  var A4 = { w: 210, h: 297 };
+  var copiesAuto = true;
+
+  function sheetOpts() {
+    var bleed = parseFloat(document.getElementById("bleed").value) || 0;
+    var gap = parseFloat(document.getElementById("gap").value) || 0;
+    return {
+      margin: parseFloat(document.getElementById("margin").value) || 0,
+      gap: Math.max(gap, 2 * bleed),      // el sangrado no puede invadir la tarjeta vecina
+      bleed: bleed,
+      cutlines: document.getElementById("cutlines").checked
+    };
+  }
+
+  // Busca la distribución con más tarjetas: cuadrícula en una orientación,
+  // o bandas mixtas (filas/columnas normales + giradas 90° en el espacio sobrante).
+  function sheetLayout(o) {
+    var cm = cardMM();
+    var UW = A4.w - 2 * o.margin, UH = A4.h - 2 * o.margin, g = o.gap;
+    function fit(len, size) { return Math.max(0, Math.floor((len + g) / (size + g) + 1e-9)); }
+    function grid(x0, y0, w, h, rot, out) {
+      var sw = rot ? cm.h : cm.w, sh = rot ? cm.w : cm.h;
+      var cols = fit(w, sw), rows = fit(h, sh);
+      for (var r = 0; r < rows; r++)
+        for (var c = 0; c < cols; c++)
+          out.push({ x: x0 + c * (sw + g), y: y0 + r * (sh + g), w: sw, h: sh, rot: rot });
+    }
+    var best = [];
+    [false, true].forEach(function (rot) {
+      var sw = rot ? cm.h : cm.w, sh = rot ? cm.w : cm.h;
+      var k, used, out;
+      for (k = 0; k <= fit(UH, sh); k++) {          // k filas arriba, resto girado abajo
+        out = []; used = k * (sh + g);
+        grid(0, 0, UW, used - g, rot, out);
+        grid(0, used, UW, UH - used, !rot, out);
+        if (out.length > best.length) best = out;
+      }
+      for (k = 0; k <= fit(UW, sw); k++) {          // k columnas a la izquierda, resto girado
+        out = []; used = k * (sw + g);
+        grid(0, 0, used - g, UH, rot, out);
+        grid(used, 0, UW - used, UH, !rot, out);
+        if (out.length > best.length) best = out;
+      }
+    });
+    // centra el bloque en la hoja
+    var bw = 0, bh = 0;
+    best.forEach(function (s) { bw = Math.max(bw, s.x + s.w); bh = Math.max(bh, s.y + s.h); });
+    var ox = o.margin + (UW - bw) / 2, oy = o.margin + (UH - bh) / 2;
+    best.forEach(function (s) { s.x += ox; s.y += oy; });
+    return best;
+  }
+
+  function sheetSlots(o) {
+    var slots = sheetLayout(o);
+    var max = slots.length;
+    var ci = document.getElementById("copies");
+    ci.max = max;
+    if (copiesAuto || !ci.value) ci.value = max;
+    var n = Math.max(1, Math.min(max, parseInt(ci.value, 10) || max));
+    return { max: max, slots: slots.slice(0, n) };
+  }
+
+  var sheetCanvas = document.getElementById("sheet");
+  var sctx = sheetCanvas.getContext("2d");
+
+  function renderSheet() {
+    var o = sheetOpts();
+    var res = sheetSlots(o);
+    var k = sheetCanvas.width / A4.w;
+    var cm = cardMM();
+    sctx.clearRect(0, 0, sheetCanvas.width, sheetCanvas.height);
+    sctx.fillStyle = "#ffffff";
+    sctx.fillRect(0, 0, sheetCanvas.width, sheetCanvas.height);
+    if (o.margin > 0) {
+      sctx.setLineDash([4, 4]); sctx.strokeStyle = "#c9ccd3"; sctx.lineWidth = 1;
+      sctx.strokeRect(o.margin * k, o.margin * k, (A4.w - 2 * o.margin) * k, (A4.h - 2 * o.margin) * k);
+      sctx.setLineDash([]);
+    }
+    res.slots.forEach(function (s) {
+      sctx.save();
+      if (s.rot) {
+        sctx.translate((s.x + s.w) * k, s.y * k);
+        sctx.rotate(Math.PI / 2);
+      } else {
+        sctx.translate(s.x * k, s.y * k);
+      }
+      sctx.drawImage(canvas, 0, 0, cm.w * k, cm.h * k);
+      if (o.cutlines) {
+        sctx.strokeStyle = "#9aa0ab"; sctx.lineWidth = 0.6;
+        if (state.rounded) { roundRect(sctx, 0, 0, cm.w * k, cm.h * k, CORNER_MM * k); sctx.stroke(); }
+        else sctx.strokeRect(0, 0, cm.w * k, cm.h * k);
+      }
+      sctx.restore();
+    });
+    document.getElementById("sheetstat").innerHTML = res.max
+      ? "<b>" + res.slots.length + "</b> de <b>" + res.max + "</b> stickers por hoja A4"
+      : "No cabe ninguna tarjeta con estos márgenes";
+  }
+
+  function buildSheetPDF() {
+    var JsPDF = getJsPDF(); if (!JsPDF) return null;
+    var o = sheetOpts();
+    var slots = sheetSlots(o).slots;
+    var cm = cardMM(), b = o.bleed;
+    var doc = new JsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+    var src = renderCard(EXPORT_PPMM, b);
+    var data = src.toDataURL("image/png"), dataRot = null;
+
+    slots.forEach(function (s) {
+      if (s.rot) {
+        dataRot = dataRot || rotateCanvas(src).toDataURL("image/png");
+        doc.addImage(dataRot, "PNG", s.x - b, s.y - b, s.w + 2 * b, s.h + 2 * b, "cardRot", "FAST");
+      } else {
+        doc.addImage(data, "PNG", s.x - b, s.y - b, s.w + 2 * b, s.h + 2 * b, "card", "FAST");
+      }
+    });
+    if (o.cutlines) {
+      doc.setDrawColor(150, 150, 150);
+      doc.setLineWidth(0.15);
+      slots.forEach(function (s) {
+        if (state.rounded) doc.roundedRect(s.x, s.y, s.w, s.h, CORNER_MM, CORNER_MM, "S");
+        else doc.rect(s.x, s.y, s.w, s.h, "S");
+      });
+    }
+    doc.setProperties({ title: "Stickers tarjeta NFC (" + slots.length + ") - A4" });
+    return doc;
+  }
+
+  document.getElementById("sheetPdf").addEventListener("click", function () {
+    if (!state.img) return;
+    var doc = buildSheetPDF(); if (!doc) return;
+    doc.save(pdfName("stickers-a4"));
+  });
+
+  document.getElementById("sheetPrint").addEventListener("click", function () {
+    if (!state.img) return;
+    var doc = buildSheetPDF(); if (!doc) return;
+    doc.autoPrint();
+    var w = window.open(doc.output("bloburl"), "_blank");
+    if (!w) doc.save(pdfName("stickers-a4"));   // si bloquean la ventana, se descarga
+  });
+
+  ["margin", "gap", "bleed", "cutlines"].forEach(function (id) {
+    document.getElementById(id).addEventListener("change", renderSheet);
+  });
+  document.getElementById("copies").addEventListener("input", function (e) {
+    copiesAuto = e.target.value === "" || parseInt(e.target.value, 10) >= parseInt(e.target.max, 10);
+    renderSheet();
+  });
+  document.getElementById("copies").addEventListener("blur", function (e) {
+    var max = parseInt(e.target.max, 10) || 1;
+    e.target.value = Math.max(1, Math.min(max, parseInt(e.target.value, 10) || max));
+  });
+
+  // ---- Descargar PNG ----
+  document.getElementById("download").addEventListener("click", function () {
+    if (!state.img) return;
+    var out = renderCard(EXPORT_PPMM, 0);
+
+    out.toBlob(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var img = document.getElementById("resultimg");
+      var a = document.getElementById("resultdl");
+      img.src = url;
+      a.href = url;
+      a.download = "tarjeta-nfc-" + out.width + "x" + out.height + ".png";
+      document.getElementById("result").classList.add("show");
+      document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, "image/png");
+  });
+
+  // ---- Init ----
+  center();
+  render();
+  window.addEventListener("resize", render);
+})();
+</script>
+</body>
+</html>
