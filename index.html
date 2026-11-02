@@ -275,6 +275,11 @@
     box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 8px 22px rgba(20,22,28,.18);
   }
   canvas#tplpreview.thermal { image-rendering: pixelated; border-radius: 2px; }
+  canvas#t-labelpv {
+    display: block; width: 110px; height: auto; background: #ffffff; image-rendering: pixelated;
+    border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 6px 16px rgba(20,22,28,.16);
+  }
+  .tplbtn .none { display: flex; align-items: center; justify-content: center; aspect-ratio: 1.585; border: 1px dashed var(--line-strong); border-radius: 3px; color: var(--muted); font-size: .8rem; }
   .tplhint { text-align: center; color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
   .tplgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
   .tplbtn {
@@ -310,6 +315,10 @@
   <!-- ================= VISTA: PLANTILLAS ================= -->
   <div class="layout hidden" id="view-tpl">
     <section class="stage">
+      <div class="seg" id="tplside" style="max-width:320px;margin:0 auto 14px">
+        <button data-side="front" aria-pressed="true">Frente</button>
+        <button data-side="back" aria-pressed="false">Reverso</button>
+      </div>
       <div class="labelframe">
         <canvas id="tplpreview" width="400" height="200" role="img" aria-label="Vista previa de la plantilla"></canvas>
       </div>
@@ -326,9 +335,11 @@
       <div class="group">
         <div class="glabel">Tamaño</div>
         <div class="seg" id="tplsize">
-          <button data-s="thermal" aria-pressed="true">Térmica 50 × 25</button>
-          <button data-s="card" aria-pressed="false">Tarjeta 85.6 × 54</button>
+          <button data-s="card" aria-pressed="true">Tarjeta</button>
+          <button data-s="l70x40" aria-pressed="false">70 × 40</button>
+          <button data-s="l50x25" aria-pressed="false">50 × 25</button>
         </div>
+        <p class="note" style="margin-top:8px" id="tplsizenote"></p>
       </div>
 
       <div class="group">
@@ -382,9 +393,9 @@
         </label>
       </div>
 
-      <!-- Térmica -->
+      <!-- Térmica: etiqueta pequeña -->
       <div class="group" id="t-thermal">
-        <div class="glabel">Impresora térmica</div>
+        <div class="glabel" id="t-thermaltitle">Impresora térmica</div>
         <div class="opts">
           <div class="field">
             <label for="t-dpi">Resolución</label>
@@ -404,16 +415,56 @@
         <div class="stack" style="margin-top:12px">
           <button class="btn primary" id="t-pdf">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
-            PDF etiqueta 50 × 25 mm
+            <span id="t-pdflabel">PDF etiqueta</span>
           </button>
-          <button class="btn" id="t-png">Imagen PNG</button>
+          <button class="btn" id="t-png">Imagen PNG (cara actual)</button>
         </div>
-        <p class="note" style="margin-top:10px">En el programa de la impresora elige papel <b>50 × 25 mm</b> y escala <b>100%</b>. El PDF trae una etiqueta por página.</p>
+        <p class="note" style="margin-top:10px" id="t-thermalnote"></p>
       </div>
 
-      <!-- Tarjeta -->
+      <!-- Térmica: tarjeta completa en etiqueta grande -->
+      <div class="group hidden" id="t-cardthermal">
+        <div class="glabel">Impresora térmica · tarjeta completa</div>
+        <div class="opts">
+          <div class="field">
+            <label for="t-lw">Ancho etiqueta (mm)</label>
+            <input type="number" id="t-lw" min="20" max="120" step="1" value="60" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="t-lh">Largo etiqueta (mm)</label>
+            <input type="number" id="t-lh" min="20" max="200" step="1" value="90" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="t-shrink">Reducir sticker</label>
+            <select id="t-shrink">
+              <option value="0">Exacto 85.6 × 54</option>
+              <option value="0.3" selected>0.3 mm por lado</option>
+              <option value="0.5">0.5 mm por lado</option>
+              <option value="1">1 mm por lado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="t-ccopies">Tarjetas</label>
+            <input type="number" id="t-ccopies" min="1" max="200" step="1" value="1" inputmode="numeric">
+          </div>
+        </div>
+        <label class="check" style="margin-top:12px">
+          <input type="checkbox" id="t-tcut" checked> Línea de corte
+        </label>
+        <div class="labelframe" style="margin-top:12px;padding:14px">
+          <canvas id="t-labelpv" width="120" height="180" role="img" aria-label="Vista de la etiqueta"></canvas>
+        </div>
+        <p class="note" style="margin-top:8px;text-align:center" id="t-labelinfo"></p>
+        <button class="btn primary" id="t-cardthermalpdf" style="margin-top:10px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          <span id="t-cardthermallabel">PDF para etiqueta</span>
+        </button>
+        <p class="note" style="margin-top:10px">En Windows, en el driver de la impresora crea un papel del tamaño de la etiqueta e imprime al <b>100%</b>. Sale una etiqueta por página: frente y luego reverso.</p>
+      </div>
+
+      <!-- Tarjeta: hoja A4 -->
       <div class="group hidden" id="t-card">
-        <div class="glabel">Tarjeta 85.6 × 54 mm</div>
+        <div class="glabel">Papel de stickers A4 / PDF</div>
         <div class="stack">
           <button class="btn primary" id="t-add">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -1397,21 +1448,34 @@
   });
 
   // ================= PLANTILLAS (blanco y negro) =================
-  var TPL_SIZES = { thermal: { w: 50, h: 25 }, card: { w: CARD.w, h: CARD.h } };
+  var TPL_SIZES = { card: { w: CARD.w, h: CARD.h }, l70x40: { w: 70, h: 40 }, l50x25: { w: 50, h: 25 } };
   var FONTS = {
     sans: "Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
     mono: "'Courier New', Courier, monospace"
   };
   var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link"];
-  var TPL_SAVE = ["template", "size", "font", "qr", "invert", "rounded"].concat(TPL_FIELDS);
+  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "rounded"].concat(TPL_FIELDS);
   var tpl = {
-    template: "clasica", size: "thermal", font: "sans",
+    template: "clasica", backTemplate: "nfc", side: "front", size: "card", font: "sans",
     name: "", role: "", company: "", phone: "", email: "", link: "",
-    qr: true, invert: false, rounded: true,
+    qr: true, invert: false, rounded: true, shrink: 0,
     logo: null, logoMode: "logo", logoInv: false   // logo = { img, cache }
   };
   var tplEditingId = null;
+
+  // Medidas del diseño; shrink (mm por lado) achica la tarjeta para que el sticker no llegue al canto
+  function tplDims(t) {
+    if (t.size !== "card") return TPL_SIZES[t.size];
+    var s = t.shrink || 0;
+    return { w: CARD.w - 2 * s, h: CARD.h - 2 * s };
+  }
+
+  // La plantilla con el diseño de una cara, o null si esa cara no lleva diseño
+  function sideTpl(t, side) {
+    var id = side === "back" ? t.backTemplate : t.template;
+    return id && id !== "none" ? Object.assign({}, t, { template: id }) : null;
+  }
 
   function qrURL(link) {
     link = (link || "").trim();
@@ -1478,7 +1542,7 @@
 
   // Dibuja la plantilla t a S px/mm; bleed (mm) extiende al sangrado los bloques que tocan el borde
   function drawTemplate(c, S, bleed, t) {
-    var sz = TPL_SIZES[t.size], W = sz.w, H = sz.h, b = bleed || 0;
+    var sz = tplDims(t), W = sz.w, H = sz.h, b = bleed || 0;
     var INK = t.invert ? "#ffffff" : "#000000", PAPER = t.invert ? "#000000" : "#ffffff";
     var family = FONTS[t.font] || FONTS.sans;
 
@@ -1579,6 +1643,19 @@
       return dw;
     }
 
+    // Ícono NFC (ondas) centrado en (cx, cy), de alto aproximado s
+    function nfc(cx, cy, s) {
+      var x0 = (cx - s * 0.33) * S, y = cy * S;
+      c.save();
+      c.strokeStyle = INK; c.fillStyle = INK; c.lineCap = "round";
+      c.lineWidth = s * 0.09 * S;
+      c.beginPath(); c.arc(x0, y, s * 0.07 * S, 0, Math.PI * 2); c.fill();
+      for (var i = 1; i <= 3; i++) {
+        c.beginPath(); c.arc(x0, y, s * 0.22 * i * S, -Math.PI / 4, Math.PI / 4); c.stroke();
+      }
+      c.restore();
+    }
+
     function handle(size, g) {
       var L = linkLabel(t.link);
       return { t: L.text, s: size, li: L.li, g: g };
@@ -1590,10 +1667,10 @@
     c.fillStyle = PAPER;
     c.fillRect(-b * S, -b * S, (W + 2 * b) * S, (H + 2 * b) * S);
     c.textBaseline = "middle";
-    var tdef = TEMPLATES.filter(function (d) { return d.id === t.template; })[0] || TEMPLATES[0];
-    tdef.draw({
+    var tdef = TEMPLATES.filter(function (d) { return d.id === t.template; })[0];
+    if (tdef) tdef.draw({
       t: t, W: W, H: H, f: H / 25, p: Math.max(1.8, H * 0.085), INK: INK, PAPER: PAPER,
-      rect: rect, stack: stack, qr: qr, hasQR: hasQR, logo: logo, handle: handle
+      rect: rect, stack: stack, qr: qr, hasQR: hasQR, logo: logo, handle: handle, nfc: nfc
     });
     c.restore();
   }
@@ -1691,11 +1768,21 @@
       if (t.logo) a.logo(p, p, a.W - 2 * p, h, a.INK, "center");
       else a.stack([{ t: initials(t.company || t.name) || "LOGO", s: 9 * f, b: true }], p, p, a.W - 2 * p, h, "center");
       if (lh) a.stack([{ t: t.name, s: 2.6 * f, b: true }], p, a.H - p - lh, a.W - 2 * p, lh, "center");
+    } },
+    { id: "nfc", name: "Acerca tu celular", draw: function (a) {
+      var t = a.t, f = a.f, p = a.p, q = a.H - 2 * p, withQR = a.hasQR();
+      if (withQR) a.qr(a.W - p - q, p, q);
+      var w = a.W - 2 * p - (withQR ? q + p : 0), ih = a.H * 0.34, top = p + a.H * 0.04;
+      a.nfc(p + w / 2, top + ih / 2, ih);
+      a.stack([
+        { t: "Acerca tu celular", s: 2.3 * f, b: true },
+        { t: withQR ? "o escanea el código" : t.name, s: 1.5 * f, g: 0.4 * f }
+      ], p, top + ih + 0.8 * f, w, a.H - top - ih - p - 0.8 * f, "center");
     } }
   ];
 
   function renderTemplate(t, ppmm, bleed, mono) {
-    var sz = TPL_SIZES[t.size], b = bleed || 0;
+    var sz = tplDims(t), b = bleed || 0;
     var cv = document.createElement("canvas");
     cv.width = Math.round((sz.w + 2 * b) * ppmm);
     cv.height = Math.round((sz.h + 2 * b) * ppmm);
@@ -1712,19 +1799,32 @@
     tplRaf = requestAnimationFrame(function () {
       tplRaf = 0;
       if ($("view-tpl").classList.contains("hidden")) return;
-      var thermal = tpl.size === "thermal";
-      var out = thermal ? renderTemplate(tpl, thermalPPMM(), 0, true) : renderTemplate(tpl, 12, 0, false);
+      var card = tpl.size === "card", back = tpl.side === "back";
+      var cur = sideTpl(tpl, tpl.side) || Object.assign({}, tpl, { template: "__blank" });
+      var out = card ? renderTemplate(cur, 12, 0, false) : renderTemplate(cur, thermalPPMM(), 0, true);
       var pv = $("tplpreview");
       pv.width = out.width; pv.height = out.height;
       pv.getContext("2d").drawImage(out, 0, 0);
-      pv.classList.toggle("thermal", thermal);
-      pv.style.borderRadius = !thermal && tpl.rounded ? (CORNER_MM / CARD.w * 100) + "% / " + (CORNER_MM / CARD.h * 100) + "%" : "";
-      $("tplhint").textContent = thermal
-        ? "Vista real a " + $("t-dpi").value + " DPI: así saldrá en tu impresora térmica (solo blanco y negro)."
-        : "85.6 × 54 mm · agrégala a la hoja A4 para imprimirla en papel de stickers.";
+      pv.classList.toggle("thermal", !card);
+      pv.style.borderRadius = card && tpl.rounded ? (CORNER_MM / CARD.w * 100) + "% / " + (CORNER_MM / CARD.h * 100) + "%" : "";
+      var sideName = back ? "Reverso" : "Frente";
+      $("tplhint").textContent = !sideTpl(tpl, tpl.side)
+        ? "Sin reverso: solo se imprimirá el frente. Elige un diseño abajo si quieres reverso."
+        : card
+          ? sideName + " · 85.6 × 54 mm. Elige abajo el diseño de esta cara."
+          : sideName + " · vista real a " + $("t-dpi").value + " DPI, así saldrá en tu impresora térmica.";
 
+      // Galería: se reconstruye al cambiar de cara (el reverso tiene la opción "Sin reverso")
       var grid = $("tplgrid");
-      if (!grid.children.length) {
+      if (grid.dataset.side !== tpl.side) {
+        grid.innerHTML = "";
+        grid.dataset.side = tpl.side;
+        if (back) {
+          var nb = document.createElement("button");
+          nb.className = "tplbtn"; nb.dataset.t = "none";
+          nb.innerHTML = '<div class="none">Sin reverso</div><span>Ninguno</span>';
+          grid.appendChild(nb);
+        }
         TEMPLATES.forEach(function (d) {
           var btn = document.createElement("button");
           btn.className = "tplbtn"; btn.dataset.t = d.id;
@@ -1733,20 +1833,74 @@
           grid.appendChild(btn);
         });
       }
-      var sz = TPL_SIZES[tpl.size], tp = 240 / sz.w;
+      var tp = 240 / tplDims(tpl).w, selected = back ? tpl.backTemplate : tpl.template;
       Array.prototype.forEach.call(grid.children, function (btn) {
-        var th = renderTemplate(Object.assign({}, tpl, { template: btn.dataset.t }), tp, 0, false);
+        btn.setAttribute("aria-pressed", btn.dataset.t === selected ? "true" : "false");
         var cv = btn.querySelector("canvas");
+        if (!cv) return;
+        var th = renderTemplate(Object.assign({}, tpl, { template: btn.dataset.t }), tp, 0, false);
         cv.width = th.width; cv.height = th.height;
         cv.getContext("2d").drawImage(th, 0, 0);
-        btn.setAttribute("aria-pressed", btn.dataset.t === tpl.template ? "true" : "false");
       });
+
+      if (card) renderLabelPreview();
     });
   }
+
+  // ---- Tarjeta completa en etiqueta térmica (ej. 60 × 90) ----
+  function cardLabelLayout() {
+    var lw = parseFloat($("t-lw").value) || 60, lh = parseFloat($("t-lh").value) || 90;
+    var shrink = parseFloat($("t-shrink").value) || 0;
+    var sw = CARD.w - 2 * shrink, sh = CARD.h - 2 * shrink;
+    var rot = sw > lw + 1e-6;                    // si no entra acostado, va girado
+    var pw = rot ? sh : sw, ph = rot ? sw : sh;  // medida del sticker sobre la etiqueta
+    return { lw: lw, lh: lh, shrink: shrink, sw: sw, sh: sh, rot: rot, pw: pw, ph: ph,
+             fits: pw <= lw + 1e-6 && ph <= lh + 1e-6 };
+  }
+
+  function cardLabelCanvas(t, L, ppmm) {
+    var cv = document.createElement("canvas");
+    cv.width = Math.round(L.lw * ppmm); cv.height = Math.round(L.lh * ppmm);
+    var c = cv.getContext("2d");
+    c.fillStyle = "#ffffff"; c.fillRect(0, 0, cv.width, cv.height);
+    var st = renderTemplate(Object.assign({}, t, { size: "card", shrink: L.shrink }), ppmm, 0, true);
+    if (L.rot) st = rotateCanvas(st);
+    var x = Math.round((cv.width - st.width) / 2), y = Math.round((cv.height - st.height) / 2);
+    c.drawImage(st, x, y);
+    if ($("t-tcut").checked) {
+      c.strokeStyle = "#000000"; c.lineWidth = 1;
+      if (t.rounded) { roundRect(c, x + 0.5, y + 0.5, st.width - 1, st.height - 1, CORNER_MM * ppmm); c.stroke(); }
+      else c.strokeRect(x + 0.5, y + 0.5, st.width - 1, st.height - 1);
+    }
+    return toMono(cv);
+  }
+
+  function renderLabelPreview() {
+    var L = cardLabelLayout(), pv = $("t-labelpv");
+    var cur = sideTpl(tpl, tpl.side) || sideTpl(tpl, "front");
+    var info = $("t-labelinfo");
+    $("t-cardthermalpdf").disabled = !L.fits;
+    $("t-cardthermallabel").textContent = "PDF para etiqueta " + L.lw + " × " + L.lh + " mm";
+    if (!L.fits) {
+      pv.width = 120; pv.height = 180;
+      pv.getContext("2d").clearRect(0, 0, 120, 180);
+      info.innerHTML = "<b>No entra:</b> la etiqueta debe medir al menos " +
+        fmt(Math.min(L.sw, L.sh)) + " × " + fmt(Math.max(L.sw, L.sh)) + " mm.";
+      return;
+    }
+    var out = cardLabelCanvas(cur, L, thermalPPMM());
+    pv.width = out.width; pv.height = out.height;
+    pv.getContext("2d").drawImage(out, 0, 0);
+    info.innerHTML = "Sticker de <b>" + fmt(L.sw) + " × " + fmt(L.sh) + " mm</b>" +
+      (L.rot ? " (sale girado)" : "") + " en etiqueta de " + L.lw + " × " + L.lh + " mm.";
+  }
+
+  function fmt(n) { return String(Math.round(n * 10) / 10); }
 
   function syncTplUI() {
     TPL_FIELDS.forEach(function (k) { $("t-" + k).value = tpl[k]; });
     setSeg("tplsize", document.querySelector('#tplsize button[data-s="' + tpl.size + '"]'));
+    setSeg("tplside", document.querySelector('#tplside button[data-side="' + tpl.side + '"]'));
     setSeg("tplfont", document.querySelector('#tplfont button[data-f="' + tpl.font + '"]'));
     setSeg("tpllogomode", document.querySelector('#tpllogomode button[data-m="' + tpl.logoMode + '"]'));
     $("t-qr").checked = tpl.qr;
@@ -1756,10 +1910,20 @@
     $("t-logolabel").textContent = tpl.logo ? "Cambiar logo" : "Subir logo";
     $("t-logodel").classList.toggle("hidden", !tpl.logo);
     $("t-logoopts").classList.toggle("hidden", !tpl.logo);
-    var card = tpl.size === "card";
+    var card = tpl.size === "card", d = TPL_SIZES[tpl.size];
     $("t-thermal").classList.toggle("hidden", card);
+    $("t-cardthermal").classList.toggle("hidden", !card);
     $("t-card").classList.toggle("hidden", !card);
     $("t-roundedwrap").classList.toggle("hidden", !card);
+    $("tplsizenote").textContent = card
+      ? "Cubre toda la cara de la tarjeta. Imprímela en térmica (etiqueta 60 × 90) o en papel de stickers A4."
+      : "Sticker de " + d.w + " × " + d.h + " mm para la impresora térmica (cubre parte de la tarjeta).";
+    if (!card) {
+      var lbl = d.w + " × " + d.h + " mm";
+      $("t-thermaltitle").textContent = "Impresora térmica · etiqueta " + lbl;
+      $("t-pdflabel").textContent = "PDF etiqueta " + lbl;
+      $("t-thermalnote").innerHTML = "En el programa de la impresora elige papel <b>" + lbl + "</b> y escala <b>100%</b>. Sale una etiqueta por página (frente y, si tiene, reverso).";
+    }
     $("t-addlabel").textContent = tplEditingId ? "Guardar cambios" : "Agregar a hoja A4";
     $("t-cancel").classList.toggle("hidden", !tplEditingId);
     renderTpl();
@@ -1778,6 +1942,8 @@
       var o = JSON.parse(localStorage.getItem("nfc-plantilla") || "null");
       if (o) TPL_SAVE.forEach(function (k) { if (k in o) tpl[k] = o[k]; });
     } catch (e) {}
+    if (tpl.size === "thermal") tpl.size = "l50x25";   // versión anterior
+    if (!TPL_SIZES[tpl.size]) tpl.size = "card";
   }
 
   function tplChanged() { saveTpl(); $("tpladded").classList.add("hidden"); renderTpl(); }
@@ -1788,7 +1954,7 @@
   [["t-qr", "qr"], ["t-invert", "invert"], ["t-rounded", "rounded"], ["t-logoinv", "logoInv"]].forEach(function (p) {
     $(p[0]).addEventListener("change", function (e) { tpl[p[1]] = e.target.checked; tplChanged(); });
   });
-  [["tplsize", "size", "s"], ["tplfont", "font", "f"], ["tpllogomode", "logoMode", "m"]].forEach(function (p) {
+  [["tplsize", "size", "s"], ["tplside", "side", "side"], ["tplfont", "font", "f"], ["tpllogomode", "logoMode", "m"]].forEach(function (p) {
     $(p[0]).addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       tpl[p[1]] = b.dataset[p[2]];
@@ -1797,9 +1963,11 @@
   });
   $("tplgrid").addEventListener("click", function (e) {
     var b = e.target.closest(".tplbtn"); if (!b) return;
-    tpl.template = b.dataset.t; tplChanged();
+    if (tpl.side === "back") tpl.backTemplate = b.dataset.t; else tpl.template = b.dataset.t;
+    tplChanged();
   });
-  $("t-dpi").addEventListener("change", renderTpl);
+  ["t-dpi", "t-shrink", "t-tcut"].forEach(function (id) { $(id).addEventListener("change", renderTpl); });
+  ["t-lw", "t-lh"].forEach(function (id) { $(id).addEventListener("input", renderTpl); });
 
   $("t-logo").addEventListener("change", function (e) {
     var f = e.target.files && e.target.files[0];
@@ -1825,42 +1993,81 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
   }
 
-  // ---- Exportar etiqueta térmica 50×25 ----
-  function thermalCanvas() {
-    var cv = renderTemplate(tpl, thermalPPMM(), 0, true);
+  // Caras con diseño, en orden de impresión
+  function tplSides(t) {
+    return ["front", "back"].map(function (s) { return sideTpl(t, s); }).filter(Boolean);
+  }
+
+  // PDF con una página por etiqueta: por cada copia, frente y luego reverso
+  function labelPDF(pages, w, h, copies, name) {
+    var JsPDF = getJsPDF(); if (!JsPDF) return;
+    var orient = w > h ? "landscape" : "portrait";
+    var doc = new JsPDF({ unit: "mm", format: [w, h], orientation: orient, compress: true });
+    var data = pages.map(function (cv) { return cv.toDataURL("image/png"); });
+    var first = true;
+    for (var i = 0; i < copies; i++) {
+      data.forEach(function (d, k) {
+        if (!first) doc.addPage([w, h], orient);
+        first = false;
+        doc.addImage(d, "PNG", 0, 0, w, h, "side" + k, "FAST");
+      });
+    }
+    doc.setProperties({ title: "Etiquetas " + w + "x" + h + " mm" });
+    doc.save(name + "-" + w + "x" + h + "mm" + (copies > 1 ? "-x" + copies : "") + ".pdf");
+  }
+
+  // ---- Etiqueta térmica pequeña (70×40, 50×25) ----
+  function thermalCanvas(t) {
+    var cv = renderTemplate(t, thermalPPMM(), 0, true);
     return $("t-rotate").checked ? rotateCanvas(cv) : cv;
   }
 
   $("t-pdf").addEventListener("click", function () {
-    var JsPDF = getJsPDF(); if (!JsPDF) return;
-    var rot = $("t-rotate").checked, w = rot ? 25 : 50, h = rot ? 50 : 25;
-    var orient = w > h ? "landscape" : "portrait";
-    var copies = clamp(parseInt($("t-copies").value, 10) || 1, 1, 500);
-    var data = thermalCanvas().toDataURL("image/png");
-    var doc = new JsPDF({ unit: "mm", format: [w, h], orientation: orient, compress: true });
-    for (var i = 0; i < copies; i++) {
-      if (i) doc.addPage([w, h], orient);
-      doc.addImage(data, "PNG", 0, 0, w, h, "label", "FAST");
-    }
-    doc.setProperties({ title: "Etiqueta 50x25 mm" });
-    doc.save("etiqueta-50x25mm" + (copies > 1 ? "-x" + copies : "") + ".pdf");
+    var d = TPL_SIZES[tpl.size], rot = $("t-rotate").checked;
+    labelPDF(tplSides(tpl).map(thermalCanvas), rot ? d.h : d.w, rot ? d.w : d.h,
+      clamp(parseInt($("t-copies").value, 10) || 1, 1, 500), "etiqueta");
   });
 
   $("t-png").addEventListener("click", function () {
-    thermalCanvas().toBlob(function (blob) { downloadBlob(blob, "etiqueta-50x25mm.png"); }, "image/png");
+    var cur = sideTpl(tpl, tpl.side); if (!cur) return;
+    var d = TPL_SIZES[tpl.size];
+    thermalCanvas(cur).toBlob(function (blob) {
+      downloadBlob(blob, "etiqueta-" + d.w + "x" + d.h + "mm-" + (tpl.side === "back" ? "reverso" : "frente") + ".png");
+    }, "image/png");
+  });
+
+  // ---- Tarjeta completa en etiqueta térmica ----
+  $("t-cardthermalpdf").addEventListener("click", function () {
+    var L = cardLabelLayout(); if (!L.fits) return;
+    var ppmm = thermalPPMM();
+    labelPDF(tplSides(tpl).map(function (t) { return cardLabelCanvas(t, L, ppmm); }), L.lw, L.lh,
+      clamp(parseInt($("t-ccopies").value, 10) || 1, 1, 200), "tarjeta-termica");
   });
 
   // ---- Tarjeta 85.6×54: hoja A4 y PDF ----
-  $("t-add").addEventListener("click", function () {
-    var snap = Object.assign({}, tpl, { size: "card" });
-    var fields = {
-      kind: "tpl", t: snap, name: snap.name || "Plantilla", orientation: "landscape", rounded: snap.rounded,
-      render: function (ppmm, bleed) { return renderTemplate(snap, ppmm, bleed, false); }
+  function tplItem(snap, side) {
+    var st = sideTpl(snap, side);
+    return {
+      kind: "tpl", t: snap, side: side, orientation: "landscape", rounded: snap.rounded,
+      name: (snap.name || "Plantilla") + (side === "back" ? " · reverso" : " · frente"),
+      render: function (ppmm, bleed) { return renderTemplate(st, ppmm, bleed, false); }
     };
+  }
+
+  $("t-add").addEventListener("click", function () {
+    var snap = Object.assign({}, tpl, { size: "card", shrink: 0 });
     var item = tplEditingId && queue.filter(function (q) { return q.id === tplEditingId; })[0];
-    if (item) Object.assign(item, fields);
-    addToQueue(fields, item);
-    $("tpladdedmsg").textContent = item ? "Cambios guardados." : "Agregada a la hoja A4 (" + queue.length + (queue.length === 1 ? " diseño" : " diseños") + " en total).";
+    if (item) {
+      if (sideTpl(snap, item.side)) {
+        var f = tplItem(snap, item.side);
+        Object.assign(item, f);
+        addToQueue(f, item);
+      }
+    } else {
+      ["front", "back"].forEach(function (s) { if (sideTpl(snap, s)) addToQueue(tplItem(snap, s)); });
+    }
+    $("tpladdedmsg").textContent = item ? "Cambios guardados."
+      : "Agregada a la hoja A4" + (sideTpl(snap, "back") ? " (frente y reverso)" : "") + ".";
     $("tpladded").classList.remove("hidden");
     tplEditingId = null;
     syncTplUI();
@@ -1873,7 +2080,7 @@
 
   function editTemplateItem(q) {
     tplEditingId = q.id;
-    tpl = Object.assign({}, q.t);
+    tpl = Object.assign({}, q.t, { side: q.side || "front" });
     $("tpladded").classList.add("hidden");
     showView("tpl");
     syncTplUI();
@@ -1882,7 +2089,10 @@
   $("t-cardpdf").addEventListener("click", function () {
     var JsPDF = getJsPDF(); if (!JsPDF) return;
     var doc = new JsPDF({ unit: "mm", format: [CARD.w, CARD.h], orientation: "landscape", compress: true });
-    doc.addImage(renderTemplate(tpl, EXPORT_PPMM, 0, false).toDataURL("image/png"), "PNG", 0, 0, CARD.w, CARD.h, "tcard", "FAST");
+    tplSides(Object.assign({}, tpl, { shrink: 0 })).forEach(function (t, i) {
+      if (i) doc.addPage([CARD.w, CARD.h], "landscape");
+      doc.addImage(renderTemplate(t, EXPORT_PPMM, 0, false).toDataURL("image/png"), "PNG", 0, 0, CARD.w, CARD.h, "tcard" + i, "FAST");
+    });
     doc.save("tarjeta-presentacion-85,6x54mm.pdf");
   });
 
