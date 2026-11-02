@@ -1548,6 +1548,8 @@
     var sz = tplDims(t), W = sz.w, H = sz.h, b = bleed || 0;
     var INK = t.invert ? "#ffffff" : "#000000", PAPER = t.invert ? "#000000" : "#ffffff";
     var family = FONTS[t.font] || FONTS.sans;
+    // Etiquetas: el contenido crece hasta llenar el espacio. Térmica: trazos más gruesos para que no salgan grises.
+    var FILL = t.size !== "card", BOLDEN = !!t.thermal;
 
     function setFont(size, bold) { c.font = (bold ? "700 " : "400 ") + (size * S) + "px " + family; }
     function width(s, size, bold) { setFont(size, bold); return c.measureText(s).width / S; }
@@ -1572,6 +1574,10 @@
       }
       setFont(size, bold); c.fillStyle = col; c.textAlign = "left";
       c.fillText(s, (x0 + box + gi) * S, ym * S);
+      if (BOLDEN) {   // engrosa ~1 punto de la térmica (0.12 mm) los trazos finos
+        c.lineWidth = (bold ? 0.06 : 0.12) * S; c.lineJoin = "round"; c.strokeStyle = col;
+        c.strokeText(s, (x0 + box + gi) * S, ym * S);
+      }
     }
 
     // Apila líneas centradas en vertical dentro de la caja; achica la letra si no entra.
@@ -1584,24 +1590,43 @@
         if (l.rule) return;
         if (l.up) l.t = l.t.toUpperCase();
         var tw = width(l.t, l.s, l.b) + (l.li ? l.s * 1.4 : 0);
-        if (tw > w) l.s *= w / tw;
+        l.s0 = l.s;                        // tamaño de diseño, antes de ajustar
+        l.max = l.s * w / tw;              // letra más grande que cabe en el ancho
+        if (l.s > l.max) l.s = l.max;
       });
-      var total = lines.reduce(function (sum, l, i) {
-        return sum + (i ? (l.g || 0) : 0) + (l.rule ? l.th : l.s * 1.18);
-      }, 0);
-      var k = total > h ? h / total : 1;
-      var y = top + (h - total * k) / 2;
+      // La línea principal (letra de diseño más grande, normalmente el nombre) sigue siendo la más grande:
+      // las demás no pasan del 72 % de su tamaño final
+      var texts = lines.filter(function (l) { return !l.rule; });
+      var lead = texts.reduce(function (m, l) { return l.s0 > m.s0 ? l : m; });
+      function sizeOf(l, k) {
+        var sz = Math.min(l.s * k, l.max);
+        if (FILL && l !== lead) sz = Math.min(sz, Math.min(lead.s * k, lead.max) * Math.max(l.s0 / lead.s0, 0.72));
+        return sz;
+      }
+      function totalAt(k) {
+        return lines.reduce(function (sum, l, i) {
+          return sum + (i ? (l.g || 0) * k : 0) + (l.rule ? l.th * k : sizeOf(l, k) * 1.18);
+        }, 0);
+      }
+      var k = 1, total = totalAt(1);
+      if (total > h) k = h / total;
+      else if (FILL) {
+        // agranda todo (hasta 1.6×) mientras entre en la caja; sizeOf mantiene al nombre como la más grande
+        for (var g = 1.6; g > 1; g -= 0.02) if (totalAt(g) <= h * 0.96) { k = g; break; }
+      }
+      total = totalAt(k);
+      var y = top + (h - total) / 2;
       lines.forEach(function (l, i) {
         if (i) y += (l.g || 0) * k;
         var col = color || INK;
         if (l.rule) {
-          var lw = Math.min(l.rule, w), rx = align === "center" ? x + (w - lw) / 2 : x;
+          var lw = Math.min(l.rule * k, w), rx = align === "center" ? x + (w - lw) / 2 : x;
           c.fillStyle = col;
           c.fillRect(Math.round(rx * S), Math.round(y * S), Math.round(lw * S), Math.max(1, Math.round(l.th * k * S)));
           y += l.th * k;
           return;
         }
-        var s = l.s * k, lh = s * 1.18;
+        var s = sizeOf(l, k), lh = s * 1.18;
         text(l.t, s, l.b, col, x, y + lh / 2, w, align, l.li);
         y += lh;
       });
@@ -1672,7 +1697,7 @@
     c.textBaseline = "middle";
     var tdef = TEMPLATES.filter(function (d) { return d.id === t.template; })[0];
     if (tdef) tdef.draw({
-      t: t, W: W, H: H, f: H / 25, p: Math.max(1.8, H * 0.085), INK: INK, PAPER: PAPER,
+      t: t, W: W, H: H, f: H / 25, p: FILL ? Math.max(1.8, H * 0.06) : Math.max(1.8, H * 0.085), fill: FILL, INK: INK, PAPER: PAPER,
       rect: rect, stack: stack, qr: qr, hasQR: hasQR, logo: logo, handle: handle, nfc: nfc
     });
     c.restore();
@@ -1681,8 +1706,8 @@
   // Diseños. Medidas en mm relativas a la altura (f = H / 25), así sirven para 50×25 y 85.6×54.
   var TEMPLATES = [
     { id: "clasica", name: "Clásica", draw: function (a) {
-      var t = a.t, f = a.f, p = a.p, q = a.H - 2 * p, withQR = a.hasQR();
-      if (withQR) a.qr(a.W - p - q, p, q);
+      var t = a.t, f = a.f, p = a.p, q = (a.H - 2 * p) * (a.fill ? 0.82 : 1), withQR = a.hasQR();
+      if (withQR) a.qr(a.W - p - q, (a.H - q) / 2, q);
       a.stack([
         { t: t.name, s: 3.6 * f, b: true },
         { t: t.role, s: 2.1 * f, g: 0.3 * f },
@@ -1719,14 +1744,15 @@
         { t: t.name, s: 4 * f, b: true, g: 0.9 * f },
         { t: t.role, s: 2 * f, g: 0.3 * f },
         { rule: 10 * f, th: 0.4 * f, g: 1.1 * f },
-        { t: contact, s: 1.5 * f, g: 1.1 * f },
-        a.handle(1.5 * f, 0.4 * f)
+        a.fill ? { t: t.phone, s: 1.7 * f, g: 1.1 * f } : { t: contact, s: 1.5 * f, g: 1.1 * f },
+        a.fill ? { t: t.email, s: 1.7 * f, g: 0.3 * f } : null,
+        a.handle(a.fill ? 1.7 * f : 1.5 * f, 0.4 * f)
       ], p, p, a.W - 2 * p, a.H - 2 * p, "center");
     } },
     { id: "qr", name: "QR grande", draw: function (a) {
-      var t = a.t, f = a.f, p = a.p, q = a.H - 2 * p, withQR = a.hasQR();
+      var t = a.t, f = a.f, p = a.p, q = (a.H - 2 * p) * (a.fill ? 0.88 : 1), withQR = a.hasQR();
       var x = withQR ? 2 * p + q : p;
-      if (withQR) a.qr(p, p, q);
+      if (withQR) a.qr(p, (a.H - q) / 2, q);
       a.stack([
         { t: t.name, s: 3.3 * f, b: true },
         { t: t.role, s: 1.9 * f, g: 0.3 * f },
@@ -1779,7 +1805,7 @@
       a.nfc(p + w / 2, top + ih / 2, ih);
       a.stack([
         { t: "Acerca tu celular", s: 2.3 * f, b: true },
-        { t: withQR ? "o escanea el código" : t.name, s: 1.5 * f, g: 0.4 * f }
+        { t: withQR ? "o escanea el código" : t.name, s: (a.fill ? 1.75 : 1.5) * f, g: 0.4 * f }
       ], p, top + ih + 0.8 * f, w, a.H - top - ih - p - 0.8 * f, "center");
     } }
   ];
@@ -1789,7 +1815,7 @@
     var cv = document.createElement("canvas");
     cv.width = Math.round((sz.w + 2 * b) * ppmm);
     cv.height = Math.round((sz.h + 2 * b) * ppmm);
-    drawTemplate(cv.getContext("2d"), ppmm, b, t);
+    drawTemplate(cv.getContext("2d"), ppmm, b, mono ? Object.assign({}, t, { thermal: true }) : t);
     return mono ? toMono(cv) : cv;
   }
 
@@ -1860,7 +1886,7 @@
         btn.setAttribute("aria-pressed", btn.dataset.t === selected ? "true" : "false");
         var cv = btn.querySelector("canvas");
         if (!cv) return;
-        var th = renderTemplate(Object.assign({}, tpl, { template: btn.dataset.t }), tp, 0, false);
+        var th = renderTemplate(Object.assign({}, tpl, { template: btn.dataset.t }), tp, 0, !card);
         cv.width = th.width; cv.height = th.height;
         cv.getContext("2d").drawImage(th, 0, 0);
       });
