@@ -323,6 +323,9 @@
         <canvas id="tplpreview" width="400" height="200" role="img" aria-label="Vista previa de la plantilla"></canvas>
       </div>
       <p class="tplhint" id="tplhint"></p>
+      <label class="check hidden" id="t-dotswrap" style="justify-content:center;margin-top:6px">
+        <input type="checkbox" id="t-dots"> Ver puntos reales de la impresora (ampliado)
+      </label>
       <div class="tplgrid" id="tplgrid"></div>
       <div class="added hidden" id="tpladded">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -1801,18 +1804,37 @@
       if ($("view-tpl").classList.contains("hidden")) return;
       var card = tpl.size === "card", back = tpl.side === "back";
       var cur = sideTpl(tpl, tpl.side) || Object.assign({}, tpl, { template: "__blank" });
-      var out = card ? renderTemplate(cur, 12, 0, false) : renderTemplate(cur, thermalPPMM(), 0, true);
-      var pv = $("tplpreview");
+      var pv = $("tplpreview"), dots = !card && $("t-dots").checked;
+      // Resolución de pantalla real para que la vista previa se vea nítida
+      var cssW = pv.parentNode.clientWidth - 32 || 460;
+      var dispPx = Math.min(cssW, 460) * (window.devicePixelRatio || 1);
+      var sharpPPMM = Math.max(12, dispPx / tplDims(cur).w);
+      var out;
+      if (dots) {
+        // Puntos reales (203/300 DPI) ampliados en múltiplo entero, sin suavizado
+        var raw = renderTemplate(cur, thermalPPMM(), 0, true);
+        var k = Math.max(1, Math.ceil(dispPx / raw.width));
+        out = document.createElement("canvas");
+        out.width = raw.width * k; out.height = raw.height * k;
+        var oc = out.getContext("2d");
+        oc.imageSmoothingEnabled = false;
+        oc.drawImage(raw, 0, 0, out.width, out.height);
+      } else {
+        out = renderTemplate(cur, sharpPPMM, 0, !card);
+      }
       pv.width = out.width; pv.height = out.height;
       pv.getContext("2d").drawImage(out, 0, 0);
-      pv.classList.toggle("thermal", !card);
+      $("t-dotswrap").classList.toggle("hidden", card);
+      pv.classList.toggle("thermal", dots);
       pv.style.borderRadius = card && tpl.rounded ? (CORNER_MM / CARD.w * 100) + "% / " + (CORNER_MM / CARD.h * 100) + "%" : "";
       var sideName = back ? "Reverso" : "Frente";
       $("tplhint").textContent = !sideTpl(tpl, tpl.side)
         ? "Sin reverso: solo se imprimirá el frente. Elige un diseño abajo si quieres reverso."
         : card
           ? sideName + " · 85.6 × 54 mm. Elige abajo el diseño de esta cara."
-          : sideName + " · vista real a " + $("t-dpi").value + " DPI, así saldrá en tu impresora térmica.";
+          : dots
+            ? sideName + " · puntos reales a " + $("t-dpi").value + " DPI, ampliados. Impreso en tamaño real se ve fino."
+            : sideName + " · " + tplDims(cur).w + " × " + tplDims(cur).h + " mm, solo blanco y negro como en la térmica.";
 
       // Galería: se reconstruye al cambiar de cara (el reverso tiene la opción "Sin reverso")
       var grid = $("tplgrid");
@@ -1966,7 +1988,7 @@
     if (tpl.side === "back") tpl.backTemplate = b.dataset.t; else tpl.template = b.dataset.t;
     tplChanged();
   });
-  ["t-dpi", "t-shrink", "t-tcut"].forEach(function (id) { $(id).addEventListener("change", renderTpl); });
+  ["t-dpi", "t-shrink", "t-tcut", "t-dots"].forEach(function (id) { $(id).addEventListener("change", renderTpl); });
   ["t-lw", "t-lh"].forEach(function (id) { $(id).addEventListener("input", renderTpl); });
 
   $("t-logo").addEventListener("change", function (e) {
@@ -2103,7 +2125,7 @@
   syncUI();
   render();
   updateQueue();
-  window.addEventListener("resize", render);
+  window.addEventListener("resize", function () { render(); renderTpl(); });
 })();
 </script>
 </body>
