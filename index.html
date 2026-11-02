@@ -145,19 +145,19 @@
   }
   .seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 
-  button.btn {
+  .btn {
     width: 100%; border: 1px solid var(--line-strong); background: var(--panel-2);
     color: var(--ink); font: inherit; font-weight: 580; font-size: .9rem;
     padding: 11px 12px; border-radius: 10px; cursor: pointer;
     transition: background .12s, border-color .12s, transform .04s;
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
-  button.btn:hover { background: var(--panel); }
-  button.btn:active { transform: translateY(1px); }
-  button.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-  button.btn.primary:hover { filter: brightness(1.05); background: var(--accent); }
-  button.btn.ghost { background: transparent; }
-  button.btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btn:hover { background: var(--panel); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .btn.primary:hover { filter: brightness(1.05); background: var(--accent); }
+  .btn.ghost { background: transparent; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
   .btnrow { display: flex; gap: 8px; margin-top: 8px; }
   .btnrow .btn { font-size: .82rem; padding: 9px 8px; }
 
@@ -204,7 +204,7 @@
   .hidden { display: none !important; }
 
   /* ---- Pestañas ---- */
-  .tabs { margin-bottom: 18px; max-width: 420px; }
+  .tabs { margin-bottom: 18px; max-width: 580px; }
   .tabs button { font-size: .92rem; padding: 9px 6px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
   .badge {
     display: inline-flex; align-items: center; justify-content: center;
@@ -264,21 +264,167 @@
   .qact { display: flex; flex-direction: column; gap: 4px; }
   .qact button.del { color: var(--danger); }
   .qempty { color: var(--muted); font-size: .86rem; margin: 0; }
+
+  /* ---- Plantillas ---- */
+  .labelframe {
+    display: flex; align-items: center; justify-content: center;
+    padding: 28px 16px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line);
+  }
+  canvas#tplpreview {
+    display: block; width: 100%; max-width: 460px; height: auto; background: #ffffff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 8px 22px rgba(20,22,28,.18);
+  }
+  canvas#tplpreview.thermal { image-rendering: pixelated; border-radius: 2px; }
+  .tplhint { text-align: center; color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
+  .tplgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
+  .tplbtn {
+    border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; padding: 8px;
+    cursor: pointer; font: inherit; color: var(--ink); text-align: center;
+  }
+  .tplbtn[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .tplbtn canvas { display: block; width: 100%; height: auto; background: #fff; border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+  .tplbtn span { display: block; font-size: .78rem; margin-top: 6px; color: var(--muted); font-weight: 560; }
+  .tplbtn[aria-pressed="true"] span { color: var(--ink); }
+  .fields { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .fields input[type="text"] { padding: 8px 10px; font-size: .88rem; }
+  .logo-row { display: flex; gap: 8px; align-items: center; }
+  .logo-row .btn { width: auto; flex: 1; font-size: .84rem; padding: 9px 10px; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <h1>Diseñador de tarjeta NFC</h1>
-    <p>Diseña tus tarjetas, agrégalas a la hoja e imprímelas en papel de stickers.</p>
+    <p>Diseña tus tarjetas, agrégalas a la hoja e imprímelas en papel de stickers o en tu impresora térmica.</p>
     <span class="sizepill">Tamaño carnet · <b id="mmlabel">85.6 × 54 mm</b> · <b>300 DPI</b></span>
   </header>
 
   <nav class="seg tabs" id="tabs">
-    <button data-v="design" aria-pressed="true">1 · Diseñar</button>
-    <button data-v="print" aria-pressed="false">2 · Imprimir <span class="badge zero" id="qbadge">0</span></button>
+    <button data-v="design" aria-pressed="true">Foto</button>
+    <button data-v="tpl" aria-pressed="false">Plantillas</button>
+    <button data-v="print" aria-pressed="false">Hoja A4 <span class="badge zero" id="qbadge">0</span></button>
   </nav>
+
+  <!-- ================= VISTA: PLANTILLAS ================= -->
+  <div class="layout hidden" id="view-tpl">
+    <section class="stage">
+      <div class="labelframe">
+        <canvas id="tplpreview" width="400" height="200" role="img" aria-label="Vista previa de la plantilla"></canvas>
+      </div>
+      <p class="tplhint" id="tplhint"></p>
+      <div class="tplgrid" id="tplgrid"></div>
+      <div class="added hidden" id="tpladded">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <span id="tpladdedmsg">Agregada a la hoja A4.</span>
+        <button class="linkbtn" data-goto="print">Ver hoja →</button>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="group">
+        <div class="glabel">Tamaño</div>
+        <div class="seg" id="tplsize">
+          <button data-s="thermal" aria-pressed="true">Térmica 50 × 25</button>
+          <button data-s="card" aria-pressed="false">Tarjeta 85.6 × 54</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Datos</div>
+        <div class="fields">
+          <input type="text" id="t-name" placeholder="Nombre" value="Ana Torres" maxlength="40">
+          <input type="text" id="t-role" placeholder="Cargo o profesión" value="Gerente Comercial" maxlength="50">
+          <input type="text" id="t-company" placeholder="Empresa" value="Mi Empresa" maxlength="40">
+          <input type="text" id="t-phone" placeholder="Teléfono" value="+51 999 888 777" maxlength="30">
+          <input type="text" id="t-email" placeholder="Correo" value="ana@miempresa.com" maxlength="50">
+          <input type="text" id="t-link" placeholder="Link de LinkedIn (o web)" value="linkedin.com/in/anatorres" maxlength="200">
+        </div>
+        <label class="check" style="margin-top:12px">
+          <input type="checkbox" id="t-qr" checked> Código QR del link
+        </label>
+        <p class="note" style="margin-top:8px">Deja vacío cualquier campo que no quieras mostrar.</p>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Estilo</div>
+        <div class="field">
+          <label>Letra</label>
+          <div class="seg" id="tplfont">
+            <button data-f="sans" aria-pressed="true">Moderna</button>
+            <button data-f="serif" aria-pressed="false">Clásica</button>
+            <button data-f="mono" aria-pressed="false">Mono</button>
+          </div>
+        </div>
+        <label class="check" style="margin-top:12px">
+          <input type="checkbox" id="t-invert"> Invertir colores (fondo negro)
+        </label>
+        <div class="field">
+          <label>Logo o imagen (opcional)</label>
+          <div class="logo-row">
+            <label class="btn" for="t-logo" id="t-logolabel">Subir logo</label>
+            <button class="btn ghost hidden" id="t-logodel">Quitar</button>
+          </div>
+          <input type="file" id="t-logo" accept="image/*">
+        </div>
+        <div class="field hidden" id="t-logoopts">
+          <div class="seg" id="tpllogomode">
+            <button data-m="logo" aria-pressed="true">Logo</button>
+            <button data-m="photo" aria-pressed="false">Foto (tramado)</button>
+          </div>
+          <label class="check" style="margin-top:10px">
+            <input type="checkbox" id="t-logoinv"> Invertir logo
+          </label>
+        </div>
+        <label class="check hidden" style="margin-top:12px" id="t-roundedwrap">
+          <input type="checkbox" id="t-rounded" checked> Esquinas redondeadas
+        </label>
+      </div>
+
+      <!-- Térmica -->
+      <div class="group" id="t-thermal">
+        <div class="glabel">Impresora térmica</div>
+        <div class="opts">
+          <div class="field">
+            <label for="t-dpi">Resolución</label>
+            <select id="t-dpi">
+              <option value="203" selected>203 DPI</option>
+              <option value="300">300 DPI</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="t-copies">Copias</label>
+            <input type="number" id="t-copies" min="1" max="500" step="1" value="1" inputmode="numeric">
+          </div>
+        </div>
+        <label class="check" style="margin-top:12px">
+          <input type="checkbox" id="t-rotate"> Girar 90° (si tu impresora imprime de lado)
+        </label>
+        <div class="stack" style="margin-top:12px">
+          <button class="btn primary" id="t-pdf">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            PDF etiqueta 50 × 25 mm
+          </button>
+          <button class="btn" id="t-png">Imagen PNG</button>
+        </div>
+        <p class="note" style="margin-top:10px">En el programa de la impresora elige papel <b>50 × 25 mm</b> y escala <b>100%</b>. El PDF trae una etiqueta por página.</p>
+      </div>
+
+      <!-- Tarjeta -->
+      <div class="group hidden" id="t-card">
+        <div class="glabel">Tarjeta 85.6 × 54 mm</div>
+        <div class="stack">
+          <button class="btn primary" id="t-add">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <span id="t-addlabel">Agregar a hoja A4</span>
+          </button>
+          <button class="btn ghost hidden" id="t-cancel">Cancelar edición</button>
+          <button class="btn" id="t-cardpdf">PDF tamaño real</button>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <!-- ================= VISTA: DISEÑAR ================= -->
   <div class="layout" id="view-design">
@@ -854,9 +1000,12 @@
   function showView(v) {
     $("view-design").classList.toggle("hidden", v !== "design");
     $("view-print").classList.toggle("hidden", v !== "print");
+    $("view-tpl").classList.toggle("hidden", v !== "tpl");
     document.querySelector(".sizepill").classList.toggle("hidden", v !== "design");
     setSeg("tabs", document.querySelector('#tabs button[data-v="' + v + '"]'));
-    if (v === "print") renderSheet(); else render();
+    if (v === "print") renderSheet();
+    else if (v === "tpl") renderTpl();
+    else render();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   $("tabs").addEventListener("click", function (e) {
@@ -929,13 +1078,13 @@
   $("addPrint").addEventListener("click", function () {
     if (!state.img) return;
     var d = Object.assign({}, state);
-    var thumb = renderCard(PREVIEW_PPMM, 0, d);
+    var fields = {
+      kind: "photo", d: d, name: d.text, orientation: d.orientation, rounded: d.rounded,
+      render: function (ppmm, bleed) { return renderCard(ppmm, bleed, d); }
+    };
     var item = editingId && queue.filter(function (q) { return q.id === editingId; })[0];
-    if (item) {
-      item.d = d; item.thumb = thumb; item.thumbURL = thumb.toDataURL("image/png");
-    } else {
-      queue.push({ id: nextId++, d: d, qty: 1, thumb: thumb, thumbURL: thumb.toDataURL("image/png") });
-    }
+    if (item) Object.assign(item, fields);
+    addToQueue(fields, item);
     $("addedmsg").textContent = item
       ? "Cambios guardados."
       : "Diseño agregado a la hoja (" + queue.length + " en total). Sube otra foto para seguir.";
@@ -956,8 +1105,18 @@
     $("file").click();
   });
 
+  // Agrega un diseño a la cola (o actualiza su miniatura si ya existe).
+  // Cada elemento sabe dibujarse: render(ppmm, bleed) → canvas.
+  function addToQueue(fields, existing) {
+    var item = existing || Object.assign({ id: nextId++, qty: 1 }, fields);
+    item.thumb = item.render(PREVIEW_PPMM, 0);
+    item.thumbURL = item.thumb.toDataURL("image/png");
+    if (!existing) queue.push(item);
+    return item;
+  }
+
   function itemName(q, i) {
-    return q.d.text ? q.d.text : "Diseño " + (i + 1);
+    return q.name ? q.name : "Diseño " + (i + 1);
   }
 
   function totalQty() {
@@ -1005,6 +1164,8 @@
           queue.splice(queue.indexOf(q), 1);
           if (editingId === q.id) resetEditor();
           updateQueue();
+        } else if (a === "edit" && q.kind === "tpl") {
+          editTemplateItem(q);
         } else if (a === "edit") {
           editingId = q.id;
           state = Object.assign({}, q.d);
@@ -1092,7 +1253,7 @@
 
   // ¿Hay que girar el diseño para que entre en el hueco?
   function needsRotate(item, slot) {
-    return (item.d.orientation === "landscape") === slot.rot;
+    return (item.orientation === "landscape") === slot.rot;
   }
 
   function drawSheetPage(cv, page, slots, o) {
@@ -1111,7 +1272,7 @@
     c.setLineDash([]);
 
     page.forEach(function (p) {
-      var s = p.slot, cm = cardMM(p.item.d);
+      var s = p.slot, cm = cardMM(p.item);
       c.save();
       if (needsRotate(p.item, s)) {
         c.translate((s.x + s.w) * k, s.y * k);
@@ -1122,7 +1283,7 @@
       c.drawImage(p.item.thumb, 0, 0, cm.w * k, cm.h * k);
       if (o.cutlines) {
         c.strokeStyle = "#9aa0ab"; c.lineWidth = 0.6;
-        if (p.item.d.rounded) { roundRect(c, 0, 0, cm.w * k, cm.h * k, CORNER_MM * k); c.stroke(); }
+        if (p.item.rounded) { roundRect(c, 0, 0, cm.w * k, cm.h * k, CORNER_MM * k); c.stroke(); }
         else c.strokeRect(0, 0, cm.w * k, cm.h * k);
       }
       c.restore();
@@ -1193,7 +1354,7 @@
     function imageFor(item, rot) {
       var key = "d" + item.id + (rot ? "r" : "");
       if (!cache[key]) {
-        var base = cache["c" + item.id] || (cache["c" + item.id] = renderCard(EXPORT_PPMM, b, item.d));
+        var base = cache["c" + item.id] || (cache["c" + item.id] = item.render(EXPORT_PPMM, b));
         cache[key] = (rot ? rotateCanvas(base) : base).toDataURL("image/png");
       }
       return { data: cache[key], alias: key };
@@ -1210,7 +1371,7 @@
         doc.setLineWidth(0.15);
         page.forEach(function (p) {
           var s = p.slot;
-          if (p.item.d.rounded) doc.roundedRect(s.x, s.y, s.w, s.h, CORNER_MM, CORNER_MM, "S");
+          if (p.item.rounded) doc.roundedRect(s.x, s.y, s.w, s.h, CORNER_MM, CORNER_MM, "S");
           else doc.rect(s.x, s.y, s.w, s.h, "S");
         });
       }
@@ -1235,7 +1396,499 @@
     $(id).addEventListener("change", renderSheet);
   });
 
+  // ================= PLANTILLAS (blanco y negro) =================
+  var TPL_SIZES = { thermal: { w: 50, h: 25 }, card: { w: CARD.w, h: CARD.h } };
+  var FONTS = {
+    sans: "Helvetica, Arial, sans-serif",
+    serif: "Georgia, 'Times New Roman', serif",
+    mono: "'Courier New', Courier, monospace"
+  };
+  var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link"];
+  var TPL_SAVE = ["template", "size", "font", "qr", "invert", "rounded"].concat(TPL_FIELDS);
+  var tpl = {
+    template: "clasica", size: "thermal", font: "sans",
+    name: "", role: "", company: "", phone: "", email: "", link: "",
+    qr: true, invert: false, rounded: true,
+    logo: null, logoMode: "logo", logoInv: false   // logo = { img, cache }
+  };
+  var tplEditingId = null;
+
+  function qrURL(link) {
+    link = (link || "").trim();
+    if (!link) return "";
+    return /^https?:\/\//i.test(link) ? link : "https://" + link;
+  }
+  // Texto visible del link: "anatorres" con ícono "in" si es un perfil de LinkedIn
+  function linkLabel(link) {
+    var s = (link || "").trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "");
+    var m = s.match(/linkedin\.com\/in\/([^\/?#]+)/i);
+    if (m) { try { return { li: true, text: decodeURIComponent(m[1]) }; } catch (e) { return { li: true, text: m[1] }; } }
+    return { li: /linkedin\.com/i.test(s), text: s };
+  }
+  function initials(s) {
+    return (s || "").trim().split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0).toUpperCase(); }).join("");
+  }
+
+  // Pasa un canvas a blanco y negro puro (umbral o tramado Floyd–Steinberg)
+  function toMono(cv, dither, invert) {
+    var c = cv.getContext("2d"), w = cv.width, h = cv.height;
+    var id = c.getImageData(0, 0, w, h), p = id.data, g = new Float32Array(w * h), i, x, y;
+    for (i = 0; i < w * h; i++) {
+      var a = p[i * 4 + 3] / 255;
+      var lum = 0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2];
+      g[i] = 255 - a * (255 - lum);           // sobre fondo blanco
+      if (invert) g[i] = 255 - g[i];
+    }
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      var j = y * w + x, v = g[j] < 128 ? 0 : 255;
+      if (dither) {
+        var e = g[j] - v;
+        if (x + 1 < w) g[j + 1] += e * 7 / 16;
+        if (y + 1 < h) {
+          if (x > 0) g[j + w - 1] += e * 3 / 16;
+          g[j + w] += e * 5 / 16;
+          if (x + 1 < w) g[j + w + 1] += e / 16;
+        }
+      }
+      p[j * 4] = p[j * 4 + 1] = p[j * 4 + 2] = v; p[j * 4 + 3] = 255;
+    }
+    c.putImageData(id, 0, 0);
+    return cv;
+  }
+
+  // Logo como silueta de un solo color (las partes oscuras se pintan con "color")
+  function logoMask(logo, inv, color) {
+    var key = (inv ? "i" : "n") + color;
+    if (logo.cache[key]) return logo.cache[key];
+    var img = logo.img, sc = Math.min(1, 1200 / Math.max(img.naturalWidth, img.naturalHeight));
+    var cv = document.createElement("canvas");
+    cv.width = Math.max(1, Math.round(img.naturalWidth * sc));
+    cv.height = Math.max(1, Math.round(img.naturalHeight * sc));
+    var c = cv.getContext("2d");
+    c.drawImage(img, 0, 0, cv.width, cv.height);
+    var id = c.getImageData(0, 0, cv.width, cv.height), p = id.data, rgb = color === "#ffffff" ? 255 : 0;
+    for (var i = 0; i < p.length; i += 4) {
+      var lum = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+      var on = p[i + 3] >= 128 && ((lum < 160) !== inv);
+      p[i] = p[i + 1] = p[i + 2] = rgb; p[i + 3] = on ? 255 : 0;
+    }
+    c.putImageData(id, 0, 0);
+    return (logo.cache[key] = cv);
+  }
+
+  // Dibuja la plantilla t a S px/mm; bleed (mm) extiende al sangrado los bloques que tocan el borde
+  function drawTemplate(c, S, bleed, t) {
+    var sz = TPL_SIZES[t.size], W = sz.w, H = sz.h, b = bleed || 0;
+    var INK = t.invert ? "#ffffff" : "#000000", PAPER = t.invert ? "#000000" : "#ffffff";
+    var family = FONTS[t.font] || FONTS.sans;
+
+    function setFont(size, bold) { c.font = (bold ? "700 " : "400 ") + (size * S) + "px " + family; }
+    function width(s, size, bold) { setFont(size, bold); return c.measureText(s).width / S; }
+
+    function rect(x, y, w, h, color) {
+      var x0 = x <= 0 ? -b : x, y0 = y <= 0 ? -b : y;
+      var x1 = x + w >= W - 1e-6 ? W + b : x + w, y1 = y + h >= H - 1e-6 ? H + b : y + h;
+      c.fillStyle = color;
+      c.fillRect(x0 * S, y0 * S, (x1 - x0) * S, (y1 - y0) * S);
+    }
+
+    function text(s, size, bold, col, x, ym, w, align, li) {
+      var box = li ? size * 1.05 : 0, gi = li ? size * 0.35 : 0;
+      var tw = width(s, size, bold) + box + gi;
+      var x0 = align === "center" ? x + (w - tw) / 2 : x;
+      if (li) {   // ícono de LinkedIn: cuadrado con "in"
+        c.fillStyle = col;
+        roundRect(c, x0 * S, (ym - box / 2) * S, box * S, box * S, box * 0.18 * S); c.fill();
+        setFont(box * 0.72, true);
+        c.fillStyle = col === INK ? PAPER : INK; c.textAlign = "center";
+        c.fillText("in", (x0 + box / 2) * S, (ym + box * 0.04) * S);
+      }
+      setFont(size, bold); c.fillStyle = col; c.textAlign = "left";
+      c.fillText(s, (x0 + box + gi) * S, ym * S);
+    }
+
+    // Apila líneas centradas en vertical dentro de la caja; achica la letra si no entra.
+    // Línea: { t, s, b, g (espacio antes), up, li } · Raya: { rule: largo, th: grosor, g }
+    function stack(lines, x, top, w, h, align, color) {
+      lines = lines.filter(function (l) { return l && (l.rule || (l.t && l.t.trim())); })
+        .map(function (l) { return Object.assign({}, l); });
+      if (!lines.length) return;
+      lines.forEach(function (l) {
+        if (l.rule) return;
+        if (l.up) l.t = l.t.toUpperCase();
+        var tw = width(l.t, l.s, l.b) + (l.li ? l.s * 1.4 : 0);
+        if (tw > w) l.s *= w / tw;
+      });
+      var total = lines.reduce(function (sum, l, i) {
+        return sum + (i ? (l.g || 0) : 0) + (l.rule ? l.th : l.s * 1.18);
+      }, 0);
+      var k = total > h ? h / total : 1;
+      var y = top + (h - total * k) / 2;
+      lines.forEach(function (l, i) {
+        if (i) y += (l.g || 0) * k;
+        var col = color || INK;
+        if (l.rule) {
+          var lw = Math.min(l.rule, w), rx = align === "center" ? x + (w - lw) / 2 : x;
+          c.fillStyle = col;
+          c.fillRect(Math.round(rx * S), Math.round(y * S), Math.round(lw * S), Math.max(1, Math.round(l.th * k * S)));
+          y += l.th * k;
+          return;
+        }
+        var s = l.s * k, lh = s * 1.18;
+        text(l.t, s, l.b, col, x, y + lh / 2, w, align, l.li);
+        y += lh;
+      });
+    }
+
+    function hasQR() { return t.qr && !!qrURL(t.link) && typeof qrcode === "function"; }
+
+    // QR con módulos alineados a píxeles enteros para que salga nítido
+    function qr(x, y, size) {
+      if (!hasQR()) return false;
+      var q;
+      try { q = qrcode(0, "M"); q.addData(qrURL(t.link)); q.make(); } catch (e) { return false; }
+      var n = q.getModuleCount(), quiet = 2, total = n + 2 * quiet;
+      var px = size * S, m = Math.floor(px / total);
+      if (m < 2) m = px / total;
+      var real = m * total;
+      var ox = Math.round(x * S + (px - real) / 2), oy = Math.round(y * S + (px - real) / 2);
+      c.fillStyle = "#ffffff"; c.fillRect(ox, oy, real, real);
+      c.fillStyle = "#000000";
+      for (var r = 0; r < n; r++)
+        for (var cc = 0; cc < n; cc++)
+          if (q.isDark(r, cc)) c.fillRect(ox + (cc + quiet) * m, oy + (r + quiet) * m, Math.ceil(m), Math.ceil(m));
+      return true;
+    }
+
+    // Logo dentro de la caja (contain). Devuelve el ancho usado en mm.
+    function logo(x, y, w, h, color, align) {
+      if (!t.logo) return 0;
+      var img = t.logo.img, iw = img.naturalWidth, ih = img.naturalHeight;
+      var sc = Math.min(w / iw, h / ih), dw = iw * sc, dh = ih * sc;
+      var dx = align === "center" ? x + (w - dw) / 2 : x, dy = y + (h - dh) / 2;
+      if (t.logoMode === "photo") {
+        // foto: tramado a la resolución exacta de salida
+        var pw = Math.max(1, Math.round(dw * S)), ph = Math.max(1, Math.round(dh * S));
+        var tmp = document.createElement("canvas");
+        tmp.width = pw; tmp.height = ph;
+        tmp.getContext("2d").drawImage(img, 0, 0, pw, ph);
+        c.drawImage(toMono(tmp, true, t.logoInv), Math.round(dx * S), Math.round(dy * S));
+      } else {
+        c.drawImage(logoMask(t.logo, t.logoInv, color), dx * S, dy * S, dw * S, dh * S);
+      }
+      return dw;
+    }
+
+    function handle(size, g) {
+      var L = linkLabel(t.link);
+      return { t: L.text, s: size, li: L.li, g: g };
+    }
+
+    c.save();
+    c.translate(b * S, b * S);
+    if (t.size === "card" && t.rounded && !b) { roundRect(c, 0, 0, W * S, H * S, CORNER_MM * S); c.clip(); }
+    c.fillStyle = PAPER;
+    c.fillRect(-b * S, -b * S, (W + 2 * b) * S, (H + 2 * b) * S);
+    c.textBaseline = "middle";
+    var tdef = TEMPLATES.filter(function (d) { return d.id === t.template; })[0] || TEMPLATES[0];
+    tdef.draw({
+      t: t, W: W, H: H, f: H / 25, p: Math.max(1.8, H * 0.085), INK: INK, PAPER: PAPER,
+      rect: rect, stack: stack, qr: qr, hasQR: hasQR, logo: logo, handle: handle
+    });
+    c.restore();
+  }
+
+  // Diseños. Medidas en mm relativas a la altura (f = H / 25), así sirven para 50×25 y 85.6×54.
+  var TEMPLATES = [
+    { id: "clasica", name: "Clásica", draw: function (a) {
+      var t = a.t, f = a.f, p = a.p, q = a.H - 2 * p, withQR = a.hasQR();
+      if (withQR) a.qr(a.W - p - q, p, q);
+      a.stack([
+        { t: t.name, s: 3.6 * f, b: true },
+        { t: t.role, s: 2.1 * f, g: 0.3 * f },
+        { rule: 7 * f, th: 0.4 * f, g: 1.1 * f },
+        { t: t.company, s: 2.1 * f, b: true, g: 1.1 * f },
+        { t: t.phone, s: 1.7 * f, g: 0.7 * f },
+        { t: t.email, s: 1.7 * f, g: 0.3 * f },
+        withQR ? null : a.handle(1.7 * f, 0.3 * f)
+      ], p, p, a.W - 2 * p - (withQR ? q + p : 0), a.H - 2 * p, "left");
+    } },
+    { id: "bloque", name: "Bloque", draw: function (a) {
+      var t = a.t, f = a.f, p = a.p, pw = a.W * 0.34;
+      a.rect(0, 0, pw, a.H, a.INK);
+      if (t.logo) a.logo(p * 0.7, p, pw - 1.4 * p, a.H - 2 * p, a.PAPER, "center");
+      else a.stack([
+        { t: initials(t.company || t.name), s: 8 * f, b: true },
+        { t: t.company, s: 1.7 * f, b: true, g: 0.4 * f }
+      ], p * 0.6, p, pw - 1.2 * p, a.H - 2 * p, "center", a.PAPER);
+      a.stack([
+        { t: t.name, s: 3.2 * f, b: true },
+        { t: t.role, s: 1.9 * f, g: 0.3 * f },
+        t.logo ? { t: t.company, s: 1.9 * f, b: true, g: 0.3 * f } : null,
+        { rule: 6 * f, th: 0.35 * f, g: 1 * f },
+        { t: t.phone, s: 1.6 * f, g: 1 * f },
+        { t: t.email, s: 1.6 * f, g: 0.3 * f },
+        a.handle(1.6 * f, 0.3 * f)
+      ], pw + p, p, a.W - pw - 2 * p, a.H - 2 * p, "left");
+    } },
+    { id: "centrada", name: "Centrada", draw: function (a) {
+      var t = a.t, f = a.f, p = a.p;
+      var contact = [t.phone, t.email].filter(function (s) { return s.trim(); }).join("  ·  ");
+      a.stack([
+        { t: t.company, s: 1.6 * f, b: true, up: true },
+        { t: t.name, s: 4 * f, b: true, g: 0.9 * f },
+        { t: t.role, s: 2 * f, g: 0.3 * f },
+        { rule: 10 * f, th: 0.4 * f, g: 1.1 * f },
+        { t: contact, s: 1.5 * f, g: 1.1 * f },
+        a.handle(1.5 * f, 0.4 * f)
+      ], p, p, a.W - 2 * p, a.H - 2 * p, "center");
+    } },
+    { id: "qr", name: "QR grande", draw: function (a) {
+      var t = a.t, f = a.f, p = a.p, q = a.H - 2 * p, withQR = a.hasQR();
+      var x = withQR ? 2 * p + q : p;
+      if (withQR) a.qr(p, p, q);
+      a.stack([
+        { t: t.name, s: 3.3 * f, b: true },
+        { t: t.role, s: 1.9 * f, g: 0.3 * f },
+        { rule: 6 * f, th: 0.35 * f, g: 1 * f },
+        withQR ? { t: "Escanea para conectar", s: 1.5 * f, b: true, g: 1 * f } : null,
+        a.handle(1.6 * f, withQR ? 0.5 * f : 1 * f),
+        { t: t.email, s: 1.5 * f, g: 0.3 * f }
+      ], x, p, a.W - x - p, a.H - 2 * p, "left");
+    } },
+    { id: "banda", name: "Banda", draw: function (a) {
+      var t = a.t, f = a.f, p = a.p, bh = a.H * 0.34;
+      a.rect(0, 0, a.W, bh, a.INK);
+      var lx = p;
+      if (t.logo) lx += a.logo(p, bh * 0.18, a.W * 0.3, bh * 0.64, a.PAPER, "left") + p * 0.6;
+      a.stack([{ t: t.company, s: 2.6 * f, b: true }], lx, 0, a.W - lx - p, bh, "left", a.PAPER);
+      var top = bh + p * 0.6, h = a.H - top - p * 0.6, withQR = a.hasQR();
+      if (withQR) a.qr(a.W - p - h, top, h);
+      a.stack([
+        { t: t.name, s: 3.1 * f, b: true },
+        { t: t.role, s: 1.8 * f, g: 0.2 * f },
+        { t: t.phone, s: 1.5 * f, g: 0.7 * f },
+        { t: t.email, s: 1.5 * f, g: 0.2 * f },
+        withQR ? null : a.handle(1.5 * f, 0.2 * f)
+      ], p, top, a.W - 2 * p - (withQR ? h + p : 0), h, "left");
+    } },
+    { id: "lateral", name: "Lateral", draw: function (a) {
+      var t = a.t, f = a.f, p = a.p, bw = 1.6 * f, x = bw + p;
+      a.rect(0, 0, bw, a.H, a.INK);
+      a.stack([
+        { t: t.name, s: 3.4 * f, b: true, up: true },
+        { t: t.role, s: 1.7 * f, up: true, g: 0.3 * f },
+        { t: t.company, s: 1.8 * f, b: true, g: 0.9 * f },
+        { rule: a.W - x - p, th: 0.25 * f, g: 0.9 * f },
+        { t: t.phone, s: 1.5 * f, g: 0.9 * f },
+        { t: t.email, s: 1.5 * f, g: 0.2 * f },
+        a.handle(1.5 * f, 0.2 * f)
+      ], x, p, a.W - x - p, a.H - 2 * p, "left");
+    } },
+    { id: "logo", name: "Logo / imagen", draw: function (a) {
+      var t = a.t, f = a.f, p = a.p, lh = t.name.trim() ? 3.4 * f : 0;
+      var h = a.H - 2 * p - lh * 1.2;
+      if (t.logo) a.logo(p, p, a.W - 2 * p, h, a.INK, "center");
+      else a.stack([{ t: initials(t.company || t.name) || "LOGO", s: 9 * f, b: true }], p, p, a.W - 2 * p, h, "center");
+      if (lh) a.stack([{ t: t.name, s: 2.6 * f, b: true }], p, a.H - p - lh, a.W - 2 * p, lh, "center");
+    } }
+  ];
+
+  function renderTemplate(t, ppmm, bleed, mono) {
+    var sz = TPL_SIZES[t.size], b = bleed || 0;
+    var cv = document.createElement("canvas");
+    cv.width = Math.round((sz.w + 2 * b) * ppmm);
+    cv.height = Math.round((sz.h + 2 * b) * ppmm);
+    drawTemplate(cv.getContext("2d"), ppmm, b, t);
+    return mono ? toMono(cv) : cv;
+  }
+
+  function thermalPPMM() { return (parseInt($("t-dpi").value, 10) || 203) / 25.4; }
+
+  // ---- Vista de plantillas ----
+  var tplRaf = 0;
+  function renderTpl() {
+    if (tplRaf) return;
+    tplRaf = requestAnimationFrame(function () {
+      tplRaf = 0;
+      if ($("view-tpl").classList.contains("hidden")) return;
+      var thermal = tpl.size === "thermal";
+      var out = thermal ? renderTemplate(tpl, thermalPPMM(), 0, true) : renderTemplate(tpl, 12, 0, false);
+      var pv = $("tplpreview");
+      pv.width = out.width; pv.height = out.height;
+      pv.getContext("2d").drawImage(out, 0, 0);
+      pv.classList.toggle("thermal", thermal);
+      pv.style.borderRadius = !thermal && tpl.rounded ? (CORNER_MM / CARD.w * 100) + "% / " + (CORNER_MM / CARD.h * 100) + "%" : "";
+      $("tplhint").textContent = thermal
+        ? "Vista real a " + $("t-dpi").value + " DPI: así saldrá en tu impresora térmica (solo blanco y negro)."
+        : "85.6 × 54 mm · agrégala a la hoja A4 para imprimirla en papel de stickers.";
+
+      var grid = $("tplgrid");
+      if (!grid.children.length) {
+        TEMPLATES.forEach(function (d) {
+          var btn = document.createElement("button");
+          btn.className = "tplbtn"; btn.dataset.t = d.id;
+          btn.innerHTML = "<canvas></canvas><span></span>";
+          btn.querySelector("span").textContent = d.name;
+          grid.appendChild(btn);
+        });
+      }
+      var sz = TPL_SIZES[tpl.size], tp = 240 / sz.w;
+      Array.prototype.forEach.call(grid.children, function (btn) {
+        var th = renderTemplate(Object.assign({}, tpl, { template: btn.dataset.t }), tp, 0, false);
+        var cv = btn.querySelector("canvas");
+        cv.width = th.width; cv.height = th.height;
+        cv.getContext("2d").drawImage(th, 0, 0);
+        btn.setAttribute("aria-pressed", btn.dataset.t === tpl.template ? "true" : "false");
+      });
+    });
+  }
+
+  function syncTplUI() {
+    TPL_FIELDS.forEach(function (k) { $("t-" + k).value = tpl[k]; });
+    setSeg("tplsize", document.querySelector('#tplsize button[data-s="' + tpl.size + '"]'));
+    setSeg("tplfont", document.querySelector('#tplfont button[data-f="' + tpl.font + '"]'));
+    setSeg("tpllogomode", document.querySelector('#tpllogomode button[data-m="' + tpl.logoMode + '"]'));
+    $("t-qr").checked = tpl.qr;
+    $("t-invert").checked = tpl.invert;
+    $("t-rounded").checked = tpl.rounded;
+    $("t-logoinv").checked = tpl.logoInv;
+    $("t-logolabel").textContent = tpl.logo ? "Cambiar logo" : "Subir logo";
+    $("t-logodel").classList.toggle("hidden", !tpl.logo);
+    $("t-logoopts").classList.toggle("hidden", !tpl.logo);
+    var card = tpl.size === "card";
+    $("t-thermal").classList.toggle("hidden", card);
+    $("t-card").classList.toggle("hidden", !card);
+    $("t-roundedwrap").classList.toggle("hidden", !card);
+    $("t-addlabel").textContent = tplEditingId ? "Guardar cambios" : "Agregar a hoja A4";
+    $("t-cancel").classList.toggle("hidden", !tplEditingId);
+    renderTpl();
+  }
+
+  function saveTpl() {
+    try {
+      var o = {};
+      TPL_SAVE.forEach(function (k) { o[k] = tpl[k]; });
+      localStorage.setItem("nfc-plantilla", JSON.stringify(o));
+    } catch (e) {}
+  }
+  function loadTpl() {
+    TPL_FIELDS.forEach(function (k) { tpl[k] = $("t-" + k).value; });   // valores de ejemplo
+    try {
+      var o = JSON.parse(localStorage.getItem("nfc-plantilla") || "null");
+      if (o) TPL_SAVE.forEach(function (k) { if (k in o) tpl[k] = o[k]; });
+    } catch (e) {}
+  }
+
+  function tplChanged() { saveTpl(); $("tpladded").classList.add("hidden"); renderTpl(); }
+
+  TPL_FIELDS.forEach(function (k) {
+    $("t-" + k).addEventListener("input", function (e) { tpl[k] = e.target.value; tplChanged(); });
+  });
+  [["t-qr", "qr"], ["t-invert", "invert"], ["t-rounded", "rounded"], ["t-logoinv", "logoInv"]].forEach(function (p) {
+    $(p[0]).addEventListener("change", function (e) { tpl[p[1]] = e.target.checked; tplChanged(); });
+  });
+  [["tplsize", "size", "s"], ["tplfont", "font", "f"], ["tpllogomode", "logoMode", "m"]].forEach(function (p) {
+    $(p[0]).addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      tpl[p[1]] = b.dataset[p[2]];
+      saveTpl(); syncTplUI();
+    });
+  });
+  $("tplgrid").addEventListener("click", function (e) {
+    var b = e.target.closest(".tplbtn"); if (!b) return;
+    tpl.template = b.dataset.t; tplChanged();
+  });
+  $("t-dpi").addEventListener("change", renderTpl);
+
+  $("t-logo").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var url = URL.createObjectURL(f);
+    var img = new Image();
+    img.onload = function () {
+      tpl.logo = { img: img, cache: {} };
+      URL.revokeObjectURL(url);
+      syncTplUI();
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); alert("No se pudo abrir esa imagen."); };
+    img.src = url;
+  });
+  $("t-logodel").addEventListener("click", function () {
+    tpl.logo = null; $("t-logo").value = ""; syncTplUI();
+  });
+
+  function downloadBlob(blob, name) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+
+  // ---- Exportar etiqueta térmica 50×25 ----
+  function thermalCanvas() {
+    var cv = renderTemplate(tpl, thermalPPMM(), 0, true);
+    return $("t-rotate").checked ? rotateCanvas(cv) : cv;
+  }
+
+  $("t-pdf").addEventListener("click", function () {
+    var JsPDF = getJsPDF(); if (!JsPDF) return;
+    var rot = $("t-rotate").checked, w = rot ? 25 : 50, h = rot ? 50 : 25;
+    var orient = w > h ? "landscape" : "portrait";
+    var copies = clamp(parseInt($("t-copies").value, 10) || 1, 1, 500);
+    var data = thermalCanvas().toDataURL("image/png");
+    var doc = new JsPDF({ unit: "mm", format: [w, h], orientation: orient, compress: true });
+    for (var i = 0; i < copies; i++) {
+      if (i) doc.addPage([w, h], orient);
+      doc.addImage(data, "PNG", 0, 0, w, h, "label", "FAST");
+    }
+    doc.setProperties({ title: "Etiqueta 50x25 mm" });
+    doc.save("etiqueta-50x25mm" + (copies > 1 ? "-x" + copies : "") + ".pdf");
+  });
+
+  $("t-png").addEventListener("click", function () {
+    thermalCanvas().toBlob(function (blob) { downloadBlob(blob, "etiqueta-50x25mm.png"); }, "image/png");
+  });
+
+  // ---- Tarjeta 85.6×54: hoja A4 y PDF ----
+  $("t-add").addEventListener("click", function () {
+    var snap = Object.assign({}, tpl, { size: "card" });
+    var fields = {
+      kind: "tpl", t: snap, name: snap.name || "Plantilla", orientation: "landscape", rounded: snap.rounded,
+      render: function (ppmm, bleed) { return renderTemplate(snap, ppmm, bleed, false); }
+    };
+    var item = tplEditingId && queue.filter(function (q) { return q.id === tplEditingId; })[0];
+    if (item) Object.assign(item, fields);
+    addToQueue(fields, item);
+    $("tpladdedmsg").textContent = item ? "Cambios guardados." : "Agregada a la hoja A4 (" + queue.length + (queue.length === 1 ? " diseño" : " diseños") + " en total).";
+    $("tpladded").classList.remove("hidden");
+    tplEditingId = null;
+    syncTplUI();
+    updateQueue();
+  });
+
+  $("t-cancel").addEventListener("click", function () {
+    tplEditingId = null; syncTplUI(); showView("print");
+  });
+
+  function editTemplateItem(q) {
+    tplEditingId = q.id;
+    tpl = Object.assign({}, q.t);
+    $("tpladded").classList.add("hidden");
+    showView("tpl");
+    syncTplUI();
+  }
+
+  $("t-cardpdf").addEventListener("click", function () {
+    var JsPDF = getJsPDF(); if (!JsPDF) return;
+    var doc = new JsPDF({ unit: "mm", format: [CARD.w, CARD.h], orientation: "landscape", compress: true });
+    doc.addImage(renderTemplate(tpl, EXPORT_PPMM, 0, false).toDataURL("image/png"), "PNG", 0, 0, CARD.w, CARD.h, "tcard", "FAST");
+    doc.save("tarjeta-presentacion-85,6x54mm.pdf");
+  });
+
   // ---- Init ----
+  loadTpl();
+  syncTplUI();
   center();
   syncUI();
   render();
