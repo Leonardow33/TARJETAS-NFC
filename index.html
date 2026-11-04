@@ -275,6 +275,7 @@
     box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 8px 22px rgba(20,22,28,.18);
   }
   canvas#tplpreview.thermal { image-rendering: pixelated; border-radius: 2px; }
+  canvas#preview.thermal { image-rendering: pixelated; }
   canvas#t-labelpv {
     display: block; width: 110px; height: auto; background: #ffffff; image-rendering: pixelated;
     border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 6px 16px rgba(20,22,28,.16);
@@ -303,7 +304,7 @@
   <header class="top">
     <h1>Diseñador de tarjeta NFC</h1>
     <p>Diseña tus tarjetas, agrégalas a la hoja e imprímelas en papel de stickers o en tu impresora térmica.</p>
-    <span class="sizepill">Tamaño carnet · <b id="mmlabel">85.6 × 54 mm</b> · <b>300 DPI</b></span>
+    <span class="sizepill"><span id="sizekind">Tamaño carnet</span> · <b id="mmlabel">85.6 × 54 mm</b> · <b id="dpilabel">300 DPI</b></span>
   </header>
 
   <nav class="seg tabs" id="tabs">
@@ -502,6 +503,15 @@
     <!-- CONTROLS -->
     <section class="controls">
       <div class="group">
+        <div class="glabel">Tamaño</div>
+        <div class="seg" id="psize">
+          <button data-s="card" aria-pressed="true">Tarjeta</button>
+          <button data-s="l70x40" aria-pressed="false">Etiqueta 70 × 40</button>
+        </div>
+        <p class="note" style="margin-top:8px" id="psizenote"></p>
+      </div>
+
+      <div class="group">
         <div class="glabel">Orientación</div>
         <div class="seg" id="orient">
           <button data-o="landscape" aria-pressed="true">Horizontal</button>
@@ -572,13 +582,47 @@
         </label>
       </div>
 
-      <div class="group">
+      <div class="group" id="p-roundedwrap">
         <label class="check">
           <input type="checkbox" id="rounded" checked> Esquinas redondeadas
         </label>
       </div>
 
-      <div class="stack">
+      <!-- Foto en etiqueta térmica 70 × 40 -->
+      <div class="group hidden" id="p-thermal">
+        <div class="glabel">Impresora térmica · 70 × 40 mm</div>
+        <div class="field">
+          <label for="p-bright">Brillo</label>
+          <div class="row">
+            <input type="range" id="p-bright" min="-60" max="60" step="1" value="0">
+            <span class="valtag" id="p-brightval">0</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="p-contrast">Contraste</label>
+          <div class="row">
+            <input type="range" id="p-contrast" min="-40" max="80" step="1" value="0">
+            <span class="valtag" id="p-contrastval">0</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="p-copies">Copias</label>
+          <input type="number" id="p-copies" min="1" max="500" step="1" value="1" inputmode="numeric">
+        </div>
+        <label class="check" style="margin-top:12px">
+          <input type="checkbox" id="p-rotate"> Girar 90° (si tu impresora imprime de lado)
+        </label>
+        <div class="stack" style="margin-top:12px">
+          <button class="btn primary" id="p-pdf" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            <span>PDF etiqueta 70 × 40 mm</span>
+          </button>
+          <button class="btn" id="p-png" disabled>Imagen PNG</button>
+        </div>
+        <p class="note" style="margin-top:10px">La vista previa muestra la foto en puntos blanco y negro, tal cual saldrá en la térmica. Si sale muy oscura, sube el brillo; si se ve lavada, sube el contraste.</p>
+      </div>
+
+      <div class="stack" id="p-addwrap">
         <button class="btn primary" id="addPrint" disabled>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
           <span id="addPrintLabel">Listo, agregar a impresión</span>
@@ -586,7 +630,7 @@
         <button class="btn ghost hidden" id="cancelEdit">Cancelar edición</button>
       </div>
 
-      <div class="group">
+      <div class="group" id="p-cardexport">
         <div class="glabel">Descargar solo esta tarjeta</div>
         <div class="btnrow" style="margin-top:0">
           <button class="btn" id="downloadPdf" disabled>PDF tamaño real</button>
@@ -695,7 +739,10 @@
   var A4 = { w: 210, h: 297 };
 
   // ---- Estado del editor ----
+  var PHOTO_SIZES = { card: CARD, l70x40: { w: 70, h: 40 } };
   var DEFAULTS = {
+    size: "card",             // "card" (85.6 × 54) o "l70x40" (etiqueta térmica)
+    bright: 0, contrast: 0,   // ajuste de tono, solo para la térmica
     orientation: "landscape",
     img: null,
     baseK: 1,      // mm por pixel de la imagen (preset activo)
@@ -723,11 +770,13 @@
 
   function $(id) { return document.getElementById(id); }
 
+  function isLabel(d) { return (d || state).size === "l70x40"; }
   function cardMM(d) {
     d = d || state;
+    var base = PHOTO_SIZES[d.size] || CARD;
     return d.orientation === "landscape"
-      ? { w: CARD.w, h: CARD.h }
-      : { w: CARD.h, h: CARD.w };
+      ? { w: base.w, h: base.h }
+      : { w: base.h, h: base.w };
   }
 
   function roundRect(c, x, y, w, h, r) {
@@ -743,16 +792,17 @@
 
   // Dibuja un diseño completo a una resolución dada (mm * S).
   // bleed (mm) agrega sangrado alrededor: el lienzo mide (w + 2·bleed) × (h + 2·bleed).
-  function draw(c, S, bleed, d) {
+  // mono: blanco y negro para la térmica (foto tramada, texto nítido)
+  function draw(c, S, bleed, d, mono) {
     d = d || state;
-    var cm = cardMM(d);
+    var cm = cardMM(d), rounded = d.rounded && !isLabel(d);
     var W = cm.w * S, H = cm.h * S, B = (bleed || 0) * S;
     c.clearRect(0, 0, W + 2 * B, H + 2 * B);
 
     c.save();
     c.translate(B, B);
     if (B > 0) { c.beginPath(); c.rect(-B, -B, W + 2 * B, H + 2 * B); }
-    else if (d.rounded) roundRect(c, 0, 0, W, H, CORNER_MM * S);
+    else if (rounded) roundRect(c, 0, 0, W, H, CORNER_MM * S);
     else { c.beginPath(); c.rect(0, 0, W, H); }
     c.clip();
 
@@ -770,6 +820,7 @@
       c.imageSmoothingQuality = "high";
       c.drawImage(d.img, ix, iy, iw, ih);
     }
+    if (mono) { toneCanvas(c.canvas, d.bright, d.contrast); toMono(c.canvas, true); }
 
     // texto
     if (d.text && d.textPos !== "none") {
@@ -781,37 +832,60 @@
       var pad = 3 * S;
       var ty = d.textPos === "top" ? (fs / 2 + pad + 1 * S) : (H - fs / 2 - pad - 1 * S);
 
+      var tcol = d.textColor;
+      if (mono) tcol = luminance(tcol) > 128 ? "#ffffff" : "#000000";
       if (d.textBar) {
         var barH = fs + pad * 1.6;
         var barY = d.textPos === "top" ? -B : H - barH;
-        c.fillStyle = "rgba(0,0,0,0.42)";
+        c.fillStyle = mono ? (tcol === "#ffffff" ? "#000000" : "#ffffff") : "rgba(0,0,0,0.42)";
         c.fillRect(-B, barY, W + 2 * B, barH + B);
       }
-      c.fillStyle = d.textColor;
+      c.fillStyle = tcol;
       c.shadowColor = "rgba(0,0,0,0.5)";
-      c.shadowBlur = d.textBar ? 0 : 3 * S;
+      c.shadowBlur = d.textBar || mono ? 0 : 3 * S;
       c.fillText(d.text, W / 2, ty);
       c.shadowBlur = 0;
+      if (mono) toMono(c.canvas);
     }
 
     c.restore();
   }
 
+  function luminance(hex) {
+    var n = parseInt((hex || "#000000").slice(1), 16);
+    return 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255);
+  }
+
+  // Brillo (-60..60) y contraste (-40..80) antes del tramado
+  function toneCanvas(cv, bright, contrast) {
+    if (!bright && !contrast) return;
+    var c = cv.getContext("2d"), id = c.getImageData(0, 0, cv.width, cv.height), p = id.data;
+    var f = (100 + (contrast || 0)) / 100, add = (bright || 0) * 2.2;
+    for (var i = 0; i < p.length; i += 4)
+      for (var j = 0; j < 3; j++) p[i + j] = Math.max(0, Math.min(255, (p[i + j] - 128) * f + 128 + add));
+    c.putImageData(id, 0, 0);
+  }
+
   function render() {
-    var cm = cardMM();
-    canvas.width = Math.round(cm.w * PREVIEW_PPMM);
-    canvas.height = Math.round(cm.h * PREVIEW_PPMM);
-    draw(ctx, PREVIEW_PPMM, 0);
+    var cm = cardMM(), label = isLabel();
+    // etiqueta: vista a la resolución real de la térmica, en blanco y negro
+    var ppmm = label ? thermalPPMM() : PREVIEW_PPMM;
+    canvas.width = Math.round(cm.w * ppmm);
+    canvas.height = Math.round(cm.h * ppmm);
+    draw(ctx, ppmm, 0, state, label);
+    canvas.classList.toggle("thermal", label);
 
     // esquina redondeada cosmética del canvas en pantalla
     var rect = canvas.getBoundingClientRect();
     var cssR = (CORNER_MM / cm.w) * (rect.width || 1);
-    canvas.style.borderRadius = state.rounded ? cssR + "px" : "0px";
+    canvas.style.borderRadius = label ? "2px" : state.rounded ? cssR + "px" : "0px";
 
     emptyhint.style.display = state.img ? "none" : "flex";
     draghint.textContent = state.img ? "Arrastra la foto para moverla · usa el zoom para acercar" : "";
     $("mmlabel").textContent =
       cm.w.toFixed(1).replace(".0", "") + " × " + cm.h.toFixed(1).replace(".0", "") + " mm";
+    $("sizekind").textContent = label ? "Etiqueta térmica" : "Tamaño carnet";
+    $("dpilabel").textContent = label ? $("t-dpi").value + " DPI" : "300 DPI";
     cardframe.style.maxWidth = state.orientation === "portrait" ? "300px" : "100%";
   }
 
@@ -847,6 +921,15 @@
   // Refleja el estado del editor en todos los controles
   function syncUI() {
     var has = !!state.img;
+    var label = isLabel();
+    setSeg("psize", document.querySelector('#psize button[data-s="' + state.size + '"]'));
+    $("psizenote").textContent = label
+      ? "Sticker de 70 × 40 mm para la impresora térmica, en blanco y negro."
+      : "Cubre toda la cara de la tarjeta (85.6 × 54 mm). Se imprime en la hoja A4 de stickers.";
+    ["p-roundedwrap", "p-addwrap", "p-cardexport"].forEach(function (id) { $(id).classList.toggle("hidden", label); });
+    $("p-thermal").classList.toggle("hidden", !label);
+    $("p-bright").value = state.bright; $("p-brightval").textContent = state.bright;
+    $("p-contrast").value = state.contrast; $("p-contrastval").textContent = state.contrast;
     setSeg("orient", document.querySelector('#orient button[data-o="' + state.orientation + '"]'));
     setSeg("textpos", document.querySelector('#textpos button[data-p="' + state.textPos + '"]'));
     pressSwatch("bgswatches", state.bg); $("bgcustom").value = state.bg;
@@ -859,14 +942,14 @@
     $("fitrow").style.display = has ? "flex" : "none";
     $("zoomfield").style.display = has ? "block" : "none";
     $("zoom").disabled = !has;
-    ["download", "downloadPdf", "addPrint"].forEach(function (id) { $(id).disabled = !has; });
+    ["download", "downloadPdf", "addPrint", "p-pdf", "p-png"].forEach(function (id) { $(id).disabled = !has; });
     $("addPrintLabel").textContent = editingId ? "Guardar cambios" : "Listo, agregar a impresión";
     $("cancelEdit").classList.toggle("hidden", !editingId);
   }
 
   // Deja el editor listo para la siguiente foto (conserva orientación, fondo y esquinas)
   function resetEditor() {
-    var keep = { orientation: state.orientation, bg: state.bg, rounded: state.rounded, textColor: state.textColor, textBar: state.textBar };
+    var keep = { size: state.size, bright: state.bright, contrast: state.contrast, orientation: state.orientation, bg: state.bg, rounded: state.rounded, textColor: state.textColor, textBar: state.textBar };
     state = Object.assign({}, DEFAULTS, keep);
     editingId = null;
     $("file").value = "";
@@ -906,6 +989,21 @@
   $("zoom").addEventListener("input", function (e) {
     setZoom(parseFloat(e.target.value));
     hideResult(); render();
+  });
+
+  // ---- Tamaño (tarjeta o etiqueta térmica) ----
+  $("psize").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b || editingId) return;
+    state.size = b.dataset.s;
+    if (state.img) applyFill(); else center();
+    syncUI(); hideResult(); render();
+  });
+  [["p-bright", "bright"], ["p-contrast", "contrast"]].forEach(function (p) {
+    $(p[0]).addEventListener("input", function (e) {
+      state[p[1]] = parseInt(e.target.value, 10) || 0;
+      $(p[0] + "val").textContent = state[p[1]];
+      render();
+    });
   });
 
   // ---- Orientación ----
@@ -1073,12 +1171,12 @@
   function hideResult() { $("result").classList.remove("show"); }
 
   // Renderiza un diseño en un canvas nuevo (con sangrado opcional en mm)
-  function renderCard(ppmm, bleed, d) {
+  function renderCard(ppmm, bleed, d, mono) {
     var cm = cardMM(d);
     var out = document.createElement("canvas");
     out.width = Math.round((cm.w + 2 * bleed) * ppmm);
     out.height = Math.round((cm.h + 2 * bleed) * ppmm);
-    draw(out.getContext("2d"), ppmm, bleed, d);
+    draw(out.getContext("2d"), ppmm, bleed, d, mono);
     return out;
   }
 
@@ -1126,6 +1224,24 @@
       $("result").classList.add("show");
       $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, "image/png");
+  });
+
+  // ---- Foto en etiqueta térmica 70 × 40 ----
+  // Sale con los 70 mm a lo ancho del rollo; una foto vertical se gira para que entre
+  function photoLabelCanvas() {
+    var cv = renderCard(thermalPPMM(), 0, state, true);
+    if (state.orientation === "portrait") cv = rotateCanvas(cv);
+    return $("p-rotate").checked ? rotateCanvas(cv) : cv;
+  }
+  $("p-pdf").addEventListener("click", function () {
+    if (!state.img) return;
+    var L = PHOTO_SIZES.l70x40, rot = $("p-rotate").checked;
+    labelPDF([photoLabelCanvas()], rot ? L.h : L.w, rot ? L.w : L.h,
+      clamp(parseInt($("p-copies").value, 10) || 1, 1, 500), "foto-etiqueta");
+  });
+  $("p-png").addEventListener("click", function () {
+    if (!state.img) return;
+    photoLabelCanvas().toBlob(function (blob) { downloadBlob(blob, "foto-etiqueta-70x40mm.png"); }, "image/png");
   });
 
   // ---- Agregar a impresión ----
