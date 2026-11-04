@@ -349,12 +349,12 @@
       <div class="group">
         <div class="glabel">Datos</div>
         <div class="fields">
-          <input type="text" id="t-name" placeholder="Nombre" value="Ana Torres" maxlength="40">
-          <input type="text" id="t-role" placeholder="Cargo o profesión" value="Gerente Comercial" maxlength="50">
-          <input type="text" id="t-company" placeholder="Empresa" value="Mi Empresa" maxlength="40">
-          <input type="text" id="t-phone" placeholder="Teléfono" value="+51 999 888 777" maxlength="30">
-          <input type="text" id="t-email" placeholder="Correo" value="ana@miempresa.com" maxlength="50">
-          <input type="text" id="t-link" placeholder="Link de LinkedIn (o web)" value="linkedin.com/in/anatorres" maxlength="200">
+          <input type="text" id="t-name" placeholder="Nombre" value="Doriant Cardenas" maxlength="40">
+          <input type="text" id="t-role" placeholder="Cargo o profesión" value="Analista de Inteligencia Comercial" maxlength="50">
+          <input type="text" id="t-company" placeholder="Empresa" value="Ingeniero A" maxlength="40">
+          <input type="text" id="t-phone" placeholder="Teléfono" value="+51 910236424" maxlength="30">
+          <input type="text" id="t-email" placeholder="Correo" value="doriantleodor@gmail.com" maxlength="50">
+          <input type="text" id="t-link" placeholder="Link de LinkedIn (o web)" value="linkedin.com/in/doriantcardenas" maxlength="200">
         </div>
         <label class="check" style="margin-top:12px">
           <input type="checkbox" id="t-qr" checked> Código QR del link
@@ -467,8 +467,9 @@
       </div>
 
       <!-- Tarjeta: hoja A4 -->
-      <div class="group hidden" id="t-card">
-        <div class="glabel">Papel de stickers A4 / PDF</div>
+      <div class="group" id="t-card">
+        <div class="glabel">Papel de stickers A4 / PDF · tarjeta 85.6 × 54</div>
+        <p class="note hidden" style="margin-bottom:10px" id="t-cardnote">Se agrega con la medida de la tarjeta (85.6 × 54 mm), con el mismo diseño de frente y reverso.</p>
         <div class="stack">
           <button class="btn primary" id="t-add">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -2151,7 +2152,7 @@
     var card = tpl.size === "card", d = TPL_SIZES[tpl.size];
     $("t-thermal").classList.toggle("hidden", card);
     $("t-cardthermal").classList.toggle("hidden", !card);
-    $("t-card").classList.toggle("hidden", !card);
+    $("t-cardnote").classList.toggle("hidden", card);
     $("t-roundedwrap").classList.toggle("hidden", !card);
     $("tplsizenote").textContent = card
       ? "Cubre toda la cara de la tarjeta. Imprímela en térmica (etiqueta 60 × 90) o en papel de stickers A4."
@@ -2180,6 +2181,9 @@
       var o = JSON.parse(localStorage.getItem("nfc-plantilla") || "null");
       if (o) TPL_SAVE.forEach(function (k) { if (k in o) tpl[k] = o[k]; });
     } catch (e) {}
+    // Datos de ejemplo antiguos guardados: se cambian por los nuevos predeterminados
+    var OLD = { name: "Ana Torres", role: "Gerente Comercial", company: "Mi Empresa", phone: "+51 999 888 777", email: "ana@miempresa.com", link: "linkedin.com/in/anatorres" };
+    TPL_FIELDS.forEach(function (k) { if (tpl[k] === OLD[k]) tpl[k] = $("t-" + k).defaultValue; });
     if (tpl.size === "thermal") tpl.size = "l50x25";   // versión anterior
     if (!TPL_SIZES[tpl.size]) tpl.size = "card";
   }

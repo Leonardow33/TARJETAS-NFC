@@ -28,6 +28,8 @@ App web de un solo archivo (`index.html`) para crear stickers de tarjetas NFC CR
   - En etiquetas (`FILL`) el contenido crece hasta 1.6×, y el nombre manda: las demás líneas quedan en ≤ 72 % de su tamaño.
   - En modo mono (`BOLDEN`) el texto lleva un trazo extra de 0.12 mm.
   - Hay 8 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
+  - "Agregar a hoja A4" (`#t-card`, `t-add`) se ve en todos los tamaños y siempre agrega la tarjeta en 85.6 × 54 (frente y reverso).
+  - Datos por defecto: Doriant Cardenas / Analista de Inteligencia Comercial / Ingeniero A / +51 910236424 / doriantleodor@gmail.com / linkedin.com/in/doriantcardenas. `loadTpl` cambia los antiguos de ejemplo (Ana Torres…) guardados en localStorage.
 - **Hoja A4:**
   - La cola `queue` guarda solo diseños de tamaño tarjeta: `item.render(ppmm, bleed)`.
   - Máximo 11 por A4 con distribución mixta.
