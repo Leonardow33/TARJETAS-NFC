@@ -591,6 +591,18 @@
       <!-- Foto en etiqueta térmica 70 × 40 -->
       <div class="group hidden" id="p-thermal">
         <div class="glabel">Impresora térmica · 70 × 40 mm</div>
+        <label class="check">
+          <input type="checkbox" id="p-auto" checked> Mejora automática para térmica
+        </label>
+        <div class="field" style="margin-top:12px">
+          <label for="p-dither">Tramado</label>
+          <select id="p-dither">
+            <option value="atkinson" selected>Atkinson · recomendado para fotos</option>
+            <option value="fs">Floyd–Steinberg · más detalle, más grano</option>
+            <option value="bayer">Trama regular · tipo periódico</option>
+            <option value="none">Sin tramado · logos y dibujos</option>
+          </select>
+        </div>
         <div class="field">
           <label for="p-bright">Brillo</label>
           <div class="row">
@@ -619,7 +631,7 @@
           </button>
           <button class="btn" id="p-png" disabled>Imagen PNG</button>
         </div>
-        <p class="note" style="margin-top:10px">La vista previa muestra la foto en puntos blanco y negro, tal cual saldrá en la térmica. Si sale muy oscura, sube el brillo; si se ve lavada, sube el contraste.</p>
+        <p class="note" style="margin-top:10px">La vista previa muestra la foto en puntos blanco y negro, tal cual saldrá en la térmica. Funcionan mejor las fotos con buena luz, de cerca y con fondo simple. Si sale oscura, sube el brillo; si se ve lavada, sube el contraste.</p>
       </div>
 
       <div class="stack" id="p-addwrap">
@@ -743,6 +755,7 @@
   var DEFAULTS = {
     size: "card",             // "card" (85.6 × 54) o "l70x40" (etiqueta térmica)
     bright: 0, contrast: 0,   // ajuste de tono, solo para la térmica
+    auto: true, dither: "atkinson",
     orientation: "landscape",
     img: null,
     baseK: 1,      // mm por pixel de la imagen (preset activo)
@@ -820,7 +833,7 @@
       c.imageSmoothingQuality = "high";
       c.drawImage(d.img, ix, iy, iw, ih);
     }
-    if (mono) { toneCanvas(c.canvas, d.bright, d.contrast); toMono(c.canvas, true); }
+    if (mono) photoToMono(c.canvas, d);
 
     // texto
     if (d.text && d.textPos !== "none") {
@@ -856,13 +869,70 @@
     return 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255);
   }
 
-  // Brillo (-60..60) y contraste (-40..80) antes del tramado
-  function toneCanvas(cv, bright, contrast) {
-    if (!bright && !contrast) return;
-    var c = cv.getContext("2d"), id = c.getImageData(0, 0, cv.width, cv.height), p = id.data;
-    var f = (100 + (contrast || 0)) / 100, add = (bright || 0) * 2.2;
-    for (var i = 0; i < p.length; i += 4)
-      for (var j = 0; j < 3; j++) p[i + j] = Math.max(0, Math.min(255, (p[i + j] - 128) * f + 128 + add));
+  // Foto a blanco y negro para la térmica.
+  // Mejora automática: estira los tonos (1 %–99 %), aclara medios tonos porque cada punto
+  // térmico se expande y oscurece, y enfoca un poco para que no se pierdan los bordes.
+  // Luego brillo (-60..60) y contraste (-40..80) del usuario, y el tramado elegido.
+  var BAYER8 = [0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38,
+    60, 28, 52, 20, 62, 30, 54, 22, 3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25,
+    15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21];
+  function photoToMono(cv, d) {
+    var c = cv.getContext("2d"), w = cv.width, h = cv.height, n = w * h;
+    var id = c.getImageData(0, 0, w, h), p = id.data, g = new Float32Array(n), i, x, y;
+    for (i = 0; i < n; i++) {
+      var a = p[i * 4 + 3] / 255;
+      g[i] = 255 - a * (255 - (0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2]));
+    }
+    if (d.auto !== false) {
+      var hist = new Uint32Array(256), lo = 0, hi = 255, acc = 0;
+      for (i = 0; i < n; i++) hist[Math.max(0, Math.min(255, g[i] | 0))]++;
+      for (acc = 0; lo < 254 && (acc += hist[lo]) < n * 0.01; lo++);
+      for (acc = 0; hi > 1 && (acc += hist[hi]) < n * 0.01; hi--);
+      var span = Math.max(40, hi - lo);
+      for (i = 0; i < n; i++) g[i] = 255 * Math.pow(Math.max(0, Math.min(1, (g[i] - lo) / span)), 1 / 1.45);
+      // enfoque: g + 0.7·(g − desenfoque 3×3)
+      var bl = new Float32Array(n);
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+        var sum = 0, cnt = 0;
+        for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+          var xx = x + dx, yy = y + dy;
+          if (xx >= 0 && yy >= 0 && xx < w && yy < h) { sum += g[yy * w + xx]; cnt++; }
+        }
+        bl[y * w + x] = sum / cnt;
+      }
+      for (i = 0; i < n; i++) g[i] += 0.7 * (g[i] - bl[i]);
+    }
+    var f = (100 + (d.contrast || 0)) / 100, add = (d.bright || 0) * 2.2;
+    for (i = 0; i < n; i++) g[i] = Math.max(0, Math.min(255, (g[i] - 128) * f + 128 + add));
+
+    var mode = d.dither || "atkinson";
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      var j = y * w + x, v;
+      if (mode === "bayer") v = g[j] > (BAYER8[(y & 7) * 8 + (x & 7)] + 0.5) * 4 ? 255 : 0;
+      else {
+        v = g[j] < 128 ? 0 : 255;
+        var e = g[j] - v;
+        if (mode === "atkinson") {          // reparte 6/8 del error: más contraste, menos ruido
+          e /= 8;
+          if (x + 1 < w) g[j + 1] += e;
+          if (x + 2 < w) g[j + 2] += e;
+          if (y + 1 < h) {
+            if (x > 0) g[j + w - 1] += e;
+            g[j + w] += e;
+            if (x + 1 < w) g[j + w + 1] += e;
+          }
+          if (y + 2 < h) g[j + 2 * w] += e;
+        } else if (mode === "fs") {
+          if (x + 1 < w) g[j + 1] += e * 7 / 16;
+          if (y + 1 < h) {
+            if (x > 0) g[j + w - 1] += e * 3 / 16;
+            g[j + w] += e * 5 / 16;
+            if (x + 1 < w) g[j + w + 1] += e / 16;
+          }
+        }
+      }
+      p[j * 4] = p[j * 4 + 1] = p[j * 4 + 2] = v; p[j * 4 + 3] = 255;
+    }
     c.putImageData(id, 0, 0);
   }
 
@@ -930,6 +1000,8 @@
     $("p-thermal").classList.toggle("hidden", !label);
     $("p-bright").value = state.bright; $("p-brightval").textContent = state.bright;
     $("p-contrast").value = state.contrast; $("p-contrastval").textContent = state.contrast;
+    $("p-auto").checked = state.auto !== false;
+    $("p-dither").value = state.dither || "atkinson";
     setSeg("orient", document.querySelector('#orient button[data-o="' + state.orientation + '"]'));
     setSeg("textpos", document.querySelector('#textpos button[data-p="' + state.textPos + '"]'));
     pressSwatch("bgswatches", state.bg); $("bgcustom").value = state.bg;
@@ -949,7 +1021,7 @@
 
   // Deja el editor listo para la siguiente foto (conserva orientación, fondo y esquinas)
   function resetEditor() {
-    var keep = { size: state.size, bright: state.bright, contrast: state.contrast, orientation: state.orientation, bg: state.bg, rounded: state.rounded, textColor: state.textColor, textBar: state.textBar };
+    var keep = { size: state.size, bright: state.bright, contrast: state.contrast, auto: state.auto, dither: state.dither, orientation: state.orientation, bg: state.bg, rounded: state.rounded, textColor: state.textColor, textBar: state.textBar };
     state = Object.assign({}, DEFAULTS, keep);
     editingId = null;
     $("file").value = "";
@@ -998,6 +1070,8 @@
     if (state.img) applyFill(); else center();
     syncUI(); hideResult(); render();
   });
+  $("p-auto").addEventListener("change", function (e) { state.auto = e.target.checked; render(); });
+  $("p-dither").addEventListener("change", function (e) { state.dither = e.target.value; render(); });
   [["p-bright", "bright"], ["p-contrast", "contrast"]].forEach(function (p) {
     $(p[0]).addEventListener("input", function (e) {
       state[p[1]] = parseInt(e.target.value, 10) || 0;
