@@ -21,7 +21,9 @@ App web de un solo archivo (`index.html`) para crear stickers de tarjetas NFC CR
   - `state`: size `card`|`l70x40`, orientation, img, zoom, cx, cy, bg, text, bright, contrast, auto, dither.
   - `draw(c,S,bleed,d,mono)` y `renderCard(ppmm,bleed,d,mono)`.
   - En `l70x40`, `photoToMono` aplica la mejora automática (niveles 1–99 %, gamma 1.45, enfoque) y el tramado: atkinson, fs, bayer o none.
-  - Exportación con `photoLabelCanvas()`. Una foto vertical se gira para que los 70 mm vayan a lo ancho.
+  - Exportación con `photoLabelCanvas(d)`. Una foto vertical se gira para que los 70 mm vayan a lo ancho.
+  - Cola de etiquetas 70 × 40 (`labelQueue`, `updateLabelQueue`, botones `p-qadd`, `p-qpdf`, `p-qclear`): guarda una copia del estado y su cantidad (toma "Copias"), y genera un solo PDF con todas. Vive en memoria y se pierde al recargar.
+  - `labelPDF` guarda una sola vez en el PDF los canvas repetidos.
 - **Plantillas:**
   - `tpl` usa `TPL_SIZES` (card / l70x40 / l50x25) y tiene frente y reverso.
   - `drawTemplate` incluye los helpers `stack`, `qr`, `logo` y `nfc`.

@@ -632,6 +632,20 @@
           </button>
           <button class="btn" id="p-png" disabled>Imagen PNG</button>
         </div>
+        <div class="glabel" style="margin-top:18px">Cola de etiquetas</div>
+        <button class="btn primary" id="p-qadd" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Agregar esta imagen a la cola</span>
+        </button>
+        <div class="qlist" id="p-qlist" style="margin-top:12px"></div>
+        <div class="stack hidden" id="p-qactions" style="margin-top:12px">
+          <button class="btn primary" id="p-qpdf">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            <span id="p-qpdflabel">PDF de la cola</span>
+          </button>
+          <button class="btn ghost" id="p-qclear">Vaciar cola</button>
+        </div>
+        <p class="note" style="margin-top:8px">Sube una imagen, ajústala y agrégala; luego sube la siguiente. El PDF sale con una etiqueta por página, en el orden de la cola.</p>
         <p class="note" style="margin-top:10px">La vista previa muestra la foto en puntos blanco y negro, tal cual saldrá en la térmica. Funcionan mejor las fotos con buena luz, de cerca y con fondo simple. Si sale oscura, sube el brillo; si se ve lavada, sube el contraste.</p>
       </div>
 
@@ -1015,7 +1029,7 @@
     $("fitrow").style.display = has ? "flex" : "none";
     $("zoomfield").style.display = has ? "block" : "none";
     $("zoom").disabled = !has;
-    ["download", "downloadPdf", "addPrint", "p-pdf", "p-png"].forEach(function (id) { $(id).disabled = !has; });
+    ["download", "downloadPdf", "addPrint", "p-pdf", "p-png", "p-qadd"].forEach(function (id) { $(id).disabled = !has; });
     $("addPrintLabel").textContent = editingId ? "Guardar cambios" : "Listo, agregar a impresión";
     $("cancelEdit").classList.toggle("hidden", !editingId);
   }
@@ -1303,9 +1317,10 @@
 
   // ---- Foto en etiqueta térmica 70 × 40 ----
   // Sale con los 70 mm a lo ancho del rollo; una foto vertical se gira para que entre
-  function photoLabelCanvas() {
-    var cv = renderCard(thermalPPMM(), 0, state, true);
-    if (state.orientation === "portrait") cv = rotateCanvas(cv);
+  function photoLabelCanvas(d) {
+    d = d || state;
+    var cv = renderCard(thermalPPMM(), 0, d, true);
+    if (d.orientation === "portrait") cv = rotateCanvas(cv);
     return $("p-rotate").checked ? rotateCanvas(cv) : cv;
   }
   $("p-pdf").addEventListener("click", function () {
@@ -1317,6 +1332,63 @@
   $("p-png").addEventListener("click", function () {
     if (!state.img) return;
     photoLabelCanvas().toBlob(function (blob) { downloadBlob(blob, "foto-etiqueta-70x40mm.png"); }, "image/png");
+  });
+
+  // ---- Cola de etiquetas 70 × 40 (varias imágenes en un PDF) ----
+  var labelQueue = [];   // { id, d (copia del estado), qty, thumbURL }
+  function updateLabelQueue() {
+    var list = $("p-qlist"), total = 0;
+    list.innerHTML = "";
+    if (!labelQueue.length) {
+      var p = document.createElement("p");
+      p.className = "qempty"; p.textContent = "La cola está vacía.";
+      list.appendChild(p);
+    }
+    labelQueue.forEach(function (q, i) {
+      total += q.qty;
+      var row = document.createElement("div"); row.className = "qitem";
+      var img = document.createElement("img"); img.src = q.thumbURL; img.alt = "Etiqueta " + (i + 1);
+      var info = document.createElement("div"); info.className = "qinfo";
+      var nm = document.createElement("div"); nm.className = "qname"; nm.textContent = q.d.text || "Etiqueta " + (i + 1);
+      var qty = document.createElement("div"); qty.className = "qty";
+      var minus = document.createElement("button"); minus.textContent = "−"; minus.setAttribute("aria-label", "Menos copias");
+      var inp = document.createElement("input"); inp.type = "number"; inp.min = 1; inp.max = 500; inp.value = q.qty;
+      var plus = document.createElement("button"); plus.textContent = "+"; plus.setAttribute("aria-label", "Más copias");
+      minus.addEventListener("click", function () { q.qty = Math.max(1, q.qty - 1); updateLabelQueue(); });
+      plus.addEventListener("click", function () { q.qty = Math.min(500, q.qty + 1); updateLabelQueue(); });
+      inp.addEventListener("change", function () { q.qty = clamp(parseInt(inp.value, 10) || 1, 1, 500); updateLabelQueue(); });
+      qty.appendChild(minus); qty.appendChild(inp); qty.appendChild(plus);
+      info.appendChild(nm); info.appendChild(qty);
+      var act = document.createElement("div"); act.className = "qact";
+      var del = document.createElement("button"); del.className = "del"; del.textContent = "×"; del.title = "Quitar de la cola";
+      del.addEventListener("click", function () { labelQueue.splice(labelQueue.indexOf(q), 1); updateLabelQueue(); });
+      act.appendChild(del);
+      row.appendChild(img); row.appendChild(info); row.appendChild(act);
+      list.appendChild(row);
+    });
+    $("p-qactions").classList.toggle("hidden", !labelQueue.length);
+    $("p-qpdflabel").textContent = "PDF de la cola (" + total + (total === 1 ? " etiqueta)" : " etiquetas)");
+  }
+  $("p-qadd").addEventListener("click", function () {
+    if (!state.img) return;
+    var d = Object.assign({}, state);
+    labelQueue.push({ id: nextId++, d: d, qty: clamp(parseInt($("p-copies").value, 10) || 1, 1, 500),
+      thumbURL: photoLabelCanvas(d).toDataURL("image/png") });
+    updateLabelQueue();
+    resetEditor();
+    $("p-qlist").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  $("p-qclear").addEventListener("click", function () {
+    if (labelQueue.length && confirm("¿Vaciar la cola de etiquetas?")) { labelQueue = []; updateLabelQueue(); }
+  });
+  $("p-qpdf").addEventListener("click", function () {
+    if (!labelQueue.length) return;
+    var L = PHOTO_SIZES.l70x40, rot = $("p-rotate").checked, pages = [];
+    labelQueue.forEach(function (q) {
+      var cv = photoLabelCanvas(q.d);
+      for (var i = 0; i < q.qty; i++) pages.push(cv);
+    });
+    labelPDF(pages, rot ? L.h : L.w, rot ? L.w : L.h, 1, "cola-etiquetas-" + pages.length);
   });
 
   // ---- Agregar a impresión ----
@@ -2245,13 +2317,19 @@
     var JsPDF = getJsPDF(); if (!JsPDF) return;
     var orient = w > h ? "landscape" : "portrait";
     var doc = new JsPDF({ unit: "mm", format: [w, h], orientation: orient, compress: true });
-    var data = pages.map(function (cv) { return cv.toDataURL("image/png"); });
+    // Una página repetida (mismo canvas) se guarda una sola vez en el PDF
+    var uniq = [], data = [];
+    var idx = pages.map(function (cv) {
+      var k = uniq.indexOf(cv);
+      if (k < 0) { k = uniq.length; uniq.push(cv); data.push(cv.toDataURL("image/png")); }
+      return k;
+    });
     var first = true;
     for (var i = 0; i < copies; i++) {
-      data.forEach(function (d, k) {
+      idx.forEach(function (k) {
         if (!first) doc.addPage([w, h], orient);
         first = false;
-        doc.addImage(d, "PNG", 0, 0, w, h, "side" + k, "FAST");
+        doc.addImage(data[k], "PNG", 0, 0, w, h, "side" + k, "FAST");
       });
     }
     doc.setProperties({ title: "Etiquetas " + w + "x" + h + " mm" });
@@ -2345,6 +2423,7 @@
   syncUI();
   render();
   updateQueue();
+  updateLabelQueue();
   window.addEventListener("resize", function () { render(); renderTpl(); });
 })();
 </script>
