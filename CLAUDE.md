@@ -32,6 +32,13 @@ App web de un solo archivo (`index.html`) para crear stickers de tarjetas NFC CR
   - Hay 8 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
   - "Agregar a hoja A4" (`#t-card`, `t-add`) se ve en todos los tamaños y siempre agrega la tarjeta en 85.6 × 54 (frente y reverso).
   - Datos por defecto: Doriant Cardenas / Analista de Inteligencia Comercial / Ingeniero A / +51 910236424 / doriantleodor@gmail.com / linkedin.com/in/doriantcardenas. `loadTpl` cambia los antiguos de ejemplo (Ana Torres…) guardados en localStorage.
+- **Soportes** (`#view-sup`, ids `s-*`): editor libre para soportes grandes donde se pega vinil.
+  - `sup`: w, h (mm), preset (`127.5x76` = 12.75 × 7.6 cm, `85.6x54` o `custom`; los campos van en cm), bg, rounded, els.
+  - Elementos en `sup.els`, de tipo img, text o qr: x, y (centro en mm), rot (×90°), w o size (mm) y color.
+  - `drawSupport(c,S,bleed)` y `renderSupport(ppmm,bleed)`. La vista previa es `renderSup()`: se arrastra con snap al centro, la rueda cambia el tamaño, las flechas mueven y Supr borra.
+  - Se guarda en localStorage `nfc-soporte` con las imágenes en dataURL; si no caben, sin ellas.
+  - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.
+  - Exporta: PDF A4 con líneas de corte, PDF a tamaño real y PNG de 300 DPI. Sangrado opcional de 2 mm.
 - **Hoja A4:**
   - La cola `queue` guarda solo diseños de tamaño tarjeta: `item.render(ppmm, bleed)`.
   - Máximo 11 por A4 con distribución mixta.
