@@ -19,7 +19,7 @@ Enlaces:
 - Commits en español, con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - El usuario espera push tras cada cambio terminado y probado.
 
-## Código (`index.html`, ~3700 líneas)
+## Código (`index.html`, ~3800 líneas)
 - JS ES5 dentro de una IIFE (`var`, `function`, sin flechas). CSS con tokens y modo oscuro.
 - Librerías por cdnjs: jsPDF 2.5.1 (`window.jspdf.jsPDF`) y qrcode-generator 1.4.4.
 - Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes) y `#view-print` (Hoja A4). `showView(v)` las cambia.
