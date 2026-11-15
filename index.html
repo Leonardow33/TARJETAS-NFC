@@ -2642,12 +2642,16 @@
     "thick", "colors", "palette", "slot", "count", "base"];
   var supMeasure = document.createElement("canvas").getContext("2d");
 
+  // Ancho y alto de una imagen o de un canvas
+  function iw(im) { return im.naturalWidth || im.width || 1; }
+  function ih(im) { return im.naturalHeight || im.height || 1; }
+
   function supFont(e, px) { return (e.bold ? "700 " : "400 ") + px + "px " + FONTS[e.font || "sans"]; }
 
   // Medidas del elemento sin girar (mm)
   function supElSize(e) {
     if (e.type === "img") {
-      var ar = e.img ? e.img.naturalHeight / e.img.naturalWidth : 1;
+      var ar = e.img ? ih(e.img) / iw(e.img) : 1;
       return { w: e.w, h: e.w * ar };
     }
     if (e.type === "qr" || e.type === "ring") return { w: e.w, h: e.w };
@@ -3025,7 +3029,7 @@
     rd.readAsDataURL(f);
 
     function place(img, src) {
-        var ar = img.naturalHeight / img.naturalWidth;
+        var ar = ih(img) / iw(img);
         if (!idx.length) {
           supAdd({ type: "img", img: img, src: src, slot: "logo", w: Math.min(sup.w * 0.5, sup.h * 0.3 / ar) });
           return;
@@ -3048,6 +3052,13 @@
   function sat(c) { var mx = Math.max(c[0], c[1], c[2]), mn = Math.min(c[0], c[1], c[2]); return mx ? (mx - mn) / mx : 0; }
   function cdist(a, b) { return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2)); }
   function mix(a, b, t) { a = hex2rgb(a); b = hex2rgb(b); return rgb2hex([0, 1, 2].map(function (i) { return a[i] + (b[i] - a[i]) * t; })); }
+  // Aviva un color: más saturación (los colores promedio del logo salen algo apagados)
+  function vivid(h) {
+    var c = hex2rgb(h), mx = Math.max(c[0], c[1], c[2]), mn = Math.min(c[0], c[1], c[2]);
+    if (mx === mn) return h;
+    var k = Math.min(1.25, 255 / mx);
+    return rgb2hex(c.map(function (v) { return mn + (v - mn) * 1.15 * k - mn * 0.15; }));
+  }
   // Aclara u oscurece un color hasta que se distinga del fondo
   function contrastOn(col, bg) {
     var lb = lum(bg), t = 0, out = col;
@@ -3128,21 +3139,46 @@
     return cv;
   }
 
+  // Logo actual: img (sin teñir, ya sin fondo), src0, pal (colores), ink (tono medio), tintable
+  var supLogo = null;
+
   function supLogoProcess(img, done) {
-    var info = logoAnalyze(img);
-    var cv = null;
-    if ($("s-logocut").checked && info.bg) cv = logoCutBg(img, info.bg);
-    var themed = $("s-logotheme").checked;
-    if (themed) supApplyTheme(info.pal);
-    // Logo sin colores (negro, gris) que no se distingue del fondo: se tiñe del color de tinta
-    var lost = info.ink && !info.pal.length && Math.abs(lum(info.ink) - lum(sup.bg)) < 0.3;
-    if (lost && (cv || !info.bg)) {
-      if (!cv) { cv = document.createElement("canvas"); cv.width = img.naturalWidth; cv.height = img.naturalHeight; cv.getContext("2d").drawImage(img, 0, 0); }
-      logoTint(cv, lum(sup.bg) < 0.5 ? "#ffffff" : "#111318");
-    }
-    if (!cv) { done(img, img.src); return; }
-    var src = cv.toDataURL("image/png");
-    supLoadImg(src, function (im) { done(im || img, im ? src : img.src); });
+    var info = logoAnalyze(img), cut = !!($("s-logocut").checked && info.bg);
+    var base = cut ? logoCutBg(img, info.bg) : img;
+    supLogo = { img: base, src0: cut ? base.toDataURL("image/png") : img.src, pal: info.pal, ink: info.ink, tintable: cut || !info.bg };
+    if ($("s-logotheme").checked) supApplyTheme(info.pal);
+    var L = logoFor(sup.bg, true);
+    done(L.img, L.src);
+    syncSupPal(); buildSupTplGrid(); saveSup();
+  }
+
+  // El logo listo para un fondo: si es negro/gris y no se distingue, se tiñe de blanco o negro
+  function logoFor(bg, needSrc) {
+    var lg = supLogo;
+    var lost = lg.tintable && lg.ink && !lg.pal.length && Math.abs(lum(lg.ink) - lum(bg)) < 0.3;
+    if (!lost) return { img: lg.img, src: lg.src0 };
+    var cv = document.createElement("canvas");
+    cv.width = iw(lg.img); cv.height = ih(lg.img);
+    cv.getContext("2d").drawImage(lg.img, 0, 0);
+    logoTint(cv, lum(bg) < 0.5 ? "#ffffff" : "#111318");
+    return { img: cv, src: needSrc ? cv.toDataURL("image/png") : null };
+  }
+
+  // Pone el logo en los espacios "logo" de un diseño (textos o imágenes), encajado en su caja
+  function fillLogoSlots(d, img, src) {
+    var ar = ih(img) / iw(img);
+    d.els.forEach(function (o, i) {
+      if (o.slot !== "logo") return;
+      var b = supElBox(o);
+      var bw = Math.max(b.w, 10), bh = Math.max(b.h, 10) * (o.type === "text" ? 1.35 : 1);
+      d.els[i] = { type: "img", img: img, src: src, slot: "logo", x: o.x, y: o.y, rot: 0, w: Math.min(bw, bh / ar) };
+    });
+  }
+  // Tras cambiar el fondo, el logo puede necesitar otro tono
+  function refreshLogo() {
+    if (!supLogo) return;
+    var L = logoFor(sup.bg, true);
+    sup.els.forEach(function (e) { if (e.slot === "logo" && e.type === "img") { e.img = L.img; e.src = L.src; } });
   }
 
   // Aplica una paleta (o null = colores originales del modelo) a los elementos con color base
@@ -3160,7 +3196,6 @@
         e.color = e.base.color; e.colors = e.base.colors ? e.base.colors.slice() : null;
         if (e.palette && e.colors) e.palette = e.colors.slice();
       });
-      syncSupPal();
       return;
     }
     var lb = lum(base), mono = !pal.length;
@@ -3169,14 +3204,17 @@
     var main = pal[0];
     // Fondo: oscuro → tono muy oscuro del color principal; blanco → blanco;
     // de color → el principal oscurecido (si fuera igual al logo, el logo se perdería)
-    if (!mono) sup.bg = lb < 0.2 ? mix(main, "#0b0c10", 0.86) : lb > 0.85 ? "#ffffff" : mix(main, "#0b0c10", 0.6);
+    if (!mono) sup.bg = lb < 0.2 ? mix(main, "#0b0c10", 0.8) : lb > 0.85 ? "#ffffff" : mix(main, "#0b0c10", 0.45);
     var ink = lum(sup.bg) < 0.5 ? "#ffffff" : "#111318";
-    if (mono) pal = [ink, mix(ink, sup.bg, 0.5)];
+    var GOLD = "#f5b301";
+    // Monocromo con acento dorado para que no quede apagado
+    if (mono) pal = [ink, GOLD];
+    else pal = pal.map(vivid);
     sup.logoPal = pal.slice();
     var bright = pal.slice().sort(function (a, b) { return lum(b) - lum(a); })[0];
     sup.els.forEach(function (e) {
       if (!e.base || e.type === "qr") return;
-      var bc = hex2rgb(e.base.color), neutral = sat(bc) < 0.2;
+      var bc = hex2rgb(e.base.color), neutral = sat(bc) < 0.2 || lum(bc) < 0.15 || lum(bc) > 0.9;
       if (e.base.colors) {
         var n = e.base.colors.length;
         e.colors = [];
@@ -3184,7 +3222,7 @@
         e.palette = e.colors.slice();
         e.color = e.colors[0];
       } else if (e.type === "stars") {
-        e.color = contrastOn(mono ? ink : bright, sup.bg); e.colors = null;
+        e.color = contrastOn(GOLD, sup.bg); e.colors = null;   // estrellas siempre doradas
       } else if (neutral) {
         // textos e íconos blancos/negros siguen la tinta; los grises quedan suaves
         var l = lum(bc);
@@ -3193,7 +3231,6 @@
         e.color = contrastOn(main, sup.bg);
       }
     });
-    syncSupPal();
   }
 
   function syncSupPal() {
@@ -3203,12 +3240,19 @@
     row.classList.toggle("hidden", !sup.logoPal);
     syncSupSize();
   }
-  $("s-themereset").addEventListener("click", function () { supApplyTheme(null); syncSupEl(); renderSup(); saveSup(); });
+  $("s-themereset").addEventListener("click", function () {
+    $("s-logotheme").checked = false;
+    supApplyTheme(null); refreshLogo(); syncSupPal(); syncSupEl(); renderSup(); buildSupTplGrid(); saveSup();
+  });
+  $("s-logotheme").addEventListener("change", function (ev) {
+    if (supLogo) { supApplyTheme(ev.target.checked ? supLogo.pal : null); refreshLogo(); syncSupPal(); syncSupEl(); renderSup(); saveSup(); }
+    buildSupTplGrid();
+  });
 
   // Llenar: la imagen cubre todo el soporte; Ajustar: entra completa
   function supFitImg(cover) {
     supEdit(function (e) {
-      var ar = e.img.naturalHeight / e.img.naturalWidth, odd = e.rot % 2;
+      var ar = ih(e.img) / iw(e.img), odd = e.rot % 2;
       // ancho propio de la imagen (antes de girar) para cubrir/entrar en W × H
       var a = odd ? sup.h : sup.w, b = (odd ? sup.w : sup.h) / ar;
       e.w = cover ? Math.max(a, b) : Math.min(a, b);
@@ -3380,14 +3424,26 @@
     });
   }
 
+  // Diseño de un modelo con el logo actual y, si está activado, sus colores
+  function supTemplateDesign(t, W, H, needSrc) {
+    var d = { w: W, h: H, bg: t.bg, baseBg: t.bg, rounded: false, els: supTemplateEls(t, W, H) };
+    if (!supLogo) return d;
+    var keep = sup; sup = d;
+    try { if ($("s-logotheme").checked) supApplyTheme(supLogo.pal); } finally { sup = keep; }
+    var L = logoFor(d.bg, needSrc);
+    fillLogoSlots(d, L.img, L.src);
+    return d;
+  }
+
   function buildSupTplGrid() {
     var grid = $("s-tplgrid"), W = 76, H = 127.5, S = 1.7;
+    grid.innerHTML = "";
     SUP_TEMPLATES.forEach(function (t) {
       var b = document.createElement("button");
-      b.className = "tplbtn"; b.dataset.t = t.id; b.setAttribute("aria-pressed", "false");
+      b.className = "tplbtn"; b.dataset.t = t.id; b.setAttribute("aria-pressed", String(t.id === sup.tplId));
       var cv = document.createElement("canvas");
       cv.width = Math.round(W * S); cv.height = Math.round(H * S);
-      drawSupport(cv.getContext("2d"), S, 0, { w: W, h: H, bg: t.bg, rounded: false, els: supTemplateEls(t, W, H) });
+      drawSupport(cv.getContext("2d"), S, 0, supTemplateDesign(t, W, H, false));
       var sp = document.createElement("span"); sp.textContent = t.name;
       b.appendChild(cv); b.appendChild(sp);
       grid.appendChild(b);
@@ -3398,9 +3454,11 @@
     var t = SUP_TEMPLATES.filter(function (x) { return x.id === b.dataset.t; })[0];
     if (sup.els.length && !confirm("¿Reemplazar el diseño actual por el modelo \"" + t.name + "\"?")) return;
     if (sup.w > sup.h) { var w = sup.w; sup.w = sup.h; sup.h = w; }   // los modelos van en vertical
-    sup.bg = t.bg; sup.baseBg = t.bg; sup.logoPal = null;
-    sup.els = supTemplateEls(t, sup.w, sup.h);
+    var d = supTemplateDesign(t, sup.w, sup.h, true);
+    sup.bg = d.bg; sup.baseBg = t.bg; sup.logoPal = d.logoPal || null; sup.tplId = t.id;
+    sup.els = d.els;
     supSel = -1;
+    syncSupPal();
     Array.prototype.forEach.call($("s-tplgrid").children, function (x) { x.setAttribute("aria-pressed", String(x === b)); });
     syncSupSize(); syncSupEl(); renderSup(); saveSup();
   });
@@ -3408,7 +3466,8 @@
   // ---- Guardar en el navegador (imágenes incluidas si caben) ----
   function saveSup() {
     function pack(withImg) {
-      return JSON.stringify({ w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal,
+      return JSON.stringify({ w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal, tplId: sup.tplId,
+        logo: withImg && supLogo ? { src0: supLogo.src0, pal: supLogo.pal, ink: supLogo.ink, tintable: supLogo.tintable } : null,
         els: sup.els.filter(function (e) { return withImg || e.type !== "img"; }).map(function (e) {
           var o = {}; SUP_EL_KEYS.forEach(function (k) { if (e[k] !== undefined) o[k] = e[k]; }); return o;
         }) });
@@ -3426,7 +3485,12 @@
       ];
       return;
     }
-    ["w", "h", "preset", "bg", "rounded", "baseBg", "logoPal"].forEach(function (k) { if (k in o) sup[k] = o[k]; });
+    ["w", "h", "preset", "bg", "rounded", "baseBg", "logoPal", "tplId"].forEach(function (k) { if (k in o) sup[k] = o[k]; });
+    if (o.logo && o.logo.src0) supLoadImg(o.logo.src0, function (img) {
+      if (!img) return;
+      supLogo = { img: img, src0: o.logo.src0, pal: o.logo.pal || [], ink: o.logo.ink, tintable: o.logo.tintable };
+      buildSupTplGrid();
+    });
     sup.els = (o.els || []).map(function (e) { return Object.assign({}, e); });
     sup.els.forEach(function (e) {
       if (e.type === "img" && e.src) supLoadImg(e.src, function (img) { e.img = img; renderSup(); });
