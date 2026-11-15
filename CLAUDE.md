@@ -50,6 +50,11 @@ Enlaces:
 
 ### Soportes (`#view-sup`, ids `s-*`)
 Editor libre para el sticker que se pega en el soporte de acrílico.
+- **Diseño de pantalla:**
+  - Pantalla ancha (≥ 760 px, todas las pestañas): la columna `.controls` (340 px) es sticky con scroll propio, así la vista previa no se pierde.
+  - Soportes: menú de pestañas `#s-tabs` (Modelos, Elemento, Medida, Fondo, Imprimir) y solo se ve el `.group[data-tab]` con clase `on`. `showSupTab(t)`.
+  - Al tocar un elemento se abre la pestaña Elemento (en `syncSupEl`), y un punto verde indica que hay uno seleccionado.
+  - Celular: la vista previa queda fija arriba (`.stage.stick`, `syncSupStick`, `--stage-h`), salvo con la maqueta 3D abierta.
 - `sup`: w, h (mm), preset, bg, rounded, els, material, texture, baseBg, logoPal y tplId.
   - preset: `127.5x76` = 12.75 × 7.6 cm, `85.6x54` o `custom`. Los campos van en cm.
 - Elementos en `sup.els`: x, y (centro en mm), rot (×90°), w o size (mm) y color.

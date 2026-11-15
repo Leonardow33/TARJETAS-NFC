@@ -80,7 +80,35 @@
 
   .layout { display: grid; grid-template-columns: 1fr; gap: 18px; }
   @media (min-width: 760px) {
-    .layout { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+    .layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+    /* las opciones tienen su propio scroll: la vista previa no se pierde */
+    .layout > .controls {
+      position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto;
+      overscroll-behavior: contain; padding: 2px 4px 12px 2px; margin: -2px -4px 0 -2px; scrollbar-width: thin;
+    }
+    .layout > .stage { position: sticky; top: 12px; }
+  }
+  /* Menú de opciones tipo filtros (Soportes) */
+  .ctabs {
+    position: sticky; top: 0; z-index: 4; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none;
+    flex-shrink: 0; flex-wrap: wrap; justify-content: center;
+    padding: 5px; margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow);
+  }
+  .controls > * { flex-shrink: 0; }
+  .ctabs::-webkit-scrollbar { display: none; }
+  .ctabs button {
+    flex: 1 0 auto; border: 0; border-radius: 999px; padding: 8px 8px; font: inherit; font-size: .78rem; font-weight: 600;
+    background: transparent; color: var(--muted); cursor: pointer; position: relative; white-space: nowrap;
+  }
+  .ctabs button:hover { color: var(--ink); background: var(--panel-2); }
+  .ctabs button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .ctabs button i { position: absolute; top: 5px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .s-controls > .group[data-tab]:not(.on) { display: none; }
+  @media (max-width: 759px) {
+    /* en celular la vista previa queda fija arriba mientras se editan las opciones */
+    #view-sup .stage.stick { position: sticky; top: 0; z-index: 6; padding: 10px; border-radius: 0 0 var(--radius) var(--radius); }
+    #view-sup .stage.stick .draghint, #view-sup .stage.stick #s-3dbtn { display: none; }
+    .s-controls .ctabs { top: var(--stage-h, 0px); }
   }
 
   /* ---- Stage ---- */
@@ -557,8 +585,15 @@
       </div>
     </section>
 
-    <section class="controls">
-      <div class="group">
+    <section class="controls s-controls">
+      <nav class="ctabs" id="s-tabs" aria-label="Opciones del soporte">
+        <button data-tab="model" aria-pressed="true">Modelos</button>
+        <button data-tab="el" aria-pressed="false">Elemento<i id="s-tabdot" class="hidden"></i></button>
+        <button data-tab="size" aria-pressed="false">Medida</button>
+        <button data-tab="bg" aria-pressed="false">Fondo</button>
+        <button data-tab="print" aria-pressed="false">Imprimir</button>
+      </nav>
+      <div class="group on" data-tab="model">
         <div class="glabel">Material del soporte</div>
         <div class="seg" id="s-mat">
           <button data-m="free" aria-pressed="true">Libre</button>
@@ -591,7 +626,7 @@
         <p class="note" style="margin-top:8px">Elige un modelo y cambia el logo: el aro, las barras, las estrellas y el fondo toman los colores del logo. Luego toca cualquier texto para editarlo.</p>
       </div>
 
-      <div class="group">
+      <div class="group" data-tab="size">
         <div class="glabel">Medida del soporte</div>
         <div class="seg" id="s-preset">
           <button data-p="127.5x76" aria-pressed="true">12.75 × 7.6 cm</button>
@@ -620,7 +655,7 @@
         </div>
       </div>
 
-      <div class="group">
+      <div class="group" data-tab="bg">
         <div class="glabel">Fondo</div>
         <div class="swatches" id="s-bgsw">
           <button class="swatch" data-c="#ffffff" style="background:#ffffff" aria-pressed="true" title="Blanco"></button>
@@ -635,7 +670,7 @@
       </div>
 
       <!-- Elemento seleccionado -->
-      <div class="group" id="s-el">
+      <div class="group" id="s-el" data-tab="el">
         <div class="glabel" id="s-eltitle">Elemento seleccionado</div>
         <p class="note" id="s-elnone">Agrega una imagen, un texto o un QR con los botones de abajo de la vista previa, o toca uno para editarlo.</p>
         <div id="s-elbody" class="hidden">
@@ -708,7 +743,7 @@
         </div>
       </div>
 
-      <div class="group">
+      <div class="group" data-tab="print">
         <div class="glabel">Imprimir</div>
         <div class="opts">
           <div class="field">
@@ -2875,12 +2910,13 @@
     if ($("view-sup").classList.contains("hidden")) return;
     var frame = $("s-frame");
     var cssW = frame.clientWidth || 600;
-    var maxH = Math.min(560, window.innerHeight * 0.7);
+    var maxH = window.innerWidth < 760 ? window.innerHeight * 0.42 : Math.min(560, window.innerHeight * 0.7);
     var pad = 14;   // margen alrededor para ver la selección
     var S = Math.min((cssW - 2 * pad) / sup.w, (maxH - 2 * pad) / sup.h);
     var dpr = window.devicePixelRatio || 1;
     var cw = sup.w * S + 2 * pad, ch = sup.h * S + 2 * pad;
     sCanvas.style.width = cw + "px"; sCanvas.style.height = ch + "px";
+    if (window.innerWidth < 760) syncSupStick();
     sCanvas.width = Math.round(cw * dpr); sCanvas.height = Math.round(ch * dpr);
     sView = { S: S, pad: pad };
     var c = sCanvas.getContext("2d");
@@ -3034,8 +3070,31 @@
 
   // ---- Panel del elemento seleccionado ----
   function supSel_() { return sup.els[supSel]; }
+  // ---- Menú de opciones (pestañas) ----
+  function showSupTab(t) {
+    Array.prototype.forEach.call(document.querySelectorAll("#s-tabs button"), function (b) { b.setAttribute("aria-pressed", String(b.dataset.tab === t)); });
+    Array.prototype.forEach.call(document.querySelectorAll(".s-controls > .group[data-tab]"), function (g) { g.classList.toggle("on", g.dataset.tab === t); });
+    var ctl = document.querySelector(".s-controls");
+    if (ctl.scrollHeight > ctl.clientHeight) ctl.scrollTop = 0;
+    var tabs = $("s-tabs"), r = tabs.getBoundingClientRect();
+    if (r.top < 0 || r.top > window.innerHeight * 0.8) tabs.scrollIntoView({ block: "nearest" });
+  }
+  $("s-tabs").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (b) showSupTab(b.dataset.tab);
+  });
+  // En celular la vista previa se queda arriba (salvo con la maqueta 3D abierta)
+  function syncSupStick() {
+    var st = document.querySelector("#view-sup .stage");
+    st.classList.toggle("stick", $("s-3d").classList.contains("hidden"));
+    document.documentElement.style.setProperty("--stage-h", (window.innerWidth < 760 && st.classList.contains("stick") ? st.offsetHeight : 0) + "px");
+  }
+  var supLastSel = -1;
   function syncSupEl() {
     var e = supSel_();
+    // al tocar un elemento se abre su pestaña
+    if (e && supSel !== supLastSel && !document.querySelector('#s-tabs button[data-tab="el"][aria-pressed="true"]')) showSupTab("el");
+    supLastSel = e ? supSel : -1;
+    $("s-tabdot").classList.toggle("hidden", !e);
     $("s-elnone").classList.toggle("hidden", !!e);
     $("s-elbody").classList.toggle("hidden", !e);
     if (!e) { $("s-eltitle").textContent = "Elemento seleccionado"; return; }
@@ -3870,6 +3929,7 @@
   $("s-3dbtn").addEventListener("click", function () {
     var open = $("s-3d").classList.toggle("hidden") === false;
     $("s-3dlabel").textContent = open ? "Ocultar maqueta 3D" : "Ver maqueta 3D";
+    syncSupStick();
     if (open) { render3D(); $("s-3d").scrollIntoView({ behavior: "smooth", block: "nearest" }); }
   });
   $("s-3dyaw").addEventListener("input", render3DSoon);
