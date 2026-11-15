@@ -41,6 +41,14 @@ App web de un solo archivo (`index.html`) para crear stickers de tarjetas NFC CR
     - Usan `fy` (fracción del alto) y medidas para 76 × 127.5 vertical. `supTemplateEls` los escala.
     - Al aplicar un modelo, el soporte pasa a vertical.
   - El elemento con `slot: "logo"` se cambia con "Cambiar logo" (`s-logo` → `supPutImage`).
+  - Los colores salen del logo con `supLogoProcess`:
+    - `logoAnalyze` detecta el color del borde si es un fondo liso y saca hasta 4 colores saturados.
+    - `logoCutBg` quita el fondo por inundación desde el borde.
+    - `logoTint` pinta de blanco o negro un logo sin color que no contrasta.
+  - `supApplyTheme(pal)` usa `e.base` y `sup.baseBg`, los colores originales del modelo. Con `null` restaura.
+    - El fondo depende del original: si era oscuro, pasa a un tono muy oscuro del color principal; si era blanco, sigue blanco; si era de color, pasa al principal oscurecido al 60 %.
+    - Si el logo no tiene colores, el estilo queda monocromo.
+    - El QR no cambia de color.
   - `drawSupport(c,S,bleed)` y `renderSupport(ppmm,bleed)`. La vista previa es `renderSup()`: se arrastra con snap al centro, la rueda cambia el tamaño, las flechas mueven y Supr borra.
   - Se guarda en localStorage `nfc-soporte` con las imágenes en dataURL; si no caben, sin ellas.
   - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.
