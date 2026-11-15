@@ -3614,7 +3614,7 @@
 
   function render3D() {
     var cv = $("s-3dcv"), c = cv.getContext("2d"), CW = cv.width, CH = cv.height;
-    var W = sup.w, H = sup.h, th = 3, tilt = 10 * Math.PI / 180, D = Math.min(W, H) * 0.62;
+    var W = sup.w, H = sup.h, th = 3, tilt = 10 * Math.PI / 180, D = Math.min(50, Math.min(W, H) * 0.66);   // pie de 5 cm, como el soporte de 7.6 × 12.75
     var yaw = (parseFloat($("s-3dyaw").value) || 0) * Math.PI / 180, pitch = 20 * Math.PI / 180;
     var mat = sup.material || "free";
     var edge = mat === "black" ? "#1d1f25" : mat === "wood" ? "#a87443" : "#eef0f2";
