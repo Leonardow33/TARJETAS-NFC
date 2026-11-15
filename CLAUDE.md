@@ -34,7 +34,13 @@ App web de un solo archivo (`index.html`) para crear stickers de tarjetas NFC CR
   - Datos por defecto: Doriant Cardenas / Analista de Inteligencia Comercial / Ingeniero A / +51 910236424 / doriantleodor@gmail.com / linkedin.com/in/doriantcardenas. `loadTpl` cambia los antiguos de ejemplo (Ana Torres…) guardados en localStorage.
 - **Soportes** (`#view-sup`, ids `s-*`): editor libre para soportes grandes donde se pega vinil.
   - `sup`: w, h (mm), preset (`127.5x76` = 12.75 × 7.6 cm, `85.6x54` o `custom`; los campos van en cm), bg, rounded, els.
-  - Elementos en `sup.els`, de tipo img, text o qr: x, y (centro en mm), rot (×90°), w o size (mm) y color.
+  - Elementos en `sup.els`: x, y (centro en mm), rot (×90°), w o size (mm) y color.
+    - Tipos: img, text, qr, ring (aro), bar, stars y nfc (ícono).
+    - ring, bar y text pueden llevar `colors` (multicolor, por segmento o letra). `palette` guarda los colores para "Volver a multicolor". `thick` es el grosor.
+  - Modelos en `SUP_TEMPLATES`: resenas, resenas2, instagram, wifi, menu y pago.
+    - Usan `fy` (fracción del alto) y medidas para 76 × 127.5 vertical. `supTemplateEls` los escala.
+    - Al aplicar un modelo, el soporte pasa a vertical.
+  - El elemento con `slot: "logo"` se cambia con "Cambiar logo" (`s-logo` → `supPutImage`).
   - `drawSupport(c,S,bleed)` y `renderSupport(ppmm,bleed)`. La vista previa es `renderSup()`: se arrastra con snap al centro, la rueda cambia el tamaño, las flechas mueven y Supr borra.
   - Se guarda en localStorage `nfc-soporte` con las imágenes en dataURL; si no caben, sin ellas.
   - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.

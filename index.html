@@ -300,6 +300,10 @@
   canvas#s-preview { display: block; max-width: 100%; touch-action: none; cursor: move; }
   .s-addrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
   .s-addrow .btn { font-size: .86rem; padding: 10px 8px; }
+  .s-tplgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .s-tplgrid .tplbtn { padding: 6px; }
+  .s-tplgrid .tplbtn canvas { border-radius: 2px; }
+  .s-tplgrid .tplbtn span { font-size: .72rem; margin-top: 4px; }
   .s-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .s-tools .btn { font-size: .78rem; padding: 8px 4px; }
   textarea {
@@ -521,6 +525,17 @@
 
     <section class="controls">
       <div class="group">
+        <div class="glabel">Modelos prediseñados</div>
+        <div class="s-tplgrid" id="s-tplgrid"></div>
+        <label class="btn primary" for="s-logo" style="margin-top:12px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5L5 19"/></svg>
+          Cambiar logo
+        </label>
+        <input type="file" id="s-logo" accept="image/*">
+        <p class="note" style="margin-top:8px">Elige un modelo y cambia el logo por el tuyo (un PNG con fondo transparente se ve mejor). Luego toca cualquier texto para editarlo.</p>
+      </div>
+
+      <div class="group">
         <div class="glabel">Medida del soporte</div>
         <div class="seg" id="s-preset">
           <button data-p="127.5x76" aria-pressed="true">12.75 × 7.6 cm</button>
@@ -607,6 +622,16 @@
               </span>
             </div>
           </div>
+          <div class="field" id="s-fthick">
+            <label for="s-elthick">Grosor</label>
+            <div class="row">
+              <input type="range" id="s-elthick" min="0.5" max="12" step="0.25" value="3">
+              <span class="valtag" id="s-elthickval">3 mm</span>
+            </div>
+          </div>
+          <button class="btn" id="s-multi" style="margin-top:10px">Volver a multicolor</button>
+          <label class="btn" for="s-replace" id="s-freplace" style="margin-top:10px">Reemplazar por imagen</label>
+          <input type="file" id="s-replace" accept="image/*">
           <label class="check" style="margin-top:12px" id="s-fqrbg"><input type="checkbox" id="s-elqrbg" checked> Fondo blanco detrás del QR</label>
           <div class="btnrow" id="s-fimg">
             <button class="btn" id="s-fill">Llenar fondo</button>
@@ -2602,7 +2627,8 @@
   var sup = { w: 127.5, h: 76, preset: "127.5x76", bg: "#ffffff", rounded: false, els: [] };
   var supSel = -1;            // índice del elemento seleccionado
   var supSnap = { x: false, y: false };
-  var SUP_EL_KEYS = ["type", "x", "y", "rot", "w", "src", "text", "size", "font", "bold", "align", "color", "qrbg"];
+  var SUP_EL_KEYS = ["type", "x", "y", "rot", "w", "src", "text", "size", "font", "bold", "align", "color", "qrbg",
+    "thick", "colors", "palette", "slot", "count"];
   var supMeasure = document.createElement("canvas").getContext("2d");
 
   function supFont(e, px) { return (e.bold ? "700 " : "400 ") + px + "px " + FONTS[e.font || "sans"]; }
@@ -2613,7 +2639,10 @@
       var ar = e.img ? e.img.naturalHeight / e.img.naturalWidth : 1;
       return { w: e.w, h: e.w * ar };
     }
-    if (e.type === "qr") return { w: e.w, h: e.w };
+    if (e.type === "qr" || e.type === "ring") return { w: e.w, h: e.w };
+    if (e.type === "bar") return { w: e.w, h: e.thick };
+    if (e.type === "nfc") return { w: e.w, h: e.w * 1.15 };
+    if (e.type === "stars") { var n = e.count || 5; return { w: e.w, h: e.w / (n + (n - 1) * 0.25) }; }
     var lines = String(e.text || " ").split("\n"), mw = 0;
     supMeasure.font = supFont(e, 100);
     lines.forEach(function (l) { mw = Math.max(mw, supMeasure.measureText(l || " ").width); });
@@ -2656,15 +2685,68 @@
       c.font = supFont(e, px);
       c.fillStyle = e.color;
       c.textBaseline = "middle";
-      c.textAlign = e.align || "center";
-      var tx = e.align === "left" ? -w / 2 : e.align === "right" ? w / 2 : 0;
-      lines.forEach(function (l, i) { c.fillText(l, tx, -h / 2 + lh * (i + 0.5)); });
+      var multi = e.colors && e.colors.length;
+      c.textAlign = multi ? "left" : (e.align || "center");
+      lines.forEach(function (l, i) {
+        var ly = -h / 2 + lh * (i + 0.5);
+        if (!multi) {
+          c.fillText(l, e.align === "left" ? -w / 2 : e.align === "right" ? w / 2 : 0, ly);
+          return;
+        }
+        // Texto multicolor: cada letra con el siguiente color de la lista
+        var lw = c.measureText(l).width;
+        var x0 = e.align === "left" ? -w / 2 : e.align === "right" ? w / 2 - lw : -lw / 2, ci = 0;
+        for (var j = 0; j < l.length; j++) {
+          var ch = l.charAt(j);
+          c.fillStyle = e.colors[ci % e.colors.length];
+          if (ch !== " ") ci++;
+          c.fillText(ch, x0 + c.measureText(l.slice(0, j)).width, ly);
+        }
+      });
+    } else if (e.type === "ring") {
+      var cols = e.colors && e.colors.length ? e.colors : [e.color], t = e.thick * S, rr = (w - t) / 2;
+      c.lineWidth = t; c.lineCap = "butt";
+      cols.forEach(function (col, i) {
+        var a0 = Math.PI + i * 2 * Math.PI / cols.length;
+        c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, rr, a0, a0 + 2 * Math.PI / cols.length + (i < cols.length - 1 ? 0.004 : 0)); c.stroke();
+      });
+    } else if (e.type === "bar") {
+      var bc = e.colors && e.colors.length ? e.colors : [e.color], sw = w / bc.length;
+      bc.forEach(function (col, i) { c.fillStyle = col; c.fillRect(-w / 2 + i * sw, -h / 2, sw + (i < bc.length - 1 ? 0.6 : 0), h); });
+    } else if (e.type === "stars") {
+      var ns = e.count || 5, st = h, gap = st * 0.25;
+      c.fillStyle = e.color;
+      for (var si = 0; si < ns; si++) {
+        var scx = -w / 2 + st / 2 + si * (st + gap), scy = st * 0.04;
+        c.beginPath();
+        for (var v = 0; v < 10; v++) {
+          var ang = -Math.PI / 2 + v * Math.PI / 5, rad = v % 2 ? st * 0.21 : st * 0.52;
+          c[v ? "lineTo" : "moveTo"](scx + rad * Math.cos(ang), scy + rad * Math.sin(ang));
+        }
+        c.closePath(); c.fill();
+      }
+    } else if (e.type === "nfc") {
+      // Celular con ondas: "acerca tu celular"
+      var u = w / 100;
+      c.strokeStyle = e.color; c.lineWidth = 6 * u; c.lineCap = "round"; c.lineJoin = "round";
+      c.save(); c.translate(14 * u, 10 * u); c.rotate(0.18);
+      roundRect(c, -20 * u, -40 * u, 40 * u, 74 * u, 7 * u); c.stroke();
+      c.beginPath(); c.moveTo(-6 * u, 25 * u); c.lineTo(6 * u, 25 * u); c.stroke();
+      c.restore();
+      for (var wv = 0; wv < 3; wv++) {
+        c.beginPath(); c.arc(-10 * u, -24 * u, (12 + wv * 12) * u, Math.PI * 1.05, Math.PI * 1.45); c.stroke();
+      }
     }
     c.restore();
   }
 
   // Dibuja el soporte en c a S px/mm. bleed (mm) extiende el fondo.
-  function drawSupport(c, S, bleed) {
+  function drawSupport(c, S, bleed, d) {
+    var keep = sup; if (d) sup = d;
+    try { drawSupportIn(c, S, bleed); } finally { sup = keep; }
+  }
+  function drawSupportIn(c, S, bleed) {
     var W = sup.w * S, H = sup.h * S, B = (bleed || 0) * S;
     c.save();
     c.translate(B, B);
@@ -2855,8 +2937,14 @@
     $("s-elbody").classList.toggle("hidden", !e);
     if (!e) { $("s-eltitle").textContent = "Elemento seleccionado"; return; }
     var isT = e.type === "text", isQ = e.type === "qr", isI = e.type === "img";
-    $("s-eltitle").textContent = isT ? "Texto seleccionado" : isQ ? "QR seleccionado" : "Imagen seleccionada";
-    $("s-ftext").classList.toggle("hidden", isI);
+    var shape = !isT && !isQ && !isI;
+    $("s-eltitle").textContent = { text: "Texto", qr: "QR", img: "Imagen", ring: "Aro de colores", bar: "Barra de colores", stars: "Estrellas", nfc: "Ícono NFC" }[e.type] + (e.slot ? " · logo" : "");
+    $("s-ftext").classList.toggle("hidden", isI || shape);
+    $("s-fthick").classList.toggle("hidden", e.type !== "ring" && e.type !== "bar");
+    if (e.thick) { $("s-elthick").value = e.thick; $("s-elthickval").textContent = e.thick + " mm"; }
+    $("s-multi").classList.toggle("hidden", !(e.palette && !(e.colors && e.colors.length)));
+    $("s-freplace").classList.toggle("hidden", !(isI || e.slot));
+    $("s-freplace").textContent = isI ? "Reemplazar imagen" : "Reemplazar por imagen (logo)";
     $("s-eltextlabel").textContent = isQ ? "Link o texto del QR" : "Texto (Enter para otra línea)";
     if (document.activeElement !== $("s-eltext")) $("s-eltext").value = e.text || "";
     $("s-ffont").classList.toggle("hidden", !isT);
@@ -2897,9 +2985,46 @@
     var b = ev.target.closest("button"); if (b) supEdit(function (e) { e.align = b.dataset.a; });
   });
   $("s-elcolorsw").addEventListener("click", function (ev) {
-    var b = ev.target.closest(".swatch"); if (b) supEdit(function (e) { e.color = b.dataset.c; });
+    var b = ev.target.closest(".swatch"); if (b) supEdit(function (e) { e.color = b.dataset.c; e.colors = null; });
   });
-  $("s-elcolor").addEventListener("input", function (ev) { supEdit(function (e) { e.color = ev.target.value; }); });
+  $("s-elcolor").addEventListener("input", function (ev) { supEdit(function (e) { e.color = ev.target.value; e.colors = null; }); });
+  $("s-multi").addEventListener("click", function () { supEdit(function (e) { e.colors = e.palette.slice(); }); });
+  $("s-elthick").addEventListener("input", function (ev) { supEdit(function (e) { e.thick = parseFloat(ev.target.value) || 1; }); });
+  $("s-replace").addEventListener("change", function (ev) {
+    var f = ev.target.files && ev.target.files[0]; ev.target.value = "";
+    if (f && supSel >= 0) supPutImage(f, [supSel]);
+  });
+  $("s-logo").addEventListener("change", function (ev) {
+    var f = ev.target.files && ev.target.files[0]; ev.target.value = "";
+    if (!f) return;
+    var idx = [];
+    sup.els.forEach(function (e, i) { if (e.slot === "logo") idx.push(i); });
+    supPutImage(f, idx);
+  });
+
+  // Pone una imagen en lugar de los elementos indicados (encaja en su caja); si no hay ninguno, la agrega
+  function supPutImage(f, idx) {
+    var rd = new FileReader();
+    rd.onload = function () {
+      supLoadImg(rd.result, function (img) {
+        if (!img) { alert("No se pudo abrir esa imagen."); return; }
+        var ar = img.naturalHeight / img.naturalWidth;
+        if (!idx.length) {
+          supAdd({ type: "img", img: img, src: rd.result, slot: "logo", w: Math.min(sup.w * 0.5, sup.h * 0.3 / ar) });
+          return;
+        }
+        idx.forEach(function (i) {
+          var o = sup.els[i], b = supElBox(o);
+          // un texto-logo deja algo más de alto para logos cuadrados
+          var bw = Math.max(b.w, 10), bh = Math.max(b.h, 10) * (o.type === "text" ? 1.35 : 1);
+          sup.els[i] = { type: "img", img: img, src: rd.result, slot: o.slot, x: o.x, y: o.y, rot: 0, w: Math.min(bw, bh / ar) };
+        });
+        supSel = idx[0];
+        syncSupEl(); renderSup(); saveSup();
+      });
+    };
+    rd.readAsDataURL(f);
+  }
 
   // Llenar: la imagen cubre todo el soporte; Ajustar: entra completa
   function supFitImg(cover) {
@@ -2997,6 +3122,109 @@
   $("s-bgcustom").addEventListener("input", function (ev) { sup.bg = ev.target.value; syncSupSize(); renderSup(); saveSup(); });
   ["s-copies", "s-gap", "s-bleed"].forEach(function (id) { $(id).addEventListener("change", renderSup); });
 
+  // ---- Modelos prediseñados (pensados en vertical; se adaptan a la medida) ----
+  // El elemento con slot "logo" se cambia con "Cambiar logo".
+  var PAL_G = ["#4285f4", "#ea4335", "#fbbc05", "#34a853"];
+  var PAL_GTXT = ["#4285f4", "#ea4335", "#fbbc05", "#4285f4", "#34a853", "#ea4335"];
+  var PAL_BAR = ["#ea4335", "#34a853", "#4285f4", "#fbbc05"];
+  var PAL_IG = ["#feda75", "#fa7e1e", "#d62976", "#962fbf", "#4f5bd5"];
+  function T(text, y, size, color, o) {
+    return Object.assign({ type: "text", text: text, fy: y, size: size, font: "sans", bold: true, align: "center", color: color }, o || {});
+  }
+  function multi(e, pal) { e.colors = pal.slice(); e.palette = pal.slice(); return e; }
+  var SUP_TEMPLATES = [
+    { id: "resenas", name: "Reseñas (negro)", bg: "#111318", els: function () { return [
+      T("Califícanos en", 0.105, 7, "#ffffff"),
+      multi({ type: "ring", fy: 0.43, w: 58, thick: 3, color: "#ffffff" }, PAL_G),
+      { type: "nfc", fy: 0.335, w: 13, color: "#ffffff" },
+      T("TOCA AQUÍ", 0.418, 3.6, "#ffffff"),
+      multi(T("Google", 0.51, 11, "#4285f4", { slot: "logo" }), PAL_GTXT),
+      { type: "stars", fy: 0.765, w: 44, color: "#fbbc05" },
+      multi({ type: "bar", fy: 0.87, w: 62, thick: 2.2, color: "#ffffff" }, PAL_BAR)
+    ]; } },
+    { id: "resenas2", name: "Reseñas (blanco)", bg: "#ffffff", els: function () { return [
+      T("¿Te gustó?\nDéjanos tu reseña", 0.12, 5.6, "#111318"),
+      multi({ type: "ring", fy: 0.45, w: 56, thick: 2.6, color: "#111318" }, PAL_G),
+      { type: "nfc", fy: 0.36, w: 12, color: "#111318" },
+      T("TOCA AQUÍ", 0.44, 3.6, "#111318"),
+      multi(T("Google", 0.525, 10.5, "#4285f4", { slot: "logo" }), PAL_GTXT),
+      { type: "stars", fy: 0.78, w: 42, color: "#fbbc05" },
+      T("Gracias por tu visita", 0.885, 3.4, "#5b616e", { bold: false })
+    ]; } },
+    { id: "instagram", name: "Síguenos", bg: "#ffffff", els: function () { return [
+      T("¡Síguenos!", 0.1, 8.5, "#111318"),
+      multi({ type: "ring", fy: 0.43, w: 56, thick: 3, color: "#d62976" }, PAL_IG),
+      { type: "nfc", fy: 0.335, w: 12, color: "#111318" },
+      T("TOCA AQUÍ", 0.418, 3.6, "#111318"),
+      multi(T("Instagram", 0.505, 8, "#d62976", { slot: "logo" }), PAL_IG),
+      T("@tunegocio", 0.76, 5.5, "#111318"),
+      multi({ type: "bar", fy: 0.87, w: 62, thick: 2.2, color: "#d62976" }, PAL_IG)
+    ]; } },
+    { id: "wifi", name: "WiFi", bg: "#2f5bd7", els: function () { return [
+      T("TU LOGO", 0.075, 5.5, "#ffffff", { slot: "logo" }),
+      T("WiFi gratis", 0.19, 9, "#ffffff"),
+      { type: "nfc", fy: 0.355, w: 17, color: "#ffffff" },
+      T("Acerca tu celular\npara conectarte", 0.495, 4.2, "#ffffff", { bold: false }),
+      { type: "qr", fy: 0.715, w: 33, color: "#111318", qrbg: true, text: "WIFI:T:WPA;S:MiRed;P:12345678;;" },
+      T("Red: MiRed · Clave: 12345678", 0.905, 3.4, "#ffffff", { bold: false })
+    ]; } },
+    { id: "menu", name: "Menú / carta", bg: "#ffffff", els: function () { return [
+      T("TU LOGO", 0.085, 7, "#111318", { slot: "logo" }),
+      T("Mira nuestra carta", 0.205, 5.6, "#111318"),
+      { type: "nfc", fy: 0.365, w: 17, color: "#b23b3b" },
+      T("Acerca tu celular", 0.5, 4.2, "#111318", { bold: false }),
+      { type: "qr", fy: 0.7, w: 33, color: "#111318", qrbg: true, text: "https://" },
+      T("o escanea el código", 0.875, 3.6, "#5b616e", { bold: false }),
+      { type: "bar", fy: 0.95, w: 76, thick: 3, color: "#b23b3b" }
+    ]; } },
+    { id: "pago", name: "Paga aquí", bg: "#5c1a7a", els: function () { return [
+      T("Paga aquí", 0.1, 8.5, "#ffffff"),
+      T("Yape / Plin", 0.24, 10, "#ffffff", { slot: "logo" }),
+      { type: "nfc", fy: 0.4, w: 16, color: "#ffffff" },
+      T("Acerca tu celular o escanea", 0.525, 3.8, "#ffffff", { bold: false }),
+      { type: "qr", fy: 0.72, w: 32, color: "#111318", qrbg: true, text: "https://" },
+      T("A nombre de: Tu negocio", 0.905, 3.6, "#ffffff", { bold: false })
+    ]; } }
+  ];
+
+  // Crea los elementos del modelo para un soporte de W × H mm
+  function supTemplateEls(t, W, H) {
+    var u = Math.min(W / 76, H / 127.5);
+    return t.els().map(function (e) {
+      var o = Object.assign({}, e, { x: W / 2, y: e.fy * H, rot: 0 });
+      delete o.fy;
+      if (o.size) o.size = +(o.size * u).toFixed(2);
+      if (o.w) o.w = +(o.w * u).toFixed(2);
+      if (o.thick) o.thick = +(o.thick * u).toFixed(2);
+      return o;
+    });
+  }
+
+  function buildSupTplGrid() {
+    var grid = $("s-tplgrid"), W = 76, H = 127.5, S = 1.7;
+    SUP_TEMPLATES.forEach(function (t) {
+      var b = document.createElement("button");
+      b.className = "tplbtn"; b.dataset.t = t.id; b.setAttribute("aria-pressed", "false");
+      var cv = document.createElement("canvas");
+      cv.width = Math.round(W * S); cv.height = Math.round(H * S);
+      drawSupport(cv.getContext("2d"), S, 0, { w: W, h: H, bg: t.bg, rounded: false, els: supTemplateEls(t, W, H) });
+      var sp = document.createElement("span"); sp.textContent = t.name;
+      b.appendChild(cv); b.appendChild(sp);
+      grid.appendChild(b);
+    });
+  }
+  $("s-tplgrid").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".tplbtn"); if (!b) return;
+    var t = SUP_TEMPLATES.filter(function (x) { return x.id === b.dataset.t; })[0];
+    if (sup.els.length && !confirm("¿Reemplazar el diseño actual por el modelo \"" + t.name + "\"?")) return;
+    if (sup.w > sup.h) { var w = sup.w; sup.w = sup.h; sup.h = w; }   // los modelos van en vertical
+    sup.bg = t.bg;
+    sup.els = supTemplateEls(t, sup.w, sup.h);
+    supSel = -1;
+    Array.prototype.forEach.call($("s-tplgrid").children, function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+    syncSupSize(); syncSupEl(); renderSup(); saveSup();
+  });
+
   // ---- Guardar en el navegador (imágenes incluidas si caben) ----
   function saveSup() {
     function pack(withImg) {
@@ -3091,6 +3319,7 @@
   // ---- Init ----
   loadTpl();
   loadSup();
+  buildSupTplGrid();
   syncTplUI();
   center();
   syncUI();
