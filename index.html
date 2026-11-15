@@ -308,6 +308,7 @@
   .s-pal #s-pal { display: inline-flex; gap: 4px; }
   .s-pal i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line-strong); display: inline-block; }
   .s-pal .linkbtn { font-size: .8rem; margin-left: auto; }
+  canvas#s-3dcv { display: block; width: 100%; height: auto; border-radius: 10px; cursor: ew-resize; touch-action: none; }
   .s-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .s-tools .btn { font-size: .78rem; padding: 8px 4px; }
   textarea {
@@ -393,9 +394,14 @@
             <button data-f="mono" aria-pressed="false">Mono</button>
           </div>
         </div>
-        <label class="check" style="margin-top:12px">
-          <input type="checkbox" id="t-invert"> Invertir colores (fondo negro)
-        </label>
+        <div class="field">
+          <label>Material de la tarjeta</label>
+          <div class="seg" id="tplmat">
+            <button data-m="white" aria-pressed="true">Blanco</button>
+            <button data-m="black" aria-pressed="false">Negro</button>
+            <button data-m="wood" aria-pressed="false" id="tplmatwood">Madera</button>
+          </div>
+        </div>
         <div class="field">
           <label>Logo o imagen (opcional)</label>
           <div class="logo-row">
@@ -525,10 +531,41 @@
         </button>
       </div>
       <input type="file" id="s-file" accept="image/*" multiple>
+      <button class="btn" id="s-3dbtn" style="margin-top:12px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>
+        <span id="s-3dlabel">Ver maqueta 3D</span>
+      </button>
+      <div id="s-3d" class="hidden" style="margin-top:12px">
+        <canvas id="s-3dcv" width="1000" height="760" role="img" aria-label="Maqueta 3D del soporte"></canvas>
+        <div class="opts" style="margin-top:12px">
+          <div class="field">
+            <label for="s-3dyaw">Girar</label>
+            <input type="range" id="s-3dyaw" min="-60" max="60" step="1" value="-28">
+          </div>
+          <div class="field">
+            <label for="s-3dtable">Mesa</label>
+            <select id="s-3dtable">
+              <option value="dark">Oscura</option>
+              <option value="light">Clara</option>
+              <option value="wood">Madera</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn" id="s-3ddl" style="margin-top:10px">Descargar imagen de la maqueta</button>
+        <p class="note" style="margin-top:8px">Vista aproximada para mostrar al cliente: soporte en L de acrílico (bordes y base del color del material), con el diseño impreso al frente.</p>
+      </div>
     </section>
 
     <section class="controls">
       <div class="group">
+        <div class="glabel">Material del soporte</div>
+        <div class="seg" id="s-mat">
+          <button data-m="free" aria-pressed="true">Libre</button>
+          <button data-m="white" aria-pressed="false">Blanco</button>
+          <button data-m="black" aria-pressed="false">Negro</button>
+          <button data-m="wood" aria-pressed="false">Madera</button>
+        </div>
+        <p class="note" style="margin:8px 0 14px">Con un material, los modelos usan el color del plástico de fondo y ajustan textos e íconos para que resalten. "Libre" deja los colores propios de cada modelo.</p>
         <div class="glabel">Modelos prediseñados</div>
         <div class="s-tplgrid" id="s-tplgrid"></div>
         <label class="btn primary" for="s-logo" style="margin-top:12px">
@@ -1937,11 +1974,11 @@
     mono: "'Courier New', Courier, monospace"
   };
   var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link"];
-  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "rounded"].concat(TPL_FIELDS);
+  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded"].concat(TPL_FIELDS);
   var tpl = {
     template: "clasica", backTemplate: "nfc", side: "front", size: "card", font: "sans",
     name: "", role: "", company: "", phone: "", email: "", link: "",
-    qr: true, invert: false, rounded: true, shrink: 0,
+    qr: true, invert: false, material: "white", rounded: true, shrink: 0,
     logo: null, logoMode: "logo", logoInv: false   // logo = { img, cache }
   };
   var tplEditingId = null;
@@ -2022,10 +2059,43 @@
     return (logo.cache[key] = cv);
   }
 
+  // ---- Madera: color base, tinta y veta dibujada (en mm, igual a cualquier resolución) ----
+  var WOOD_BG = "#c4915c", WOOD_INK = "#3a2412";
+  function drawWood(c, x, y, w, h, S) {
+    var seed = 7;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    c.save();
+    c.beginPath(); c.rect(x * S, y * S, w * S, h * S); c.clip();
+    // la veta corre a lo largo del lado más largo
+    var len = Math.max(w, h), wid = Math.min(w, h);
+    c.translate(x * S, y * S);
+    if (h > w) { c.translate(w * S, 0); c.rotate(Math.PI / 2); }
+    var g = c.createLinearGradient(0, 0, 0, wid * S);
+    g.addColorStop(0, "#c99a66"); g.addColorStop(0.45, "#bc8752"); g.addColorStop(1, "#c79560");
+    c.fillStyle = g; c.fillRect(0, 0, len * S, wid * S);
+    var n = Math.round(wid / 0.9);
+    for (var i = 0; i < n; i++) {
+      var y0 = (i + rnd() * 0.8) * wid / n, amp = 0.2 + rnd() * 0.9, fr = 0.03 + rnd() * 0.05, ph = rnd() * 6.28;
+      c.strokeStyle = "rgba(105,62,28," + (0.07 + rnd() * 0.2).toFixed(3) + ")";
+      c.lineWidth = (0.12 + rnd() * 0.45) * S;
+      c.beginPath();
+      for (var xx = -2; xx <= len + 2; xx += 2) {
+        var yy = y0 + amp * Math.sin(xx * fr + ph) + 0.35 * Math.sin(xx * fr * 3.1 + ph * 2);
+        c[xx === -2 ? "moveTo" : "lineTo"](xx * S, yy * S);
+      }
+      c.stroke();
+    }
+    c.restore();
+  }
+
   // Dibuja la plantilla t a S px/mm; bleed (mm) extiende al sangrado los bloques que tocan el borde
   function drawTemplate(c, S, bleed, t) {
     var sz = tplDims(t), W = sz.w, H = sz.h, b = bleed || 0;
-    var INK = t.invert ? "#ffffff" : "#000000", PAPER = t.invert ? "#000000" : "#ffffff";
+    // Material: blanco, negro o madera (la madera no aplica a la térmica ni a las etiquetas)
+    var mat = t.material || (t.invert ? "black" : "white");
+    if (mat === "wood" && (t.thermal || t.size !== "card")) mat = "white";
+    var INK = mat === "black" ? "#ffffff" : mat === "wood" ? WOOD_INK : "#000000";
+    var PAPER = mat === "black" ? "#000000" : mat === "wood" ? WOOD_BG : "#ffffff";
     var family = FONTS[t.font] || FONTS.sans;
     // Etiquetas: el contenido crece hasta llenar el espacio. Térmica: trazos más gruesos para que no salgan grises.
     var FILL = t.size !== "card", BOLDEN = !!t.thermal;
@@ -2173,6 +2243,7 @@
     if (t.size === "card" && t.rounded && !b) { roundRect(c, 0, 0, W * S, H * S, CORNER_MM * S); c.clip(); }
     c.fillStyle = PAPER;
     c.fillRect(-b * S, -b * S, (W + 2 * b) * S, (H + 2 * b) * S);
+    if (mat === "wood") drawWood(c, -b, -b, W + 2 * b, H + 2 * b, S);
     c.textBaseline = "middle";
     var tdef = TEMPLATES.filter(function (d) { return d.id === t.template; })[0];
     if (tdef) tdef.draw({
@@ -2431,7 +2502,9 @@
     setSeg("tplfont", document.querySelector('#tplfont button[data-f="' + tpl.font + '"]'));
     setSeg("tpllogomode", document.querySelector('#tpllogomode button[data-m="' + tpl.logoMode + '"]'));
     $("t-qr").checked = tpl.qr;
-    $("t-invert").checked = tpl.invert;
+    if (!tpl.material) tpl.material = tpl.invert ? "black" : "white";
+    $("tplmatwood").classList.toggle("hidden", tpl.size !== "card");
+    setSeg("tplmat", document.querySelector('#tplmat button[data-m="' + (tpl.material === "wood" && tpl.size !== "card" ? "white" : tpl.material) + '"]'));
     $("t-rounded").checked = tpl.rounded;
     $("t-logoinv").checked = tpl.logoInv;
     $("t-logolabel").textContent = tpl.logo ? "Cambiar logo" : "Subir logo";
@@ -2481,7 +2554,7 @@
   TPL_FIELDS.forEach(function (k) {
     $("t-" + k).addEventListener("input", function (e) { tpl[k] = e.target.value; tplChanged(); });
   });
-  [["t-qr", "qr"], ["t-invert", "invert"], ["t-rounded", "rounded"], ["t-logoinv", "logoInv"]].forEach(function (p) {
+  [["t-qr", "qr"], ["t-rounded", "rounded"], ["t-logoinv", "logoInv"]].forEach(function (p) {
     $(p[0]).addEventListener("change", function (e) { tpl[p[1]] = e.target.checked; tplChanged(); });
   });
   [["tplsize", "size", "s"], ["tplside", "side", "side"], ["tplfont", "font", "f"], ["tpllogomode", "logoMode", "m"]].forEach(function (p) {
@@ -2490,6 +2563,11 @@
       tpl[p[1]] = b.dataset[p[2]];
       saveTpl(); syncTplUI();
     });
+  });
+  $("tplmat").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    tpl.material = b.dataset.m; tpl.invert = tpl.material === "black";
+    saveTpl(); syncTplUI();
   });
   $("tplgrid").addEventListener("click", function (e) {
     var b = e.target.closest(".tplbtn"); if (!b) return;
@@ -2639,7 +2717,7 @@
   var supSel = -1;            // índice del elemento seleccionado
   var supSnap = { x: false, y: false };
   var SUP_EL_KEYS = ["type", "x", "y", "rot", "w", "src", "text", "size", "font", "bold", "align", "color", "qrbg",
-    "thick", "colors", "palette", "slot", "count", "base"];
+    "thick", "colors", "palette", "slot", "count", "base", "orig"];
   var supMeasure = document.createElement("canvas").getContext("2d");
 
   // Ancho y alto de una imagen o de un canvas
@@ -2770,6 +2848,7 @@
     c.clip();
     c.fillStyle = sup.bg;
     c.fillRect(-B, -B, W + 2 * B, H + 2 * B);
+    if (sup.texture === "wood") drawWood(c, -(bleed || 0), -(bleed || 0), sup.w + 2 * (bleed || 0), sup.h + 2 * (bleed || 0), S);
     sup.els.forEach(function (e) { supDrawEl(c, e, S); });
     c.restore();
   }
@@ -2833,6 +2912,7 @@
         supCopies() + " copia" + (supCopies() > 1 ? "s" : "") + " = <b>" + Math.ceil(supCopies() / info.cap) + "</b> hoja" + (Math.ceil(supCopies() / info.cap) > 1 ? "s" : "") + "."
       : "Este tamaño no cabe en una hoja A4: usa <b>PDF tamaño real</b>.";
     $("s-a4").disabled = !info.cap;
+    render3DSoon();
   }
 
   // Punto de la vista previa (px CSS) → mm del soporte
@@ -3147,20 +3227,23 @@
     var base = cut ? logoCutBg(img, info.bg) : img;
     supLogo = { img: base, src0: cut ? base.toDataURL("image/png") : img.src, pal: info.pal, ink: info.ink, tintable: cut || !info.bg };
     if ($("s-logotheme").checked) supApplyTheme(info.pal);
-    var L = logoFor(sup.bg, true);
+    var L = logoFor(sup, true);
     done(L.img, L.src);
     syncSupPal(); buildSupTplGrid(); saveSup();
   }
 
   // El logo listo para un fondo: si es negro/gris y no se distingue, se tiñe de blanco o negro
-  function logoFor(bg, needSrc) {
-    var lg = supLogo;
+  // Color de tinta que resalta sobre un fondo (en madera, café oscuro)
+  function inkFor(d) { return d.texture === "wood" ? WOOD_INK : lum(d.bg) < 0.5 ? "#ffffff" : "#111318"; }
+
+  function logoFor(d, needSrc) {
+    var lg = supLogo, bg = d.bg;
     var lost = lg.tintable && lg.ink && !lg.pal.length && Math.abs(lum(lg.ink) - lum(bg)) < 0.3;
     if (!lost) return { img: lg.img, src: lg.src0 };
     var cv = document.createElement("canvas");
     cv.width = iw(lg.img); cv.height = ih(lg.img);
     cv.getContext("2d").drawImage(lg.img, 0, 0);
-    logoTint(cv, lum(bg) < 0.5 ? "#ffffff" : "#111318");
+    logoTint(cv, inkFor(d));
     return { img: cv, src: needSrc ? cv.toDataURL("image/png") : null };
   }
 
@@ -3177,7 +3260,7 @@
   // Tras cambiar el fondo, el logo puede necesitar otro tono
   function refreshLogo() {
     if (!supLogo) return;
-    var L = logoFor(sup.bg, true);
+    var L = logoFor(sup, true);
     sup.els.forEach(function (e) { if (e.slot === "logo" && e.type === "img") { e.img = L.img; e.src = L.src; } });
   }
 
@@ -3200,12 +3283,14 @@
     }
     var lb = lum(base), mono = !pal.length;
     // Logo sin colores (negro, gris): estilo monocromo con el fondo del modelo
-    if (mono) { sup.bg = base; pal = [lum(base) < 0.5 ? "#ffffff" : "#111318"]; }
+    var fixedBg = sup.material && sup.material !== "free";
+    if (mono || fixedBg) sup.bg = base;
+    if (mono) pal = [inkFor(sup)];
     var main = pal[0];
     // Fondo: oscuro → tono muy oscuro del color principal; blanco → blanco;
     // de color → el principal oscurecido (si fuera igual al logo, el logo se perdería)
-    if (!mono) sup.bg = lb < 0.2 ? mix(main, "#0b0c10", 0.8) : lb > 0.85 ? "#ffffff" : mix(main, "#0b0c10", 0.45);
-    var ink = lum(sup.bg) < 0.5 ? "#ffffff" : "#111318";
+    if (!mono && !fixedBg) sup.bg = lb < 0.2 ? mix(main, "#0b0c10", 0.8) : lb > 0.85 ? "#ffffff" : mix(main, "#0b0c10", 0.45);
+    var ink = inkFor(sup);
     var GOLD = "#f5b301";
     // Monocromo con acento dorado para que no quede apagado
     if (mono) pal = [ink, GOLD];
@@ -3214,7 +3299,8 @@
     var bright = pal.slice().sort(function (a, b) { return lum(b) - lum(a); })[0];
     sup.els.forEach(function (e) {
       if (!e.base || e.type === "qr") return;
-      var bc = hex2rgb(e.base.color), neutral = sat(bc) < 0.2 || lum(bc) < 0.15 || lum(bc) > 0.9;
+      var bc = hex2rgb(e.base.color), role = e.base.role;
+      var neutral = role ? true : sat(bc) < 0.2 || lum(bc) < 0.15 || lum(bc) > 0.9;
       if (e.base.colors) {
         var n = e.base.colors.length;
         e.colors = [];
@@ -3225,8 +3311,8 @@
         e.color = contrastOn(GOLD, sup.bg); e.colors = null;   // estrellas siempre doradas
       } else if (neutral) {
         // textos e íconos blancos/negros siguen la tinta; los grises quedan suaves
-        var l = lum(bc);
-        e.color = l > 0.9 || l < 0.12 ? ink : mix(ink, sup.bg, 0.35);
+        var l = lum(bc), isInk = role ? role === "ink" : l > 0.9 || l < 0.12;
+        e.color = isInk ? ink : mix(ink, sup.bg, 0.35);
       } else {
         e.color = contrastOn(main, sup.bg);
       }
@@ -3340,9 +3426,9 @@
   $("s-guides").addEventListener("change", renderSup);
   $("s-bgsw").addEventListener("click", function (ev) {
     var b = ev.target.closest(".swatch"); if (!b) return;
-    sup.bg = b.dataset.c; syncSupSize(); renderSup(); saveSup();
+    sup.bg = b.dataset.c; sup.texture = null; sup.material = "free"; syncSupSize(); renderSup(); buildSupTplGrid(); saveSup();
   });
-  $("s-bgcustom").addEventListener("input", function (ev) { sup.bg = ev.target.value; syncSupSize(); renderSup(); saveSup(); });
+  $("s-bgcustom").addEventListener("input", function (ev) { sup.bg = ev.target.value; sup.texture = null; sup.material = "free"; syncSupSize(); renderSup(); saveSup(); });
   ["s-copies", "s-gap", "s-bleed"].forEach(function (id) { $(id).addEventListener("change", renderSup); });
 
   // ---- Modelos prediseñados (pensados en vertical; se adaptan a la medida) ----
@@ -3427,15 +3513,52 @@
   // Diseño de un modelo con el logo actual y, si está activado, sus colores
   function supTemplateDesign(t, W, H, needSrc) {
     var d = { w: W, h: H, bg: t.bg, baseBg: t.bg, rounded: false, els: supTemplateEls(t, W, H) };
+    applyMaterial(d, sup.material);
     if (!supLogo) return d;
     var keep = sup; sup = d;
     try { if ($("s-logotheme").checked) supApplyTheme(supLogo.pal); } finally { sup = keep; }
-    var L = logoFor(d.bg, needSrc);
+    var L = logoFor(d, needSrc);
     fillLogoSlots(d, L.img, L.src);
     return d;
   }
 
+  // Material del plástico: fija el fondo y pasa textos/íconos neutros a la tinta que resalta
+  var MATS = { white: { bg: "#ffffff" }, black: { bg: "#111318" }, wood: { bg: WOOD_BG, texture: "wood" } };
+  function applyMaterial(d, mat) {
+    d.material = mat || "free";
+    if (!MATS[mat]) { d.texture = null; return; }
+    var M = MATS[mat];
+    d.bg = M.bg; d.baseBg = M.bg; d.texture = M.texture || null;
+    var ink = inkFor(d);
+    d.els.forEach(function (e) {
+      if (e.type === "img" || e.type === "qr") return;
+      if (!e.base) e.base = { color: e.color, colors: e.colors ? e.colors.slice() : null };
+      var o = e.orig || (e.orig = { color: e.base.color, colors: e.base.colors ? e.base.colors.slice() : null });
+      if (o.colors) { e.base = { color: o.color, colors: o.colors.slice() }; e.colors = o.colors.slice(); e.color = e.colors[0]; return; }
+      var bc = hex2rgb(o.color), L = lum(bc), neutral = sat(bc) < 0.2 || L < 0.15 || L > 0.9;
+      var role = neutral ? (L > 0.9 || L < 0.15 ? "ink" : "soft") : null;
+      var nc = role === "ink" ? ink : role === "soft" ? mix(ink, d.bg, 0.35) : contrastOn(o.color, d.bg);
+      e.base = { color: nc, colors: null, role: role };
+      e.color = nc;
+    });
+  }
+  $("s-mat").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    var m = b.dataset.m;
+    if (m === "free") {
+      sup.material = "free"; sup.texture = null;
+      // vuelve a los colores del modelo elegido, si hay uno
+      var t = SUP_TEMPLATES.filter(function (x) { return x.id === sup.tplId; })[0];
+      if (t) { sup.baseBg = t.bg; sup.bg = t.bg; var d0 = supTemplateEls(t, sup.w, sup.h);
+        sup.els.forEach(function (e, i) { var o = d0[i]; if (o && e.base && o.type === e.type) { e.base = o.base; e.color = o.color; e.colors = o.colors; } }); }
+    } else applyMaterial(sup, m);
+    if (supLogo && $("s-logotheme").checked) supApplyTheme(supLogo.pal);
+    else if (m === "free") supApplyTheme(null);
+    refreshLogo(); syncSupPal(); syncSupEl(); renderSup(); buildSupTplGrid(); saveSup();
+  });
+
   function buildSupTplGrid() {
+    setSeg("s-mat", document.querySelector('#s-mat button[data-m="' + (sup.material || "free") + '"]'));
     var grid = $("s-tplgrid"), W = 76, H = 127.5, S = 1.7;
     grid.innerHTML = "";
     SUP_TEMPLATES.forEach(function (t) {
@@ -3455,7 +3578,7 @@
     if (sup.els.length && !confirm("¿Reemplazar el diseño actual por el modelo \"" + t.name + "\"?")) return;
     if (sup.w > sup.h) { var w = sup.w; sup.w = sup.h; sup.h = w; }   // los modelos van en vertical
     var d = supTemplateDesign(t, sup.w, sup.h, true);
-    sup.bg = d.bg; sup.baseBg = t.bg; sup.logoPal = d.logoPal || null; sup.tplId = t.id;
+    sup.bg = d.bg; sup.baseBg = d.baseBg; sup.texture = d.texture || null; sup.logoPal = d.logoPal || null; sup.tplId = t.id;
     sup.els = d.els;
     supSel = -1;
     syncSupPal();
@@ -3463,10 +3586,149 @@
     syncSupSize(); syncSupEl(); renderSup(); saveSup();
   });
 
+  // ---- Maqueta 3D: soporte en L de acrílico sobre una mesa ----
+  var r3dRaf = 0;
+  function render3DSoon() {
+    if ($("s-3d").classList.contains("hidden") || r3dRaf) return;
+    r3dRaf = requestAnimationFrame(function () { r3dRaf = 0; render3D(); });
+  }
+  // Dibuja la imagen en el triángulo de destino (mapeo afín por triángulo)
+  function texTri(c, img, p0, p1, p2, t0, t1, t2) {
+    var cx = (p0[0] + p1[0] + p2[0]) / 3, cy = (p0[1] + p1[1] + p2[1]) / 3;
+    function grow(p) { var dx = p[0] - cx, dy = p[1] - cy, l = Math.sqrt(dx * dx + dy * dy) || 1; return [p[0] + dx / l * 0.7, p[1] + dy / l * 0.7]; }
+    var a0 = grow(p0), a1 = grow(p1), a2 = grow(p2);
+    var u0 = t0[0], v0 = t0[1], u1 = t1[0], v1 = t1[1], u2 = t2[0], v2 = t2[1];
+    var d = u0 * (v1 - v2) + u1 * (v2 - v0) + u2 * (v0 - v1); if (!d) return;
+    function solve(x0, x1, x2) {
+      return [(x0 * (v1 - v2) + x1 * (v2 - v0) + x2 * (v0 - v1)) / d,
+              (x0 * (u2 - u1) + x1 * (u0 - u2) + x2 * (u1 - u0)) / d,
+              (x0 * (u1 * v2 - u2 * v1) + x1 * (u2 * v0 - u0 * v2) + x2 * (u0 * v1 - u1 * v0)) / d];
+    }
+    var X = solve(p0[0], p1[0], p2[0]), Y = solve(p0[1], p1[1], p2[1]);
+    c.save();
+    c.beginPath(); c.moveTo(a0[0], a0[1]); c.lineTo(a1[0], a1[1]); c.lineTo(a2[0], a2[1]); c.closePath(); c.clip();
+    c.transform(X[0], Y[0], X[1], Y[1], X[2], Y[2]);
+    c.drawImage(img, 0, 0);
+    c.restore();
+  }
+
+  function render3D() {
+    var cv = $("s-3dcv"), c = cv.getContext("2d"), CW = cv.width, CH = cv.height;
+    var W = sup.w, H = sup.h, th = 3, tilt = 10 * Math.PI / 180, D = Math.min(W, H) * 0.62;
+    var yaw = (parseFloat($("s-3dyaw").value) || 0) * Math.PI / 180, pitch = 20 * Math.PI / 180;
+    var mat = sup.material || "free";
+    var edge = mat === "black" ? "#1d1f25" : mat === "wood" ? "#a87443" : "#eef0f2";
+    var ct = Math.cos(tilt), st = Math.sin(tilt);
+    function P(x, y, z) { return [x, y, z]; }
+    function add(a, b, k) { return [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]; }
+    var n = [0, st, ct];   // normal del frente (hacia el espectador)
+    var FL = P(-W / 2, 0, 0), FR = P(W / 2, 0, 0), TR = P(W / 2, H * ct, -H * st), TL = P(-W / 2, H * ct, -H * st);
+    var bFL = add(FL, n, -th), bFR = add(FR, n, -th), bTR = add(TR, n, -th), bTL = add(TL, n, -th);
+    var z0 = -th, z1 = -th - D;
+    var foot = [P(-W / 2, th, z0), P(W / 2, th, z0), P(W / 2, th, z1), P(-W / 2, th, z1)];
+    var footB = [P(-W / 2, 0, z0), P(W / 2, 0, z0), P(W / 2, 0, z1), P(-W / 2, 0, z1)];
+    var cy3 = H * ct / 2, cz3 = -D / 2, dist = 2.8 * Math.max(W, H, D);
+    // cámara: gira (yaw) alrededor del centro y mira desde arriba (pitch)
+    function cam(p) {
+      var x = p[0], y = p[1] - cy3 * 0.6, z = p[2] - cz3 * 0.5;
+      var x1 = x * Math.cos(yaw) + z * Math.sin(yaw), z1b = -x * Math.sin(yaw) + z * Math.cos(yaw);
+      var y2 = y * Math.cos(pitch) - z1b * Math.sin(pitch), z2 = y * Math.sin(pitch) + z1b * Math.cos(pitch);
+      var f = dist / (dist - z2);
+      return [x1 * f, -y2 * f, z2];
+    }
+    var all = [FL, FR, TR, TL, bFL, bFR, bTR, bTL].concat(foot, footB), minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+    all.forEach(function (p) { var q = cam(p); minx = Math.min(minx, q[0]); maxx = Math.max(maxx, q[0]); miny = Math.min(miny, q[1]); maxy = Math.max(maxy, q[1]); });
+    var k = Math.min(CW * 0.62 / (maxx - minx), CH * 0.72 / (maxy - miny));
+    var ox = CW / 2 - (minx + maxx) / 2 * k, oy = CH * 0.52 - (miny + maxy) / 2 * k;
+    function scr(p) { var q = cam(p); return [ox + q[0] * k, oy + q[1] * k, q[2]]; }
+
+    // mesa
+    var tb = $("s-3dtable").value;
+    var g = c.createLinearGradient(0, 0, 0, CH);
+    if (tb === "light") { g.addColorStop(0, "#d9d6d0"); g.addColorStop(1, "#f4f2ee"); }
+    else if (tb === "wood") { g.addColorStop(0, "#7a5230"); g.addColorStop(1, "#b07a48"); }
+    else { g.addColorStop(0, "#15161a"); g.addColorStop(1, "#33363d"); }
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.fillStyle = g; c.fillRect(0, 0, CW, CH);
+    if (tb === "wood") { c.save(); c.globalAlpha = 0.5; drawWood(c, 0, 0, CW / 2, CH / 2, 2); c.restore(); c.fillStyle = "rgba(60,35,15,.25)"; c.fillRect(0, 0, CW, CH); }
+    var spot = c.createRadialGradient(CW * 0.5, CH * 0.35, 10, CW * 0.5, CH * 0.45, CW * 0.7);
+    spot.addColorStop(0, "rgba(255,255,255,.10)"); spot.addColorStop(1, "rgba(0,0,0,.25)");
+    c.fillStyle = spot; c.fillRect(0, 0, CW, CH);
+
+    function poly(pts, fill) {
+      var q = pts.map(scr);
+      c.beginPath(); q.forEach(function (p, i) { c[i ? "lineTo" : "moveTo"](p[0], p[1]); }); c.closePath();
+      c.fillStyle = fill; c.fill();
+    }
+    // sombra
+    c.save();
+    c.filter = "blur(" + Math.round(k * 3) + "px)";
+    poly([P(-W / 2 - 2, 0, 4), P(W / 2 + 2, 0, 4), P(W / 2 + 6, 0, z1 - 8), P(-W / 2 + 6, 0, z1 - 8)], "rgba(0,0,0,.45)");
+    c.restore();
+
+    function shade(col, f) { return f >= 0 ? mix(col, "#ffffff", f) : mix(col, "#000000", -f); }
+    function depth(pts) { return pts.reduce(function (sm, p) { return sm + cam(p)[2]; }, 0) / pts.length; }
+    var faces = [
+      { p: [bFL, bFR, bTR, bTL], c: shade(edge, -0.25) },
+      { p: foot, c: shade(edge, 0.05) },
+      { p: [footB[0], footB[1], foot[1], foot[0]], c: shade(edge, -0.15) },
+      { p: [footB[3], footB[2], foot[2], foot[3]], c: shade(edge, -0.2) },
+      { p: [footB[0], footB[3], foot[3], foot[0]], c: shade(edge, -0.1) },
+      { p: [footB[1], footB[2], foot[2], foot[1]], c: shade(edge, -0.1) },
+      { p: [FL, TL, bTL, bFL], c: shade(edge, yaw > 0 ? 0.08 : -0.18) },
+      { p: [FR, TR, bTR, bFR], c: shade(edge, yaw < 0 ? 0.08 : -0.18) },
+      { p: [TL, TR, bTR, bTL], c: shade(edge, 0.15) }
+    ];
+    faces.sort(function (a, b) { return depth(a.p) - depth(b.p); });
+    faces.forEach(function (f) { poly(f.p, f.c); });
+
+    // frente con el diseño (malla para que la perspectiva sea real)
+    var tex = renderSupport(Math.min(6, 900 / Math.max(W, H)), 0), TW = tex.width, TH = tex.height, N = 14;
+    function pt(u, v) { return scr(add(add(FL, [FR[0] - FL[0], FR[1] - FL[1], FR[2] - FL[2]], u), [TL[0] - FL[0], TL[1] - FL[1], TL[2] - FL[2]], v)); }
+    for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) {
+      var u0 = i / N, u1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
+      var a = pt(u0, v0), b = pt(u1, v0), d2 = pt(u1, v1), e2 = pt(u0, v1);
+      var ta = [u0 * TW, (1 - v0) * TH], tb2 = [u1 * TW, (1 - v0) * TH], td = [u1 * TW, (1 - v1) * TH], te = [u0 * TW, (1 - v1) * TH];
+      texTri(c, tex, a, b, d2, ta, tb2, td);
+      texTri(c, tex, a, d2, e2, ta, td, te);
+    }
+    // brillo del acrílico
+    var q = [FL, FR, TR, TL].map(scr);
+    c.save();
+    c.beginPath(); q.forEach(function (p, i2) { c[i2 ? "lineTo" : "moveTo"](p[0], p[1]); }); c.closePath(); c.clip();
+    var gl = c.createLinearGradient(q[3][0], q[3][1], q[1][0], q[1][1]);
+    gl.addColorStop(0, "rgba(255,255,255,.22)"); gl.addColorStop(0.35, "rgba(255,255,255,.04)"); gl.addColorStop(0.36, "rgba(255,255,255,0)"); gl.addColorStop(1, "rgba(255,255,255,.08)");
+    c.fillStyle = gl; c.fill();
+    c.restore();
+  }
+  $("s-3dbtn").addEventListener("click", function () {
+    var open = $("s-3d").classList.toggle("hidden") === false;
+    $("s-3dlabel").textContent = open ? "Ocultar maqueta 3D" : "Ver maqueta 3D";
+    if (open) { render3D(); $("s-3d").scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+  });
+  $("s-3dyaw").addEventListener("input", render3DSoon);
+  $("s-3dtable").addEventListener("change", render3DSoon);
+  (function () {
+    var cv = $("s-3dcv"), last = null;
+    cv.addEventListener("pointerdown", function (e) { last = e.clientX; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener("pointermove", function (e) {
+      if (last === null) return;
+      var y = $("s-3dyaw"); y.value = clamp(parseFloat(y.value) + (e.clientX - last) * 0.4, -60, 60); last = e.clientX;
+      render3DSoon();
+    });
+    function up() { last = null; }
+    cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  })();
+  $("s-3ddl").addEventListener("click", function () {
+    if (!supReady()) return;
+    render3D();
+    $("s-3dcv").toBlob(function (blob) { downloadBlob(blob, "maqueta-soporte-" + supName() + ".png"); }, "image/png");
+  });
+
   // ---- Guardar en el navegador (imágenes incluidas si caben) ----
   function saveSup() {
     function pack(withImg) {
-      return JSON.stringify({ w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal, tplId: sup.tplId,
+      return JSON.stringify({ w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal, tplId: sup.tplId, material: sup.material, texture: sup.texture,
         logo: withImg && supLogo ? { src0: supLogo.src0, pal: supLogo.pal, ink: supLogo.ink, tintable: supLogo.tintable } : null,
         els: sup.els.filter(function (e) { return withImg || e.type !== "img"; }).map(function (e) {
           var o = {}; SUP_EL_KEYS.forEach(function (k) { if (e[k] !== undefined) o[k] = e[k]; }); return o;
@@ -3485,7 +3747,7 @@
       ];
       return;
     }
-    ["w", "h", "preset", "bg", "rounded", "baseBg", "logoPal", "tplId"].forEach(function (k) { if (k in o) sup[k] = o[k]; });
+    ["w", "h", "preset", "bg", "rounded", "baseBg", "logoPal", "tplId", "material", "texture"].forEach(function (k) { if (k in o) sup[k] = o[k]; });
     if (o.logo && o.logo.src0) supLoadImg(o.logo.src0, function (img) {
       if (!img) return;
       supLogo = { img: img, src0: o.logo.src0, pal: o.logo.pal || [], ink: o.logo.ink, tintable: o.logo.tintable };

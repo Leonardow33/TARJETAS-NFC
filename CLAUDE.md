@@ -49,6 +49,23 @@ App web de un solo archivo (`index.html`) para crear stickers de tarjetas NFC CR
     - El fondo depende del original: si era oscuro, pasa a un tono muy oscuro del color principal; si era blanco, sigue blanco; si era de color, pasa al principal oscurecido al 60 %.
     - Si el logo no tiene colores, el estilo queda monocromo.
     - El QR no cambia de color.
+    - Las estrellas son siempre doradas (`GOLD`, ajustado con `contrastOn`).
+    - Si el logo no tiene colores, el estilo es monocromo con acento dorado.
+    - `vivid()` aviva los colores sacados del logo.
+  - `supLogo` guarda el logo sin teñir (img/canvas, src0, pal, ink, tintable). `logoFor(d)` lo tiñe según el fondo de cada diseño.
+    - Las miniaturas de los modelos (`supTemplateDesign`) muestran el logo y los colores actuales.
+    - Al elegir otro modelo, el logo se conserva.
+  - Material del soporte (`sup.material`, `#s-mat`): free, white, black o wood.
+    - `applyMaterial(d, mat)` fija el fondo (madera = `sup.texture "wood"`, que dibuja `drawWood`).
+    - Pasa textos e íconos neutros a la tinta (`inkFor`) según su rol, ink o soft. Parte de `e.orig`, el color original del modelo.
+    - Con un material, el tema del logo no cambia el fondo.
+  - Maqueta 3D (`render3D`, `#s-3d`):
+    - Soporte en L de acrílico con inclinación de 10° y pie detrás, con bordes del color del material.
+    - El frente lleva el diseño con malla de triángulos afines (`texTri`), en perspectiva real.
+    - Se gira con el deslizador o arrastrando (yaw de ±60°). Mesa oscura, clara o de madera, y descarga en PNG.
+- **Material en tarjetas (Plantillas):** `tpl.material` white, black o wood (`#tplmat`) reemplaza a "Invertir".
+  - `tpl.invert` queda en sync para compatibilidad.
+  - Madera solo en tamaño tarjeta y no en térmica: `WOOD_BG`/`WOOD_INK` y la veta con `drawWood`.
   - `drawSupport(c,S,bleed)` y `renderSupport(ppmm,bleed)`. La vista previa es `renderSup()`: se arrastra con snap al centro, la rueda cambia el tamaño, las flechas mueven y Supr borra.
   - Se guarda en localStorage `nfc-soporte` con las imágenes en dataURL; si no caben, sin ellas.
   - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.
