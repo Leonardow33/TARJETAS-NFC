@@ -19,7 +19,7 @@ Enlaces:
 - Commits en español, con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - El usuario espera push tras cada cambio terminado y probado.
 
-## Código (`index.html`, ~3800 líneas)
+## Código (`index.html`, ~4000 líneas)
 - JS ES5 dentro de una IIFE (`var`, `function`, sin flechas). CSS con tokens y modo oscuro.
 - Librerías por cdnjs: jsPDF 2.5.1 (`window.jspdf.jsPDF`) y qrcode-generator 1.4.4.
 - Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes) y `#view-print` (Hoja A4). `showView(v)` las cambia.
@@ -59,9 +59,15 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
 - `drawSupport(c,S,bleed,d?)`: `d` permite dibujar otro diseño, para las miniaturas. También `renderSupport(ppmm,bleed)`.
 - Vista previa `renderSup()`: se arrastra con snap al centro, la rueda cambia el tamaño, las flechas mueven y Supr borra.
   - La línea punteada azul es la zona segura de 3 mm.
-- **Modelos** (`SUP_TEMPLATES`): resenas, resenas2, instagram, wifi, menu y pago.
-  - Usan `fy` (fracción del alto) y medidas para 76 × 127.5 vertical. `supTemplateEls` los escala.
-  - Al aplicar un modelo, el soporte pasa a vertical y se conserva el logo actual.
+- **Modelos** (`SUP_TEMPLATES`): resenas, resenas2, instagram, wifi, menu, pago, califica y califica-g.
+  - califica / califica-g: fondo negro como "Paga aquí", con estrellas blancas en vez de "A nombre de". califica-g lleva "Google" con `lock: true` (colores de Google que el tema no cambia).
+  - Usan `fy` (y opcional `fx`) en fracción y medidas para `ref` (por defecto 76 × 127.5 vertical). `supTemplateEls` los escala.
+  - Al aplicar un modelo, el soporte pasa a vertical (u horizontal si el `ref` es horizontal) y se conserva el logo actual.
+  - Usa siempre `supModels()` / `supModel(id)`, no `SUP_TEMPLATES` directo.
+- **Editar modelos** (`s-msave`, `s-mnew`, `s-mreset`, `syncModelBar`):
+  - `supCustom` en localStorage `nfc-sup-modelos`; `supToModel(id,name)` convierte el diseño actual (el logo pasa a "TU LOGO").
+  - Uno con el id de un predeterminado lo reemplaza (`edited`, ✎ en la miniatura) y se puede restaurar; los nuevos se pueden borrar.
+  - Imágenes de modelos guardados: `cachedImg(src)`.
   - `supTemplateDesign(t,W,H)` arma el modelo con material, logo y tema. Lo usan las miniaturas (`buildSupTplGrid`) y la aplicación del modelo.
 - **Logo** ("Cambiar logo", `s-logo` → `supPutImage` → `supLogoProcess`):
   - `logoAnalyze` detecta el color del borde si es un fondo liso y saca hasta 4 colores saturados.
@@ -72,7 +78,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Fondo sin material: si el modelo era oscuro, pasa a un tono muy oscuro del color principal (80 %); si era blanco, sigue blanco; si era de color, pasa al principal oscurecido al 45 %.
   - Con material, el fondo no cambia.
   - Multicolor (aro, barra): toma la paleta del logo avivada (`vivid`).
-  - Estrellas siempre doradas (`GOLD`). El QR no cambia de color.
+  - Estrellas de color: doradas (`GOLD`); blancas o negras siguen la tinta. El QR y los elementos `lock` no cambian.
   - Textos e íconos neutros siguen la tinta, según su rol ink o soft.
   - Logo sin colores: estilo monocromo con acento dorado.
 - **Material del soporte** (`#s-mat`): free, white, black o wood.
@@ -83,6 +89,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Soporte en L de acrílico con inclinación de 10° y pie detrás de 5 cm. Bordes y pie del color del material.
   - El frente lleva el diseño en perspectiva real, con una malla de triángulos afines (`texTri`).
   - Se gira con el deslizador o arrastrando (yaw de ±60°). Mesa oscura, clara o de madera, y descarga en PNG.
+  - "Mostrar medidas" (`#s-3dmeas`, activo por defecto): cotas de alto, ancho y base (pie) en cm; salen también en el PNG.
 - **Guardado:** localStorage `nfc-soporte`, con imágenes y logo en dataURL; si no caben, sin ellas.
 - **Exportar:**
   - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.

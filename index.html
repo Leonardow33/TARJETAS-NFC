@@ -551,6 +551,7 @@
             </select>
           </div>
         </div>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="s-3dmeas" checked> Mostrar medidas (alto, ancho y base)</label>
         <button class="btn" id="s-3ddl" style="margin-top:10px">Descargar imagen de la maqueta</button>
         <p class="note" style="margin-top:8px">Vista aproximada para mostrar al cliente: soporte en L de acrílico (bordes y base del color del material), con el diseño impreso al frente.</p>
       </div>
@@ -568,6 +569,13 @@
         <p class="note" style="margin:8px 0 14px">Con un material, los modelos usan el color del plástico de fondo y ajustan textos e íconos para que resalten. "Libre" deja los colores propios de cada modelo.</p>
         <div class="glabel">Modelos prediseñados</div>
         <div class="s-tplgrid" id="s-tplgrid"></div>
+        <div class="glabel" style="margin-top:14px">Editar modelos</div>
+        <p class="note" style="margin:0 0 8px">Elige un modelo, cámbialo en la vista previa (textos, colores, posiciones) y guárdalo. El logo queda como espacio "TU LOGO" para cada cliente.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button class="btn hidden" id="s-msave">Guardar cambios en el modelo</button>
+          <button class="btn" id="s-mnew">Guardar como modelo nuevo</button>
+          <button class="linkbtn hidden" id="s-mreset">Restaurar original</button>
+        </div>
         <label class="btn primary" for="s-logo" style="margin-top:12px">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5L5 19"/></svg>
           Cambiar logo
@@ -2717,7 +2725,7 @@
   var supSel = -1;            // índice del elemento seleccionado
   var supSnap = { x: false, y: false };
   var SUP_EL_KEYS = ["type", "x", "y", "rot", "w", "src", "text", "size", "font", "bold", "align", "color", "qrbg",
-    "thick", "colors", "palette", "slot", "count", "base", "orig"];
+    "thick", "colors", "palette", "slot", "count", "base", "orig", "lock"];
   var supMeasure = document.createElement("canvas").getContext("2d");
 
   // Ancho y alto de una imagen o de un canvas
@@ -3298,7 +3306,7 @@
     sup.logoPal = pal.slice();
     var bright = pal.slice().sort(function (a, b) { return lum(b) - lum(a); })[0];
     sup.els.forEach(function (e) {
-      if (!e.base || e.type === "qr") return;
+      if (!e.base || e.type === "qr" || e.lock) return;   // lock: colores fijos (p. ej. "Google")
       var bc = hex2rgb(e.base.color), role = e.base.role;
       var neutral = role ? true : sat(bc) < 0.2 || lum(bc) < 0.15 || lum(bc) > 0.9;
       if (e.base.colors) {
@@ -3307,8 +3315,8 @@
         for (var i = 0; i < n; i++) e.colors.push(contrastOn(pal[i % pal.length], sup.bg));
         e.palette = e.colors.slice();
         e.color = e.colors[0];
-      } else if (e.type === "stars") {
-        e.color = contrastOn(GOLD, sup.bg); e.colors = null;   // estrellas siempre doradas
+      } else if (e.type === "stars" && !neutral) {
+        e.color = contrastOn(GOLD, sup.bg); e.colors = null;   // estrellas de color: doradas (blancas/negras siguen la tinta)
       } else if (neutral) {
         // textos e íconos blancos/negros siguen la tinta; los grises quedan suaves
         var l = lum(bc), isInk = role ? role === "ink" : l > 0.9 || l < 0.12;
@@ -3493,15 +3501,95 @@
       T("Acerca tu celular o escanea", 0.525, 3.8, "#ffffff", { bold: false }),
       { type: "qr", fy: 0.72, w: 32, color: "#111318", qrbg: true, text: "https://" },
       T("A nombre de: Tu negocio", 0.905, 3.6, "#ffffff", { bold: false })
+    ]; } },
+    { id: "califica", name: "Califícanos", bg: "#111318", els: function () { return [
+      T("Califícanos", 0.1, 8.5, "#ffffff"),
+      T("TU LOGO", 0.235, 9, "#ffffff", { slot: "logo" }),
+      { type: "nfc", fy: 0.39, w: 15, color: "#ffffff" },
+      T("Acerca tu celular o escanea", 0.51, 3.8, "#ffffff", { bold: false }),
+      { type: "qr", fy: 0.7, w: 30, color: "#111318", qrbg: true, text: "https://" },
+      { type: "stars", fy: 0.895, w: 46, color: "#ffffff" }
+    ]; } },
+    { id: "califica-g", name: "Califícanos en Google", bg: "#111318", els: function () { return [
+      T("Califícanos en", 0.07, 6.5, "#ffffff"),
+      multi(T("Google", 0.155, 11, "#4285f4", { lock: true }), PAL_GTXT),
+      T("TU LOGO", 0.285, 7, "#ffffff", { slot: "logo" }),
+      { type: "nfc", fy: 0.415, w: 13, color: "#ffffff" },
+      T("Acerca tu celular o escanea", 0.515, 3.6, "#ffffff", { bold: false }),
+      { type: "qr", fy: 0.705, w: 30, color: "#111318", qrbg: true, text: "https://" },
+      { type: "stars", fy: 0.895, w: 46, color: "#ffffff" }
     ]; } }
   ];
 
+  // ---- Mis modelos: modelos guardados por el usuario o cambios a los predeterminados ----
+  // Se guardan en localStorage "nfc-sup-modelos" con posiciones en fracción (fx, fy) y
+  // medidas para la medida de referencia (ref). Uno con el mismo id que un predeterminado lo reemplaza.
+  var supCustom = [];
+  try { supCustom = JSON.parse(localStorage.getItem("nfc-sup-modelos") || "[]") || []; } catch (err) { supCustom = []; }
+  var supImgCache = {};
+  function cachedImg(src) {
+    if (!supImgCache[src]) {
+      var im = new Image();
+      im.onload = function () { buildSupTplGrid(); renderSup(); };
+      im.src = src; supImgCache[src] = im;
+    }
+    return supImgCache[src];
+  }
+  function customToTpl(m) {
+    return { id: m.id, name: m.name, bg: m.bg, ref: m.ref, custom: true,
+      els: function () { return m.els.map(function (e) {
+        var o = Object.assign({}, e);
+        if (e.colors) o.colors = e.colors.slice();
+        if (e.palette) o.palette = e.palette.slice();
+        if (e.type === "img" && e.src) o.img = cachedImg(e.src);
+        return o;
+      }); } };
+  }
+  function supModels() {
+    var out = SUP_TEMPLATES.map(function (t) {
+      var c = supCustom.filter(function (m) { return m.id === t.id; })[0];
+      if (!c) return t;
+      var o = customToTpl(c); o.edited = true; return o;
+    });
+    supCustom.forEach(function (m) { if (!SUP_TEMPLATES.some(function (t) { return t.id === m.id; })) out.push(customToTpl(m)); });
+    return out;
+  }
+  function supModel(id) { return supModels().filter(function (x) { return x.id === id; })[0]; }
+  function isBuiltin(id) { return SUP_TEMPLATES.some(function (t) { return t.id === id; }); }
+  function saveCustom() {
+    try { localStorage.setItem("nfc-sup-modelos", JSON.stringify(supCustom)); return true; }
+    catch (err) { alert("No hay espacio para guardar el modelo (las imágenes ocupan mucho). Quita alguna imagen e intenta de nuevo."); return false; }
+  }
+  // Convierte el diseño actual en un modelo
+  function supToModel(id, name) {
+    var W = sup.w, H = sup.h, portrait = W <= H;
+    var ref = portrait ? [76, 127.5] : [127.5, 76], u = Math.min(W / ref[0], H / ref[1]);
+    var els = sup.els.map(function (e) {
+      var o = {};
+      ["type", "rot", "src", "text", "font", "bold", "align", "color", "qrbg", "colors", "palette", "slot", "count", "lock"].forEach(function (k) {
+        if (e[k] !== undefined && e[k] !== null) o[k] = Array.isArray(e[k]) ? e[k].slice() : e[k];
+      });
+      o.fx = +(e.x / W).toFixed(4); o.fy = +(e.y / H).toFixed(4);
+      if (e.size) o.size = +(e.size / u).toFixed(2);
+      if (e.w) o.w = +(e.w / u).toFixed(2);
+      if (e.thick) o.thick = +(e.thick / u).toFixed(2);
+      // el logo queda como espacio "TU LOGO" del mismo ancho, para poner el logo de cada cliente
+      if (e.slot === "logo" && e.type === "img") {
+        var t = { type: "text", text: "TU LOGO", size: 10, font: "sans", bold: true, align: "center", color: inkFor(sup), slot: "logo", rot: 0, fx: o.fx, fy: o.fy };
+        t.size = +(10 * (e.w / u) / supElSize(Object.assign({}, t, { size: 10 })).w).toFixed(2);
+        return t;
+      }
+      return o;
+    });
+    return { id: id, name: name, bg: sup.texture === "wood" ? WOOD_BG : sup.bg, ref: ref, els: els };
+  }
+
   // Crea los elementos del modelo para un soporte de W × H mm
   function supTemplateEls(t, W, H) {
-    var u = Math.min(W / 76, H / 127.5);
+    var ref = t.ref || [76, 127.5], u = Math.min(W / ref[0], H / ref[1]);
     return t.els().map(function (e) {
-      var o = Object.assign({}, e, { x: W / 2, y: e.fy * H, rot: 0 });
-      delete o.fy;
+      var o = Object.assign({}, e, { x: e.fx != null ? e.fx * W : W / 2, y: e.fy * H, rot: e.rot || 0 });
+      delete o.fy; delete o.fx;
       if (o.size) o.size = +(o.size * u).toFixed(2);
       if (o.w) o.w = +(o.w * u).toFixed(2);
       if (o.thick) o.thick = +(o.thick * u).toFixed(2);
@@ -3548,7 +3636,7 @@
     if (m === "free") {
       sup.material = "free"; sup.texture = null;
       // vuelve a los colores del modelo elegido, si hay uno
-      var t = SUP_TEMPLATES.filter(function (x) { return x.id === sup.tplId; })[0];
+      var t = supModel(sup.tplId);
       if (t) { sup.baseBg = t.bg; sup.bg = t.bg; var d0 = supTemplateEls(t, sup.w, sup.h);
         sup.els.forEach(function (e, i) { var o = d0[i]; if (o && e.base && o.type === e.type) { e.base = o.base; e.color = o.color; e.colors = o.colors; } }); }
     } else applyMaterial(sup, m);
@@ -3561,29 +3649,66 @@
     setSeg("s-mat", document.querySelector('#s-mat button[data-m="' + (sup.material || "free") + '"]'));
     var grid = $("s-tplgrid"), W = 76, H = 127.5, S = 1.7;
     grid.innerHTML = "";
-    SUP_TEMPLATES.forEach(function (t) {
+    supModels().forEach(function (t) {
       var b = document.createElement("button");
       b.className = "tplbtn"; b.dataset.t = t.id; b.setAttribute("aria-pressed", String(t.id === sup.tplId));
+      var land = t.ref && t.ref[0] > t.ref[1], tw = land ? H : W, th = land ? W : H;
       var cv = document.createElement("canvas");
-      cv.width = Math.round(W * S); cv.height = Math.round(H * S);
-      drawSupport(cv.getContext("2d"), S, 0, supTemplateDesign(t, W, H, false));
-      var sp = document.createElement("span"); sp.textContent = t.name;
+      cv.width = Math.round(tw * S); cv.height = Math.round(th * S);
+      drawSupport(cv.getContext("2d"), S, 0, supTemplateDesign(t, tw, th, false));
+      var sp = document.createElement("span"); sp.textContent = t.name + (t.edited ? " ✎" : "");
+      if (t.edited) b.title = "Modelo editado (puedes restaurar el original)";
       b.appendChild(cv); b.appendChild(sp);
       grid.appendChild(b);
     });
+    syncModelBar();
   }
+  // Botones para editar los modelos
+  function syncModelBar() {
+    var t = supModel(sup.tplId);
+    $("s-msave").classList.toggle("hidden", !t);
+    if (t) $("s-msave").textContent = "Guardar cambios en «" + t.name + "»";
+    $("s-mreset").classList.toggle("hidden", !t || !t.custom);
+    if (t && t.custom) $("s-mreset").textContent = t.edited ? "Restaurar «" + t.name + "» original" : "Borrar el modelo «" + t.name + "»";
+  }
+  function putModel(m) {
+    var old = supCustom.slice();
+    supCustom = supCustom.filter(function (x) { return x.id !== m.id; });
+    supCustom.push(m);
+    if (!saveCustom()) { supCustom = old; return; }
+    sup.tplId = m.id; saveSup(); buildSupTplGrid();
+  }
+  $("s-msave").addEventListener("click", function () {
+    var t = supModel(sup.tplId); if (!t) return;
+    if (!confirm("¿Guardar el diseño actual como el modelo «" + t.name + "»? Así saldrá cada vez que lo elijas.")) return;
+    putModel(supToModel(t.id, t.name));
+  });
+  $("s-mnew").addEventListener("click", function () {
+    var name = prompt("Nombre del nuevo modelo:", "Mi modelo");
+    if (!name || !name.trim()) return;
+    putModel(supToModel("m" + Date.now().toString(36), name.trim().slice(0, 40)));
+  });
+  $("s-mreset").addEventListener("click", function () {
+    var t = supModel(sup.tplId); if (!t || !t.custom) return;
+    if (!confirm(t.edited ? "¿Volver al modelo «" + t.name + "» original? Se pierden los cambios guardados en el modelo." : "¿Borrar el modelo «" + t.name + "»?")) return;
+    supCustom = supCustom.filter(function (x) { return x.id !== t.id; });
+    saveCustom();
+    if (!t.edited) sup.tplId = null;
+    saveSup(); buildSupTplGrid();
+  });
   $("s-tplgrid").addEventListener("click", function (ev) {
     var b = ev.target.closest(".tplbtn"); if (!b) return;
-    var t = SUP_TEMPLATES.filter(function (x) { return x.id === b.dataset.t; })[0];
+    var t = supModel(b.dataset.t);
     if (sup.els.length && !confirm("¿Reemplazar el diseño actual por el modelo \"" + t.name + "\"?")) return;
-    if (sup.w > sup.h) { var w = sup.w; sup.w = sup.h; sup.h = w; }   // los modelos van en vertical
+    var land = t.ref && t.ref[0] > t.ref[1];   // los modelos van en vertical, salvo uno guardado en horizontal
+    if ((sup.w > sup.h) !== !!land) { var w = sup.w; sup.w = sup.h; sup.h = w; }
     var d = supTemplateDesign(t, sup.w, sup.h, true);
     sup.bg = d.bg; sup.baseBg = d.baseBg; sup.texture = d.texture || null; sup.logoPal = d.logoPal || null; sup.tplId = t.id;
     sup.els = d.els;
     supSel = -1;
     syncSupPal();
     Array.prototype.forEach.call($("s-tplgrid").children, function (x) { x.setAttribute("aria-pressed", String(x === b)); });
-    syncSupSize(); syncSupEl(); renderSup(); saveSup();
+    syncModelBar(); syncSupSize(); syncSupEl(); renderSup(); saveSup();
   });
 
   // ---- Maqueta 3D: soporte en L de acrílico sobre una mesa ----
@@ -3638,7 +3763,8 @@
     }
     var all = [FL, FR, TR, TL, bFL, bFR, bTR, bTL].concat(foot, footB), minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
     all.forEach(function (p) { var q = cam(p); minx = Math.min(minx, q[0]); maxx = Math.max(maxx, q[0]); miny = Math.min(miny, q[1]); maxy = Math.max(maxy, q[1]); });
-    var k = Math.min(CW * 0.62 / (maxx - minx), CH * 0.72 / (maxy - miny));
+    var meas = $("s-3dmeas").checked;
+    var k = Math.min(CW * (meas ? 0.5 : 0.62) / (maxx - minx), CH * (meas ? 0.62 : 0.72) / (maxy - miny));
     var ox = CW / 2 - (minx + maxx) / 2 * k, oy = CH * 0.52 - (miny + maxy) / 2 * k;
     function scr(p) { var q = cam(p); return [ox + q[0] * k, oy + q[1] * k, q[2]]; }
 
@@ -3700,6 +3826,46 @@
     gl.addColorStop(0, "rgba(255,255,255,.22)"); gl.addColorStop(0.35, "rgba(255,255,255,.04)"); gl.addColorStop(0.36, "rgba(255,255,255,0)"); gl.addColorStop(1, "rgba(255,255,255,.08)");
     c.fillStyle = gl; c.fill();
     c.restore();
+
+    // medidas: alto y ancho de la cara, y fondo de la base
+    if (!meas) return;
+    var lineCol = tb === "light" ? "#2b2d33" : "#f2f2f2", pillBg = tb === "light" ? "rgba(255,255,255,.92)" : "rgba(20,21,25,.85)";
+    function cm(mm) { return +(mm / 10).toFixed(2) + " cm"; }
+    function dim(A, B, label, ext) {
+      var a = scr(A), b = scr(B), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.sqrt(dx * dx + dy * dy) || 1;
+      var nx = -dy / L, ny = dx / L, tk = 9;
+      c.save();
+      c.strokeStyle = lineCol; c.fillStyle = lineCol; c.lineWidth = 2;
+      // líneas de referencia hacia la pieza
+      if (ext) { c.globalAlpha = 0.45; c.setLineDash([4, 4]); ext.forEach(function (pr) { var p = scr(pr[0]), q2 = scr(pr[1]); c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(q2[0], q2[1]); c.stroke(); }); c.setLineDash([]); c.globalAlpha = 1; }
+      c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke();
+      [a, b].forEach(function (p, i) {
+        var s = i ? -1 : 1;
+        c.beginPath(); c.moveTo(p[0] + nx * tk, p[1] + ny * tk); c.lineTo(p[0] - nx * tk, p[1] - ny * tk); c.stroke();
+        c.beginPath(); c.moveTo(p[0], p[1]);   // punta de flecha
+        c.lineTo(p[0] + s * dx / L * 12 + nx * 5, p[1] + s * dy / L * 12 + ny * 5);
+        c.lineTo(p[0] + s * dx / L * 12 - nx * 5, p[1] + s * dy / L * 12 - ny * 5);
+        c.closePath(); c.fill();
+      });
+      var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      c.font = "700 22px " + FONTS.sans; c.textAlign = "center"; c.textBaseline = "middle";
+      var tw = c.measureText(label).width + 20;
+      c.fillStyle = pillBg; c.strokeStyle = lineCol; c.lineWidth = 1.5;
+      c.beginPath();
+      if (c.roundRect) c.roundRect(mx - tw / 2, my - 16, tw, 32, 16); else c.rect(mx - tw / 2, my - 16, tw, 32);
+      c.fill(); c.stroke();
+      c.fillStyle = lineCol; c.fillText(label, mx, my + 1);
+      c.restore();
+    }
+    var side = yaw < 0 ? 1 : -1, off = 9;   // la base se ve del lado hacia donde gira
+    var hx = -side * (W / 2 + off), fx = side * (W / 2 + off);
+    var topY = H * ct, topZ = -H * st;
+    // alto (sobre el canto de la cara, del lado contrario a la base)
+    dim(P(hx, 0, 0), P(hx, topY, topZ), cm(H), [[P(-side * W / 2, 0, 0), P(hx, 0, 0)], [P(-side * W / 2, topY, topZ), P(hx, topY, topZ)]]);
+    // ancho (sobre la mesa, delante)
+    dim(P(-W / 2, 0, off + 4), P(W / 2, 0, off + 4), cm(W), [[P(-W / 2, 0, 0), P(-W / 2, 0, off + 4)], [P(W / 2, 0, 0), P(W / 2, 0, off + 4)]]);
+    // base (pie)
+    dim(P(fx, 0, z0), P(fx, 0, z1), cm(D), [[P(side * W / 2, 0, z1), P(fx, 0, z1)]]);
   }
   $("s-3dbtn").addEventListener("click", function () {
     var open = $("s-3d").classList.toggle("hidden") === false;
@@ -3708,6 +3874,7 @@
   });
   $("s-3dyaw").addEventListener("input", render3DSoon);
   $("s-3dtable").addEventListener("change", render3DSoon);
+  $("s-3dmeas").addEventListener("change", render3DSoon);
   (function () {
     var cv = $("s-3dcv"), last = null;
     cv.addEventListener("pointerdown", function (e) { last = e.clientX; cv.setPointerCapture(e.pointerId); });
