@@ -388,10 +388,12 @@
     <section class="controls">
       <div class="group">
         <div class="glabel">Tamaño</div>
-        <div class="seg" id="tplsize">
+        <div class="seg" id="tplsize" style="flex-wrap:wrap">
           <button data-s="card" aria-pressed="true">Tarjeta</button>
           <button data-s="l70x40" aria-pressed="false">70 × 40</button>
           <button data-s="l50x25" aria-pressed="false">50 × 25</button>
+          <button data-s="chip25" aria-pressed="false" style="flex-basis:40%">Chip NFC Ø 2.5 cm</button>
+          <button data-s="chip30" aria-pressed="false" style="flex-basis:40%">Chip NFC 3 × 2.08 cm</button>
         </div>
         <p class="note" style="margin-top:8px" id="tplsizenote"></p>
       </div>
@@ -405,6 +407,7 @@
           <input type="text" id="t-phone" placeholder="Teléfono" value="+51 910236424" maxlength="30">
           <input type="text" id="t-email" placeholder="Correo" value="doriantleodor@gmail.com" maxlength="50">
           <input type="text" id="t-link" placeholder="Link de LinkedIn (o web)" value="linkedin.com/in/doriantcardenas" maxlength="200">
+          <input type="text" id="t-short" placeholder="Texto corto para chips (p. ej. IA o DORIANT CARDENAS IA)" value="IA" maxlength="40" title="Texto del diseño &quot;Texto grande&quot;. Usa / para cortar la línea donde quieras.">
         </div>
         <label class="check" style="margin-top:12px">
           <input type="checkbox" id="t-qr" checked> Código QR del link
@@ -468,9 +471,28 @@
             <input type="number" id="t-copies" min="1" max="500" step="1" value="1" inputmode="numeric">
           </div>
         </div>
-        <label class="check" style="margin-top:12px">
+        <label class="check" style="margin-top:12px" id="t-rotatewrap">
           <input type="checkbox" id="t-rotate"> Girar 90° (si tu impresora imprime de lado)
         </label>
+        <div id="t-tk" class="hidden" style="margin-top:12px">
+          <div class="opts">
+            <div class="field">
+              <label for="t-tkw">Etiqueta ancho (mm)</label>
+              <input type="number" id="t-tkw" min="15" max="120" step="1" value="70" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="t-tkh">Etiqueta alto (mm)</label>
+              <input type="number" id="t-tkh" min="15" max="200" step="1" value="40" inputmode="decimal">
+            </div>
+          </div>
+          <label class="check" style="margin-top:8px"><input type="checkbox" id="t-tkcut" checked> Línea de corte</label>
+          <div class="labelframe" style="margin-top:12px;padding:14px">
+            <canvas id="t-tkpv" width="280" height="160" role="img" aria-label="Vista del ticket"></canvas>
+          </div>
+          <p class="note" style="margin-top:8px;text-align:center" id="t-tkinfo"></p>
+          <button class="btn" id="t-tkadd" style="margin-top:8px">Agregar este diseño a la lista</button>
+          <div class="qlist" id="t-tklist" style="margin-top:12px"></div>
+        </div>
         <div class="stack" style="margin-top:12px">
           <button class="btn primary" id="t-pdf">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
@@ -2089,13 +2111,14 @@
   });
 
   // ================= PLANTILLAS (blanco y negro) =================
-  var TPL_SIZES = { card: { w: CARD.w, h: CARD.h }, l70x40: { w: 70, h: 40 }, l50x25: { w: 50, h: 25 } };
+  var TPL_SIZES = { card: { w: CARD.w, h: CARD.h }, l70x40: { w: 70, h: 40 }, l50x25: { w: 50, h: 25 },
+    chip25: { w: 25, h: 25, circle: true, chip: true }, chip30: { w: 30, h: 20.8, chip: true } };
   var FONTS = {
     sans: "Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
     mono: "'Courier New', Courier, monospace"
   };
-  var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link"];
+  var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link", "short"];
   var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded"].concat(TPL_FIELDS);
   var tpl = {
     template: "clasica", backTemplate: "nfc", side: "front", size: "card", font: "sans",
@@ -2362,21 +2385,52 @@
 
     c.save();
     c.translate(b * S, b * S);
-    if (t.size === "card" && t.rounded && !b) { roundRect(c, 0, 0, W * S, H * S, CORNER_MM * S); c.clip(); }
+    var circ = sz.circle;
+    if (circ) { c.beginPath(); c.arc(W / 2 * S, H / 2 * S, (Math.min(W, H) / 2 + b) * S, 0, 2 * Math.PI); c.clip(); }
+    else if (t.size === "card" && t.rounded && !b) { roundRect(c, 0, 0, W * S, H * S, CORNER_MM * S); c.clip(); }
     c.fillStyle = PAPER;
     c.fillRect(-b * S, -b * S, (W + 2 * b) * S, (H + 2 * b) * S);
     if (mat === "wood") drawWood(c, -b, -b, W + 2 * b, H + 2 * b, S);
     c.textBaseline = "middle";
+    if (circ) {   // redonda: el contenido va en el cuadrado inscrito
+      var side = Math.min(W, H) * 0.72;
+      c.translate((W - side) / 2 * S, (H - side) / 2 * S);
+      W = H = side;
+    }
+    var chipP = sz.chip ? Math.max(0.8, H * 0.05) : null;
     var tdef = TEMPLATES.filter(function (d) { return d.id === t.template; })[0];
     if (tdef) tdef.draw({
-      t: t, W: W, H: H, f: H / 25, p: FILL ? Math.max(1.8, H * 0.06) : Math.max(1.8, H * 0.085), fill: FILL, INK: INK, PAPER: PAPER,
+      t: t, W: W, H: H, f: H / 25, p: chipP || (FILL ? Math.max(1.8, H * 0.06) : Math.max(1.8, H * 0.085)), fill: FILL, INK: INK, PAPER: PAPER,
       rect: rect, stack: stack, qr: qr, hasQR: hasQR, logo: logo, handle: handle, nfc: nfc
     });
     c.restore();
   }
 
   // Diseños. Medidas en mm relativas a la altura (f = H / 25), así sirven para 50×25 y 85.6×54.
+  // Corta el texto corto en líneas: con "/" donde diga el usuario; si no, palabra por palabra sin pasar de la más larga
+  function shortLines(txt, circle) {
+    txt = String(txt || "").trim();
+    if (!txt) return [];
+    if (/[\/\n]/.test(txt)) return txt.split(/\s*[\/\n]\s*/).filter(Boolean);
+    var words = txt.split(/\s+/);
+    if (words.length < 2 || txt.length <= 6) return [txt];
+    var longest = words.reduce(function (m, w) { return Math.max(m, w.length); }, 0);
+    var limit = circle ? longest : Math.max(longest, Math.ceil(txt.length / 2));
+    var lines = [], cur = "";
+    words.forEach(function (w) {
+      if (cur && (cur + " " + w).length > limit) { lines.push(cur); cur = w; }
+      else cur = cur ? cur + " " + w : w;
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
   var TEMPLATES = [
+    { id: "grande", name: "Texto grande (chips)", draw: function (a) {
+      var t = a.t, f = a.f, txt = (t.short || "").trim() || initials(t.name) || "IA";
+      var lines = shortLines(txt.toUpperCase(), TPL_SIZES[t.size] && TPL_SIZES[t.size].circle);
+      a.stack(lines.map(function (l, i) { return { t: l, s: 14 * f, b: true, g: i ? 0.5 * f : 0 }; }),
+        a.p, a.p, a.W - 2 * a.p, a.H - 2 * a.p, "center");
+    } },
     { id: "clasica", name: "Clásica", draw: function (a) {
       var t = a.t, f = a.f, p = a.p, q = (a.H - 2 * p) * (a.fill ? 0.82 : 1), withQR = a.hasQR();
       if (withQR) a.qr(a.W - p - q, (a.H - q) / 2, q);
@@ -2524,7 +2578,8 @@
       pv.getContext("2d").drawImage(out, 0, 0);
       $("t-dotswrap").classList.toggle("hidden", card);
       pv.classList.toggle("thermal", dots);
-      pv.style.borderRadius = card && tpl.rounded ? (CORNER_MM / CARD.w * 100) + "% / " + (CORNER_MM / CARD.h * 100) + "%" : "";
+      pv.style.borderRadius = TPL_SIZES[tpl.size].circle ? "50%" : card && tpl.rounded ? (CORNER_MM / CARD.w * 100) + "% / " + (CORNER_MM / CARD.h * 100) + "%" : "";
+      if (TPL_SIZES[tpl.size].chip) updateTplTicket();
       var sideName = back ? "Reverso" : "Frente";
       $("tplhint").textContent = !sideTpl(tpl, tpl.side)
         ? "Sin reverso: solo se imprimirá el frente. Elige un diseño abajo si quieres reverso."
@@ -2639,8 +2694,15 @@
     $("t-roundedwrap").classList.toggle("hidden", !card);
     $("tplsizenote").textContent = card
       ? "Cubre toda la cara de la tarjeta. Imprímela en térmica (etiqueta 60 × 90) o en papel de stickers A4."
+      : d.chip ? "Sticker para chip NFC de " + (d.circle ? "Ø " + d.w / 10 + " cm" : d.w / 10 + " × " + d.h / 10 + " cm") + ": salen varios por etiqueta térmica. Solo se imprime el frente."
       : "Sticker de " + d.w + " × " + d.h + " mm para la impresora térmica (cubre parte de la tarjeta).";
-    if (!card) {
+    $("t-tk").classList.toggle("hidden", !d.chip);
+    $("t-rotatewrap").classList.toggle("hidden", !!d.chip);
+    if (d.chip) {
+      $("t-thermaltitle").textContent = "Impresora térmica · varios chips por etiqueta";
+      $("t-thermalnote").innerHTML = "En el programa de la impresora elige el papel de la etiqueta (p. ej. <b>70x40</b>) y escala <b>100%</b>. Si la lista tiene diseños, el PDF los incluye todos; si está vacía, imprime este diseño × copias.";
+      updateTplTicket();
+    } else if (!card) {
       var lbl = d.w + " × " + d.h + " mm";
       $("t-thermaltitle").textContent = "Impresora térmica · etiqueta " + lbl;
       $("t-pdflabel").textContent = "PDF etiqueta " + lbl;
@@ -2683,6 +2745,7 @@
     $(p[0]).addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       tpl[p[1]] = b.dataset[p[2]];
+      if (p[1] === "size" && TPL_SIZES[tpl.size].chip && ["grande", "nfc", "logo", "qr"].indexOf(tpl.template) < 0) tpl.template = "grande";
       saveTpl(); syncTplUI();
     });
   });
@@ -2760,6 +2823,7 @@
 
   $("t-pdf").addEventListener("click", function () {
     var d = TPL_SIZES[tpl.size], rot = $("t-rotate").checked;
+    if (d.chip) { tplTicketPDF(); return; }
     labelPDF(tplSides(tpl).map(thermalCanvas), rot ? d.h : d.w, rot ? d.w : d.h,
       clamp(parseInt($("t-copies").value, 10) || 1, 1, 500), "etiqueta");
   });
@@ -3676,6 +3740,13 @@
       T("TU LOGO", 0.44, 3.8, "#ffffff", { slot: "logo" }),
       { type: "nfc", fy: 0.79, w: 4.2, color: "#ffffff" }
     ]; } },
+    { id: "chip-texto", name: "Chip Ø 2.5 · Texto grande", bg: "#ffffff", ref: [25, 25], fit: { w: 25, h: 25, shape: "circle", preset: "25x25c" }, els: function () { return [
+      T("IA", 0.5, 10, "#111318")
+    ]; } },
+    { id: "chip-texto-rect", name: "Chip 3 × 2.08 · Texto grande", bg: "#ffffff", ref: [30, 20.8], fit: { w: 30, h: 20.8, preset: "30x20.8" }, els: function () { return [
+      T("DORIANT CARDENAS", 0.36, 2.9, "#111318"),
+      T("IA", 0.68, 7, "#111318")
+    ]; } },
     { id: "chip-rect", name: "Chip 3 × 2.08 · Logo y NFC", bg: "#ffffff", ref: [30, 20.8], fit: { w: 30, h: 20.8, preset: "30x20.8" }, els: function () { return [
       { type: "nfc", fx: 0.22, fy: 0.5, w: 7.5, color: "#111318" },
       T("TU LOGO", 0.38, 2.8, "#111318", { slot: "logo", fx: 0.64 }),
@@ -4259,15 +4330,15 @@
     sup.els.some(function (e) { if (e.type === "text" && e.text && !e.slot) { nm = e.text.replace(/\n/g, " "); return true; } return false; });
     return { cv: renderSupport(12, 0), w: sup.w, h: sup.h, shape: sup.shape || null, qty: qty, name: (nm || "Diseño") + " · " + supName() };
   }
-  function tkItems() {
-    var list = tkQueue.length ? tkQueue : [tkCurrent(clamp(parseInt($("s-tkqty").value, 10) || 1, 1, 500))];
+  function tkItems(cur) {
+    var list = tkQueue.length ? tkQueue : [cur || tkCurrent(clamp(parseInt($("s-tkqty").value, 10) || 1, 1, 500))];
     var out = [];
     list.forEach(function (q) { for (var i = 0; i < q.qty; i++) out.push(q); });
     return out;
   }
   // Arma las etiquetas a ppmm: un tamaño de sticker por etiqueta (si cambia, empieza otra)
-  function tkTickets(ppmm, max) {
-    var stk = tkItems(), pages = [], i = 0;
+  function tkTickets(ppmm, max, cur) {
+    var stk = tkItems(cur), pages = [], i = 0;
     while (i < stk.length && (!max || pages.length < max)) {
       var q = stk[i], f = tkFit(q.w, q.h);
       if (!f.cap) return { pages: pages, error: "El sticker de " + q.w / 10 + " × " + q.h / 10 + " cm no cabe en la etiqueta." };
@@ -4304,14 +4375,28 @@
     }
     return { pages: pages, total: stk.length };
   }
-  function tkCount() {
+  function tkCount(cur) {
     // número de etiquetas sin dibujar
-    var stk = tkItems(), n = 0, i = 0;
+    var stk = tkItems(cur), n = 0, i = 0;
     while (i < stk.length) {
       var q = stk[i], f = tkFit(q.w, q.h); if (!f.cap) return -1;
       for (var k = 0; k < f.cap && i < stk.length; k++) { var it = stk[i]; if (it.w !== q.w || it.h !== q.h || it.shape !== q.shape) break; i++; }
       n++;
     }
+    return n;
+  }
+  // Dibuja la vista del ticket y su resumen (pre = "s" Soportes o "t" Plantillas)
+  function drawTicketPreview(pre, cur) {
+    var r = tkTickets(10, 1, cur), pv = $(pre + "-tkpv"), L = tkLabel();
+    var maxW = 280, sc = Math.min(maxW / L.w, 200 / L.h);
+    pv.width = Math.round(L.w * sc); pv.height = Math.round(L.h * sc);
+    var c = pv.getContext("2d");
+    c.fillStyle = "#ffffff"; c.fillRect(0, 0, pv.width, pv.height);
+    if (r.pages[0]) c.drawImage(r.pages[0], 0, 0, pv.width, pv.height);
+    var n = tkCount(cur), q0 = tkItems(cur)[0], f = q0 ? tkFit(q0.w, q0.h) : null;
+    $(pre + "-tkinfo").innerHTML = r.error || n < 0 ? (r.error || "No cabe en la etiqueta.")
+      : "Caben <b>" + f.cap + "</b> por etiqueta " + L.w + " × " + L.h + (f.rot ? " (girados)" : "") + ". " +
+        r.total + " sticker" + (r.total > 1 ? "s" : "") + " = <b>" + n + "</b> etiqueta" + (n > 1 ? "s" : "") + ".";
     return n;
   }
   function updateTicket() {
@@ -4330,7 +4415,14 @@
     $("s-tkpdflabel").textContent = "PDF tickets (" + Math.max(0, n) + ")";
   }
   function updateTkList() {
-    var list = $("s-tklist");
+    fillTkList($("s-tklist"));
+    fillTkList($("t-tklist"));
+    $("s-tkclear").classList.toggle("hidden", !tkQueue.length);
+    $("s-tkadd").textContent = tkQueue.length ? "Agregar este diseño a la lista" : "Agregar este diseño a los tickets";
+    updateTicket();
+    if (TPL_SIZES[tpl.size].chip) updateTplTicket();
+  }
+  function fillTkList(list) {
     list.innerHTML = "";
     tkQueue.forEach(function (q) {
       var row = document.createElement("div"); row.className = "qitem";
@@ -4353,20 +4445,51 @@
       row.appendChild(img); row.appendChild(info); row.appendChild(act);
       list.appendChild(row);
     });
-    $("s-tkclear").classList.toggle("hidden", !tkQueue.length);
-    $("s-tkadd").textContent = tkQueue.length ? "Agregar este diseño a la lista" : "Agregar este diseño a los tickets";
-    updateTicket();
   }
-  $("s-tkadd").addEventListener("click", function () {
-    if (!supReady()) return;
-    var q = tkCurrent(clamp(parseInt($("s-tkqty").value, 10) || 1, 1, 500));
+  function tkAdd(q) {
     var tc = document.createElement("canvas"), sc = 120 / Math.max(q.w, q.h);
     tc.width = Math.round(q.w * sc); tc.height = Math.round(q.h * sc);
     tc.getContext("2d").drawImage(q.cv, 0, 0, tc.width, tc.height);
     q.thumb = tc.toDataURL("image/png");
     tkQueue.push(q);
     updateTkList();
+  }
+  $("s-tkadd").addEventListener("click", function () {
+    if (!supReady()) return;
+    tkAdd(tkCurrent(clamp(parseInt($("s-tkqty").value, 10) || 1, 1, 500)));
   });
+  // ---- Plantillas con medida de chip: mismo ticket y misma lista ----
+  function tplChipItem(qty) {
+    var d = TPL_SIZES[tpl.size], cur = sideTpl(tpl, "front") || Object.assign({}, tpl, { template: "__blank" });
+    return { cv: renderTemplate(cur, 12, 0, true), w: d.w, h: d.h, shape: d.circle ? "circle" : null, qty: qty,
+      name: (tpl.name || "Plantilla") + " · " + (d.circle ? "Ø " + d.w / 10 : d.w / 10 + "x" + d.h / 10) + " cm" };
+  }
+  function tplCopies() { return clamp(parseInt($("t-copies").value, 10) || 1, 1, 500); }
+  var tplTkRaf = 0;
+  function updateTplTicket() {
+    if (tplTkRaf) return;
+    tplTkRaf = requestAnimationFrame(function () {
+      tplTkRaf = 0;
+      if ($("t-tk").classList.contains("hidden")) return;
+      var n = drawTicketPreview("t", tplChipItem(tplCopies()));
+      $("t-pdflabel").textContent = "PDF tickets (" + Math.max(0, n) + ")";
+    });
+  }
+  function tplTicketPDF() {
+    var r = tkTickets((parseInt($("t-dpi").value, 10) || 203) / 25.4, 0, tplChipItem(tplCopies()));
+    if (r.error) { alert(r.error); return; }
+    var L = tkLabel();
+    labelPDF(r.pages, L.w, L.h, 1, "tickets-nfc");
+  }
+  $("t-tkadd").addEventListener("click", function () { tkAdd(tplChipItem(tplCopies())); });
+  // la medida de la etiqueta y el corte se comparten con Soportes
+  [["t-tkw", "s-tkw"], ["t-tkh", "s-tkh"], ["t-tkcut", "s-tkcut"]].forEach(function (pr) {
+    function copy(a, b) { var A = $(a), B = $(b); if (A.type === "checkbox") B.checked = A.checked; else B.value = A.value; }
+    $(pr[0]).addEventListener("change", function () { copy(pr[0], pr[1]); updateTplTicket(); updateTicket(); });
+    $(pr[1]).addEventListener("change", function () { copy(pr[1], pr[0]); });
+  });
+  $("t-copies").addEventListener("change", updateTplTicket);
+  $("t-copies").addEventListener("input", updateTplTicket);
   $("s-tkclear").addEventListener("click", function () {
     if (!confirm("¿Vaciar la lista de stickers?")) return;
     tkQueue = []; updateTkList();

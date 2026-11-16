@@ -43,7 +43,15 @@ Enlaces:
 - `drawTemplate` incluye los helpers `stack`, `qr`, `logo` y `nfc`.
 - En etiquetas (`FILL`) el contenido crece hasta 1.6×, y el nombre manda: las demás líneas quedan en ≤ 72 % de su tamaño.
 - En modo mono (`BOLDEN`) el texto lleva un trazo extra de 0.12 mm.
-- Hay 8 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
+- **Chips NFC** (`chip25` redonda Ø 25 con `circle`, `chip30` de 30 × 20.8; ambos con `chip: true`):
+  - Redonda: recorta en círculo y dibuja el diseño en el cuadrado inscrito (72 % del diámetro), con un margen más chico (`chipP`).
+  - Al elegir un chip, si el diseño no es grande, nfc, logo o qr, pasa a "grande".
+  - Se imprime solo el frente, empaquetado con el ticket compartido de Soportes (`tplChipItem`, `updateTplTicket`, `tplTicketPDF`, `#t-tk`). `tkQueue` y la medida de la etiqueta se comparten (t-tkw ↔ s-tkw).
+  - Si la lista tiene diseños, el PDF imprime la lista; si está vacía, el diseño actual × copias.
+- **"Texto grande (chips)"** (id `grande`): usa el campo `short` (`#t-short`, por defecto "IA").
+  - `shortLines` corta donde haya "/"; si no, palabra por palabra.
+  - Pensado para que la térmica de 203 DPI no empaste letras chicas.
+- Hay 9 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
 - "Agregar a hoja A4" (`#t-card`, `t-add`) se ve en todos los tamaños y siempre agrega la tarjeta en 85.6 × 54 (frente y reverso).
 - **Material** (`tpl.material`, `#tplmat`): white, black o wood. Reemplaza a "Invertir".
   - `tpl.invert` queda en sync para compatibilidad.
@@ -104,7 +112,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
 - **Chips NFC pequeños:**
   - Presets `25x25c` (redonda Ø 25 mm; `sup.shape = "circle"`, check `#s-circle`) y `30x20.8` (rectangular).
   - `supSetSize(w,h,scale)` escala también los elementos al cambiar de medida, no al girar.
-  - Modelos chip-toca, chip-logo y chip-rect con `fit` (medida, forma y preset que toman). Al elegir un modelo normal desde un chip, se vuelve a 76 × 127.5.
+  - Modelos chip-toca, chip-logo, chip-texto, chip-texto-rect y chip-rect con `fit` (medida, forma y preset que toman). Al elegir un modelo normal desde un chip, se vuelve a 76 × 127.5.
   - Zona segura: min(3 mm, 7 % del lado). El A4 dibuja el corte redondo con `doc.circle`.
 - **Ticket térmico** (`#s-tk`, en la pestaña Imprimir): varios stickers por etiqueta (70 × 40 por defecto).
   - `tkQueue` vive en memoria; si está vacía, se usa el diseño actual × `s-tkqty`.
