@@ -407,7 +407,10 @@
           <input type="text" id="t-phone" placeholder="Teléfono" value="+51 910236424" maxlength="30">
           <input type="text" id="t-email" placeholder="Correo" value="doriantleodor@gmail.com" maxlength="50">
           <input type="text" id="t-link" placeholder="Link de LinkedIn (o web)" value="linkedin.com/in/doriantcardenas" maxlength="200">
-          <input type="text" id="t-short" placeholder="Texto corto para chips (p. ej. IA o DORIANT CARDENAS IA)" value="IA" maxlength="40" title="Texto del diseño &quot;Texto grande&quot;. Usa / para cortar la línea donde quieras.">
+          <div class="glabel" style="margin:6px 0 0">Para chips NFC</div>
+          <input type="text" id="t-short" placeholder="Cara: palabra grande (p. ej. IA o DORIANT CARDENAS / IA)" value="IA" maxlength="40" title="Texto del diseño &quot;Texto grande&quot;. Usa / para cortar la línea donde quieras.">
+          <input type="text" id="t-chiplink" placeholder="Sello: link del QR" value="leonardow33.github.io/TARJETAS-NFC/perfil/" maxlength="200" title="Link del QR del sello. Uno corto escanea mejor.">
+          <input type="text" id="t-short2" placeholder="Sello: 2–3 palabras bajo el QR (solo rectangular)" value="IA · DATOS" maxlength="30">
         </div>
         <label class="check" style="margin-top:12px">
           <input type="checkbox" id="t-qr" checked> Código QR del link
@@ -475,6 +478,10 @@
           <input type="checkbox" id="t-rotate"> Girar 90° (si tu impresora imprime de lado)
         </label>
         <div id="t-tk" class="hidden" style="margin-top:12px">
+          <div class="seg tkpre" style="margin-bottom:10px">
+            <button data-wh="70x40" aria-pressed="true">Etiqueta 70 × 40</button>
+            <button data-wh="70x50" aria-pressed="false">Etiqueta 70 × 50</button>
+          </div>
           <div class="opts">
             <div class="field">
               <label for="t-tkw">Etiqueta ancho (mm)</label>
@@ -827,6 +834,10 @@
 
       <div class="group" data-tab="print" id="s-tk">
         <div class="glabel">Ticket térmico · varios stickers por etiqueta</div>
+        <div class="seg tkpre" style="margin-bottom:10px">
+          <button data-wh="70x40" aria-pressed="true">Etiqueta 70 × 40</button>
+          <button data-wh="70x50" aria-pressed="false">Etiqueta 70 × 50</button>
+        </div>
         <div class="opts">
           <div class="field">
             <label for="s-tkw">Etiqueta ancho (mm)</label>
@@ -2118,7 +2129,7 @@
     serif: "Georgia, 'Times New Roman', serif",
     mono: "'Courier New', Courier, monospace"
   };
-  var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link", "short"];
+  var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link", "short", "chiplink", "short2"];
   var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded"].concat(TPL_FIELDS);
   var tpl = {
     template: "clasica", backTemplate: "nfc", side: "front", size: "card", font: "sans",
@@ -2329,10 +2340,11 @@
     function hasQR() { return t.qr && !!qrURL(t.link) && typeof qrcode === "function"; }
 
     // QR con módulos alineados a píxeles enteros para que salga nítido
-    function qr(x, y, size) {
-      if (!hasQR()) return false;
+    function qr(x, y, size, link) {
+      var url = link != null ? qrURL(link) : hasQR() ? qrURL(t.link) : "";
+      if (!url || typeof qrcode !== "function") return false;
       var q;
-      try { q = qrcode(0, "M"); q.addData(qrURL(t.link)); q.make(); } catch (e) { return false; }
+      try { q = qrcode(0, "M"); q.addData(url); q.make(); } catch (e) { return false; }
       var n = q.getModuleCount(), quiet = 2, total = n + 2 * quiet;
       var px = size * S, m = Math.floor(px / total);
       if (m < 2) m = px / total;
@@ -2407,6 +2419,7 @@
   }
 
   // Diseños. Medidas en mm relativas a la altura (f = H / 25), así sirven para 50×25 y 85.6×54.
+  function chipLink(t) { return (t.chiplink || "").trim() || t.link; }
   // Corta el texto corto en líneas: con "/" donde diga el usuario; si no, palabra por palabra sin pasar de la más larga
   function shortLines(txt, circle) {
     txt = String(txt || "").trim();
@@ -2430,6 +2443,25 @@
       var lines = shortLines(txt.toUpperCase(), TPL_SIZES[t.size] && TPL_SIZES[t.size].circle);
       a.stack(lines.map(function (l, i) { return { t: l, s: 14 * f, b: true, g: i ? 0.5 * f : 0 }; }),
         a.p, a.p, a.W - 2 * a.p, a.H - 2 * a.p, "center");
+    } },
+    { id: "qrsolo", name: "Solo QR (sello de chip)", draw: function (a) {
+      var q = Math.min(a.W, a.H) - 2 * a.p;
+      if (!a.qr((a.W - q) / 2, (a.H - q) / 2, q, chipLink(a.t)))
+        a.stack([{ t: "Sin link", s: 3 * a.f, b: true }], a.p, a.p, a.W - 2 * a.p, a.H - 2 * a.p, "center");
+    } },
+    { id: "qrpal", name: "QR + palabras (sello de chip)", draw: function (a) {
+      var t = a.t, p = a.p, words = (t.short2 || "").trim(), link = chipLink(t);
+      if (!words) { var q0 = Math.min(a.W, a.H) - 2 * p; a.qr((a.W - q0) / 2, (a.H - q0) / 2, q0, link); return; }
+      var lines = words.split(/\s*[\/·|]\s*/).filter(Boolean).map(function (w, i) { return { t: w, s: 4 * a.f, b: true, g: i ? 0.4 * a.f : 0, up: true }; });
+      if (a.W > a.H * 1.2) {   // rectangular: QR a la izquierda, palabras a la derecha
+        var q = a.H - 2 * p;
+        a.qr(p, p, q, link);
+        a.stack(lines, 2 * p + q, p, a.W - 3 * p - q, a.H - 2 * p, "center");
+      } else {                 // redonda o cuadrada: QR arriba, una línea abajo
+        var q2 = (a.H - 2 * p) * 0.74;
+        a.qr((a.W - q2) / 2, p, q2, link);
+        a.stack([{ t: words.replace(/\s*\/\s*/g, " "), s: 3 * a.f, b: true, up: true }], p, p + q2, a.W - 2 * p, a.H - 2 * p - q2, "center");
+      }
     } },
     { id: "clasica", name: "Clásica", draw: function (a) {
       var t = a.t, f = a.f, p = a.p, q = (a.H - 2 * p) * (a.fill ? 0.82 : 1), withQR = a.hasQR();
@@ -2694,7 +2726,7 @@
     $("t-roundedwrap").classList.toggle("hidden", !card);
     $("tplsizenote").textContent = card
       ? "Cubre toda la cara de la tarjeta. Imprímela en térmica (etiqueta 60 × 90) o en papel de stickers A4."
-      : d.chip ? "Sticker para chip NFC de " + (d.circle ? "Ø " + d.w / 10 + " cm" : d.w / 10 + " × " + d.h / 10 + " cm") + ": salen varios por etiqueta térmica. Solo se imprime el frente."
+      : d.chip ? "Sticker para chip NFC de " + (d.circle ? "Ø " + d.w / 10 + " cm" : d.w / 10 + " × " + d.h / 10 + " cm") + ": cara (Frente) y sello (Reverso) salen juntos en la misma etiqueta térmica."
       : "Sticker de " + d.w + " × " + d.h + " mm para la impresora térmica (cubre parte de la tarjeta).";
     $("t-tk").classList.toggle("hidden", !d.chip);
     $("t-rotatewrap").classList.toggle("hidden", !!d.chip);
@@ -2745,7 +2777,10 @@
     $(p[0]).addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       tpl[p[1]] = b.dataset[p[2]];
-      if (p[1] === "size" && TPL_SIZES[tpl.size].chip && ["grande", "nfc", "logo", "qr"].indexOf(tpl.template) < 0) tpl.template = "grande";
+      if (p[1] === "size" && TPL_SIZES[tpl.size].chip) {
+        if (["grande", "nfc", "logo", "qrsolo", "qrpal"].indexOf(tpl.template) < 0) tpl.template = "grande";
+        if (["qrsolo", "qrpal", "grande", "nfc", "logo", "none"].indexOf(tpl.backTemplate) < 0) tpl.backTemplate = TPL_SIZES[tpl.size].circle ? "qrsolo" : "qrpal";
+      }
       saveTpl(); syncTplUI();
     });
   });
@@ -4333,7 +4368,14 @@
   function tkItems(cur) {
     var list = tkQueue.length ? tkQueue : [cur || tkCurrent(clamp(parseInt($("s-tkqty").value, 10) || 1, 1, 500))];
     var out = [];
-    list.forEach(function (q) { for (var i = 0; i < q.qty; i++) out.push(q); });
+    list.forEach(function (q) {
+      for (var i = 0; i < q.qty; i++) {
+        if (q.cvBack) {   // cara y sello van seguidos
+          out.push(Object.assign({}, q, { pairStart: true, side: 0 }));
+          out.push(Object.assign({}, q, { cv: q.cvBack, cvBack: null, side: 1 }));
+        } else out.push(q);
+      }
+    });
     return out;
   }
   // Arma las etiquetas a ppmm: un tamaño de sticker por etiqueta (si cambia, empieza otra)
@@ -4351,12 +4393,15 @@
       for (var k = 0; k < f.cap && i < stk.length; k++) {
         var it = stk[i];
         if (it.w !== q.w || it.h !== q.h || it.shape !== q.shape) break;
+        if (it.pairStart && k === f.cap - 1 && f.cap > 1) break;   // no separar cara y sello
         var x = x0 + (k % f.cols) * (f.sw + L.gap), y = y0 + Math.floor(k / f.cols) * (f.sh + L.gap);
         c.save();
-        c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-        if (f.rot) { c.translate((x + f.sw) * ppmm, y * ppmm); c.rotate(Math.PI / 2); }
-        else c.translate(x * ppmm, y * ppmm);
-        c.drawImage(it.cv, 0, 0, it.w * ppmm, it.h * ppmm);
+        // en píxeles enteros: si el sticker ya viene a esta resolución, se copia sin reescalar
+        var src = it.at ? it.at(ppmm, it.side || 0) : it.cv, exact = !!it.at;
+        c.imageSmoothingEnabled = !exact; c.imageSmoothingQuality = "high";
+        if (f.rot) { c.translate(Math.round((x + f.sw) * ppmm), Math.round(y * ppmm)); c.rotate(Math.PI / 2); }
+        else c.translate(Math.round(x * ppmm), Math.round(y * ppmm));
+        if (exact) c.drawImage(src, 0, 0); else c.drawImage(src, 0, 0, it.w * ppmm, it.h * ppmm);
         c.restore();
         slots.push({ x: x, y: y, w: f.sw, h: f.sh, shape: it.shape });
         i++;
@@ -4380,7 +4425,7 @@
     var stk = tkItems(cur), n = 0, i = 0;
     while (i < stk.length) {
       var q = stk[i], f = tkFit(q.w, q.h); if (!f.cap) return -1;
-      for (var k = 0; k < f.cap && i < stk.length; k++) { var it = stk[i]; if (it.w !== q.w || it.h !== q.h || it.shape !== q.shape) break; i++; }
+      for (var k = 0; k < f.cap && i < stk.length; k++) { var it = stk[i]; if (it.w !== q.w || it.h !== q.h || it.shape !== q.shape) break; if (it.pairStart && k === f.cap - 1 && f.cap > 1) break; i++; }
       n++;
     }
     return n;
@@ -4401,16 +4446,7 @@
   }
   function updateTicket() {
     if (!$("s-tk").classList.contains("on")) return;
-    var r = tkTickets(10, 1), pv = $("s-tkpv"), L = tkLabel();
-    var maxW = 280, sc = Math.min(maxW / L.w, 200 / L.h);
-    pv.width = Math.round(L.w * sc); pv.height = Math.round(L.h * sc);
-    var c = pv.getContext("2d");
-    c.fillStyle = "#ffffff"; c.fillRect(0, 0, pv.width, pv.height);
-    if (r.pages[0]) c.drawImage(r.pages[0], 0, 0, pv.width, pv.height);
-    var n = tkCount(), q0 = tkItems()[0], f = q0 ? tkFit(q0.w, q0.h) : null;
-    $("s-tkinfo").innerHTML = r.error || n < 0 ? (r.error || "No cabe en la etiqueta.")
-      : "Caben <b>" + f.cap + "</b> por etiqueta " + L.w + " × " + L.h + (f.rot ? " (girados)" : "") + ". " +
-        r.total + " sticker" + (r.total > 1 ? "s" : "") + " = <b>" + n + "</b> etiqueta" + (n > 1 ? "s" : "") + ".";
+    var n = drawTicketPreview("s");
     $("s-tkpdf").disabled = n < 1;
     $("s-tkpdflabel").textContent = "PDF tickets (" + Math.max(0, n) + ")";
   }
@@ -4460,9 +4496,17 @@
   });
   // ---- Plantillas con medida de chip: mismo ticket y misma lista ----
   function tplChipItem(qty) {
-    var d = TPL_SIZES[tpl.size], cur = sideTpl(tpl, "front") || Object.assign({}, tpl, { template: "__blank" });
-    return { cv: renderTemplate(cur, 12, 0, true), w: d.w, h: d.h, shape: d.circle ? "circle" : null, qty: qty,
-      name: (tpl.name || "Plantilla") + " · " + (d.circle ? "Ø " + d.w / 10 : d.w / 10 + "x" + d.h / 10) + " cm" };
+    var d = TPL_SIZES[tpl.size], cur = sideTpl(tpl, "front") || Object.assign({}, tpl, { template: "__blank" }), back = sideTpl(tpl, "back");
+    var face = (tpl.short || "").trim() || tpl.name || "Plantilla";
+    var cache = {};
+    function at(ppmm, i) {   // cara (0) o sello (1) a ppmm, sin reescalar: el QR queda nítido
+      var k = ppmm.toFixed(3);
+      if (!cache[k]) cache[k] = [renderTemplate(cur, ppmm, 0, true), back ? renderTemplate(back, ppmm, 0, true) : null];
+      return cache[k][i];
+    }
+    return { cv: at(12, 0), cvBack: back ? at(12, 1) : null, at: at, side: 0,
+      w: d.w, h: d.h, shape: d.circle ? "circle" : null, qty: qty,
+      name: face + " · " + (d.circle ? "Ø " + d.w / 10 : d.w / 10 + "x" + d.h / 10) + " cm" + (back ? " · cara y sello" : "") };
   }
   function tplCopies() { return clamp(parseInt($("t-copies").value, 10) || 1, 1, 500); }
   var tplTkRaf = 0;
@@ -4489,6 +4533,25 @@
     $(pr[1]).addEventListener("change", function () { copy(pr[1], pr[0]); });
   });
   $("t-copies").addEventListener("change", updateTplTicket);
+  function syncTkPre() {
+    var key = Math.round(tkLabel().w) + "x" + Math.round(tkLabel().h);
+    Array.prototype.forEach.call(document.querySelectorAll(".tkpre button"), function (b) { b.setAttribute("aria-pressed", String(b.dataset.wh === key)); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".tkpre"), function (seg) {
+    seg.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      var wh = b.dataset.wh.split("x");
+      ["s", "t"].forEach(function (pre) { $(pre + "-tkw").value = wh[0]; $(pre + "-tkh").value = wh[1]; });
+      try { localStorage.setItem("nfc-ticket", b.dataset.wh); } catch (e) {}
+      syncTkPre(); updateTicket(); updateTplTicket();
+    });
+  });
+  ["s-tkw", "s-tkh", "t-tkw", "t-tkh"].forEach(function (id) { $(id).addEventListener("change", syncTkPre); });
+  (function () {   // recuerda la última medida de etiqueta
+    var wh = null; try { wh = localStorage.getItem("nfc-ticket"); } catch (e) {}
+    if (wh && /^\d+x\d+$/.test(wh)) { var a = wh.split("x"); ["s", "t"].forEach(function (pre) { $(pre + "-tkw").value = a[0]; $(pre + "-tkh").value = a[1]; }); }
+    syncTkPre();
+  })();
   $("t-copies").addEventListener("input", updateTplTicket);
   $("s-tkclear").addEventListener("click", function () {
     if (!confirm("¿Vaciar la lista de stickers?")) return;

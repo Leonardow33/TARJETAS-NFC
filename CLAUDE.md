@@ -45,13 +45,18 @@ Enlaces:
 - En modo mono (`BOLDEN`) el texto lleva un trazo extra de 0.12 mm.
 - **Chips NFC** (`chip25` redonda Ø 25 con `circle`, `chip30` de 30 × 20.8; ambos con `chip: true`):
   - Redonda: recorta en círculo y dibuja el diseño en el cuadrado inscrito (72 % del diámetro), con un margen más chico (`chipP`).
-  - Al elegir un chip, si el diseño no es grande, nfc, logo o qr, pasa a "grande".
-  - Se imprime solo el frente, empaquetado con el ticket compartido de Soportes (`tplChipItem`, `updateTplTicket`, `tplTicketPDF`, `#t-tk`). `tkQueue` y la medida de la etiqueta se comparten (t-tkw ↔ s-tkw).
+  - Al elegir un chip: la cara pasa a "grande" y el sello (reverso) a "qrsolo" (redonda) o "qrpal" (rectangular), si no tenían ya un diseño apto.
+  - **Cara y sello:** `tplChipItem` trae `cv`/`cvBack` y `at(ppmm, lado)`. `tkItems` los pone seguidos (`pairStart`) y `tkTickets` no los separa entre etiquetas.
+  - Con `at`, cada sticker se dibuja a la resolución exacta de la impresora y se copia en píxeles enteros, para que el QR salga nítido.
+  - Sellos: "qrsolo" (solo QR) y "qrpal" (QR + `short2`, p. ej. "IA · DATOS"; en rectangular las palabras van a la derecha).
+  - El QR usa `chipLink(t)` = `t.chiplink` (por defecto la tarjeta digital `perfil/`) o, si está vacío, `t.link`. `qr(x,y,size,link)` acepta un link propio.
+  - Botones de etiqueta 70 × 40 / 70 × 50 (`.tkpre`, se recuerdan en localStorage `nfc-ticket`). Ø25: 1 chip (cara + sello) por etiqueta; 30 × 20.8 en 70 × 50: 2 chips.
+  - Se imprime con el ticket compartido de Soportes (`tplChipItem`, `updateTplTicket`, `tplTicketPDF`, `#t-tk`). `tkQueue` y la medida de la etiqueta se comparten (t-tkw ↔ s-tkw).
   - Si la lista tiene diseños, el PDF imprime la lista; si está vacía, el diseño actual × copias.
 - **"Texto grande (chips)"** (id `grande`): usa el campo `short` (`#t-short`, por defecto "IA").
   - `shortLines` corta donde haya "/"; si no, palabra por palabra.
   - Pensado para que la térmica de 203 DPI no empaste letras chicas.
-- Hay 9 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
+- Hay 11 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
 - "Agregar a hoja A4" (`#t-card`, `t-add`) se ve en todos los tamaños y siempre agrega la tarjeta en 85.6 × 54 (frente y reverso).
 - **Material** (`tpl.material`, `#tplmat`): white, black o wood. Reemplaza a "Invertir".
   - `tpl.invert` queda en sync para compatibilidad.
