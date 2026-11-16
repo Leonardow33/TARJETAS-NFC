@@ -654,10 +654,12 @@
 
       <div class="group" data-tab="size">
         <div class="glabel">Medida del soporte</div>
-        <div class="seg" id="s-preset">
+        <div class="seg" id="s-preset" style="flex-wrap:wrap">
           <button data-p="127.5x76" aria-pressed="true">12.75 × 7.6 cm</button>
           <button data-p="85.6x54" aria-pressed="false">Tarjeta</button>
           <button data-p="custom" aria-pressed="false">Otra</button>
+          <button data-p="25x25c" aria-pressed="false" style="flex-basis:40%">Chip NFC Ø 2.5 cm</button>
+          <button data-p="30x20.8" aria-pressed="false" style="flex-basis:40%">Chip NFC 3 × 2.08 cm</button>
         </div>
         <div class="opts" style="margin-top:12px">
           <div class="field">
@@ -677,6 +679,7 @@
         </div>
         <div class="opts" style="margin-top:12px">
           <label class="check"><input type="checkbox" id="s-rounded"> Esquinas redondeadas</label>
+          <label class="check"><input type="checkbox" id="s-circle"> Redonda</label>
           <label class="check"><input type="checkbox" id="s-guides" checked> Guías</label>
         </div>
       </div>
@@ -798,6 +801,56 @@
         </div>
         <p class="note" style="margin-top:10px" id="s-a4note"></p>
         <p class="note" style="margin-top:8px">Imprime el PDF al <b>100 %</b> (tamaño real, sin "ajustar a la página") en vinil imprimible o papel adhesivo, recórtalo y pégalo en el soporte.</p>
+      </div>
+
+      <div class="group" data-tab="print" id="s-tk">
+        <div class="glabel">Ticket térmico · varios stickers por etiqueta</div>
+        <div class="opts">
+          <div class="field">
+            <label for="s-tkw">Etiqueta ancho (mm)</label>
+            <input type="number" id="s-tkw" min="15" max="120" step="1" value="70" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="s-tkh">Etiqueta alto (mm)</label>
+            <input type="number" id="s-tkh" min="15" max="200" step="1" value="40" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="s-tkgap">Separación</label>
+            <select id="s-tkgap">
+              <option value="1">1 mm</option>
+              <option value="2" selected>2 mm</option>
+              <option value="3">3 mm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="s-tkdpi">Resolución</label>
+            <select id="s-tkdpi">
+              <option value="203" selected>203 DPI</option>
+              <option value="300">300 DPI</option>
+            </select>
+          </div>
+        </div>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="s-tkmono" checked> Blanco y negro (impresora térmica)</label>
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="s-tkdither"> Tramado (si el diseño tiene fotos)</label>
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="s-tkcut" checked> Línea de corte</label>
+        <div class="labelframe" style="margin-top:12px;padding:14px">
+          <canvas id="s-tkpv" width="280" height="160" role="img" aria-label="Vista del ticket"></canvas>
+        </div>
+        <p class="note" style="margin-top:8px;text-align:center" id="s-tkinfo"></p>
+        <div class="field" style="margin-top:10px">
+          <label for="s-tkqty">Cantidad de este diseño</label>
+          <input type="number" id="s-tkqty" min="1" max="500" step="1" value="2" inputmode="numeric">
+        </div>
+        <button class="btn" id="s-tkadd" style="margin-top:6px">Agregar este diseño a los tickets</button>
+        <div class="qlist" id="s-tklist" style="margin-top:12px"></div>
+        <div class="stack" style="margin-top:12px">
+          <button class="btn primary" id="s-tkpdf">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            <span id="s-tkpdflabel">PDF tickets</span>
+          </button>
+          <button class="btn ghost hidden" id="s-tkclear">Vaciar la lista</button>
+        </div>
+        <p class="note" style="margin-top:10px">Para chips NFC pequeños: arma varios diseños (por ejemplo, uno por cliente), agrégalos con su cantidad y salen juntos en cada etiqueta. Si la lista está vacía, se imprime el diseño actual. En el programa de la impresora elige el papel de la etiqueta (p. ej. <b>70x40</b>) y escala <b>100 %</b>.</p>
       </div>
     </section>
   </div>
@@ -2912,7 +2965,8 @@
     var W = sup.w * S, H = sup.h * S, B = (bleed || 0) * S;
     c.save();
     c.translate(B, B);
-    if (!B && sup.rounded) roundRect(c, 0, 0, W, H, CORNER_MM * S);
+    if (sup.shape === "circle") { c.beginPath(); c.arc(W / 2, H / 2, Math.min(W, H) / 2 + B, 0, 2 * Math.PI); }
+    else if (!B && sup.rounded) roundRect(c, 0, 0, W, H, CORNER_MM * S);
     else { c.beginPath(); c.rect(-B, -B, W + 2 * B, H + 2 * B); }
     c.clip();
     c.fillStyle = sup.bg;
@@ -2952,7 +3006,8 @@
     c.translate(pad, pad);
     c.shadowColor = "rgba(20,22,28,.22)"; c.shadowBlur = 14; c.shadowOffsetY = 4;
     c.fillStyle = sup.bg;
-    if (sup.rounded) { roundRect(c, 0, 0, sup.w * S, sup.h * S, CORNER_MM * S); c.fill(); }
+    if (sup.shape === "circle") { c.beginPath(); c.arc(sup.w * S / 2, sup.h * S / 2, Math.min(sup.w, sup.h) * S / 2, 0, 2 * Math.PI); c.fill(); }
+    else if (sup.rounded) { roundRect(c, 0, 0, sup.w * S, sup.h * S, CORNER_MM * S); c.fill(); }
     else c.fillRect(0, 0, sup.w * S, sup.h * S);
     c.restore();
     c.save(); c.translate(pad, pad);
@@ -2960,7 +3015,9 @@
     var W = sup.w * S, H = sup.h * S;
     if ($("s-guides").checked) {
       c.setLineDash([4, 4]); c.lineWidth = 1; c.strokeStyle = "rgba(47,91,215,.45)";
-      c.strokeRect(3 * S, 3 * S, W - 6 * S, H - 6 * S);   // zona segura de 3 mm
+      var safe = Math.min(3, Math.min(sup.w, sup.h) * 0.07) * S;   // zona segura: 3 mm (menos en chips pequeños)
+      if (sup.shape === "circle") { c.beginPath(); c.arc(W / 2, H / 2, Math.min(W, H) / 2 - safe, 0, 2 * Math.PI); c.stroke(); }
+      else c.strokeRect(safe, safe, W - 2 * safe, H - 2 * safe);
       c.setLineDash([]);
     }
     c.strokeStyle = "#d4378a"; c.lineWidth = 1;
@@ -2982,6 +3039,7 @@
         supCopies() + " copia" + (supCopies() > 1 ? "s" : "") + " = <b>" + Math.ceil(supCopies() / info.cap) + "</b> hoja" + (Math.ceil(supCopies() / info.cap) > 1 ? "s" : "") + "."
       : "Este tamaño no cabe en una hoja A4: usa <b>PDF tamaño real</b>.";
     $("s-a4").disabled = !info.cap;
+    updateTicketSoon();
     render3DSoon();
   }
 
@@ -3100,6 +3158,7 @@
   function showSupTab(t) {
     Array.prototype.forEach.call(document.querySelectorAll("#s-tabs button"), function (b) { b.setAttribute("aria-pressed", String(b.dataset.tab === t)); });
     Array.prototype.forEach.call(document.querySelectorAll(".s-controls > .group[data-tab]"), function (g) { g.classList.toggle("on", g.dataset.tab === t); });
+    if (t === "print") updateTicketSoon();
     var ctl = document.querySelector(".s-controls");
     if (ctl.scrollHeight > ctl.clientHeight) ctl.scrollTop = 0;
     var tabs = $("s-tabs"), r = tabs.getBoundingClientRect();
@@ -3468,10 +3527,18 @@
 
   // ---- Medida y fondo ----
   // Cambia la medida y lleva los elementos a la misma posición relativa
-  function supSetSize(w, h) {
+  // scale: también achica o agranda los elementos (al cambiar de medida, no al girar)
+  function supSetSize(w, h, scale) {
     w = clamp(w, 10, 1000); h = clamp(h, 10, 1000);
-    var fx = w / sup.w, fy = h / sup.h;
-    sup.els.forEach(function (e) { e.x *= fx; e.y *= fy; });
+    var fx = w / sup.w, fy = h / sup.h, u = Math.min(fx, fy);
+    sup.els.forEach(function (e) {
+      e.x *= fx; e.y *= fy;
+      if (scale && Math.abs(u - 1) > 0.01) {
+        if (e.size) e.size = +(e.size * u).toFixed(2);
+        if (e.w) e.w = +(e.w * u).toFixed(2);
+        if (e.thick) e.thick = +(e.thick * u).toFixed(2);
+      }
+    });
     sup.w = w; sup.h = h;
     syncSupSize(); renderSup(); saveSup();
   }
@@ -3482,28 +3549,34 @@
     setSeg("s-orient", document.querySelector('#s-orient button[data-o="' + (land ? "landscape" : "portrait") + '"]'));
     setSeg("s-preset", document.querySelector('#s-preset button[data-p="' + sup.preset + '"]'));
     $("s-rounded").checked = sup.rounded;
+    $("s-circle").checked = sup.shape === "circle";
+    $("s-rounded").disabled = sup.shape === "circle";
     Array.prototype.forEach.call(document.querySelectorAll("#s-bgsw .swatch"), function (b) {
       b.setAttribute("aria-pressed", String(b.dataset.c === sup.bg));
     });
   }
   function supApplyLA(L, A, portrait) {
     var big = Math.max(L, A), small = Math.min(L, A);
-    if (portrait) supSetSize(small, big); else supSetSize(big, small);
+    if (portrait) supSetSize(small, big, true); else supSetSize(big, small, true);
   }
   $("s-preset").addEventListener("click", function (ev) {
     var b = ev.target.closest("button"); if (!b) return;
     sup.preset = b.dataset.p;
     if (sup.preset !== "custom") {
       var p = sup.preset.split("x");
+      sup.shape = /c$/.test(sup.preset) ? "circle" : null;
       supApplyLA(parseFloat(p[0]), parseFloat(p[1]), sup.w < sup.h);
+      buildSupTplGrid();
     } else { syncSupSize(); $("s-w").focus(); }
   });
   ["s-w", "s-h"].forEach(function (id) {
     $(id).addEventListener("change", function () {
       var L = parseFloat($("s-w").value) * 10, A = parseFloat($("s-h").value) * 10;
       if (!(L > 0) || !(A > 0)) { syncSupSize(); return; }
+      if (sup.shape === "circle") { if (id === "s-w") A = L; else L = A; }   // redonda: un solo diámetro
       sup.preset = "custom";
-      ["127.5x76", "85.6x54"].forEach(function (p) {
+      if (sup.shape === "circle" && Math.abs(L - 25) < 0.01) sup.preset = "25x25c";
+      else ["127.5x76", "85.6x54", "30x20.8"].forEach(function (p) {
         var q = p.split("x");
         if (Math.abs(Math.max(L, A) - q[0]) < 0.01 && Math.abs(Math.min(L, A) - q[1]) < 0.01) sup.preset = p;
       });
@@ -3516,6 +3589,12 @@
     if (portrait !== (sup.w < sup.h)) supSetSize(sup.h, sup.w);
   });
   $("s-rounded").addEventListener("change", function (ev) { sup.rounded = ev.target.checked; renderSup(); saveSup(); });
+  $("s-circle").addEventListener("change", function (ev) {
+    sup.shape = ev.target.checked ? "circle" : null;
+    if (sup.shape) { var dm = Math.min(sup.w, sup.h); sup.preset = Math.abs(dm - 25) < 0.01 ? "25x25c" : "custom"; supSetSize(dm, dm, false); }
+    else { if (sup.preset === "25x25c") sup.preset = "custom"; syncSupSize(); renderSup(); saveSup(); }
+    buildSupTplGrid();
+  });
   $("s-guides").addEventListener("change", renderSup);
   $("s-bgsw").addEventListener("click", function (ev) {
     var b = ev.target.closest(".swatch"); if (!b) return;
@@ -3587,6 +3666,21 @@
       { type: "qr", fy: 0.72, w: 32, color: "#111318", qrbg: true, text: "https://" },
       T("A nombre de: Tu negocio", 0.905, 3.6, "#ffffff", { bold: false })
     ]; } },
+    // Chips NFC pequeños (fit: medida y forma que toma el soporte al elegirlos)
+    { id: "chip-toca", name: "Chip Ø 2.5 · Toca aquí", bg: "#ffffff", ref: [25, 25], fit: { w: 25, h: 25, shape: "circle", preset: "25x25c" }, els: function () { return [
+      { type: "nfc", fy: 0.34, w: 8.5, color: "#111318" },
+      T("TOCA AQUÍ", 0.63, 2.5, "#111318"),
+      T("TU LOGO", 0.8, 2.1, "#111318", { slot: "logo" })
+    ]; } },
+    { id: "chip-logo", name: "Chip Ø 2.5 · Logo", bg: "#111318", ref: [25, 25], fit: { w: 25, h: 25, shape: "circle", preset: "25x25c" }, els: function () { return [
+      T("TU LOGO", 0.44, 3.8, "#ffffff", { slot: "logo" }),
+      { type: "nfc", fy: 0.79, w: 4.2, color: "#ffffff" }
+    ]; } },
+    { id: "chip-rect", name: "Chip 3 × 2.08 · Logo y NFC", bg: "#ffffff", ref: [30, 20.8], fit: { w: 30, h: 20.8, preset: "30x20.8" }, els: function () { return [
+      { type: "nfc", fx: 0.22, fy: 0.5, w: 7.5, color: "#111318" },
+      T("TU LOGO", 0.38, 2.8, "#111318", { slot: "logo", fx: 0.64 }),
+      T("Acerca tu\ncelular", 0.72, 2, "#111318", { bold: false, fx: 0.64 })
+    ]; } },
     { id: "califica", name: "Califícanos", bg: "#111318", els: function () { return [
       T("Califícanos", 0.1, 8.5, "#ffffff"),
       T("TU LOGO", 0.235, 9, "#ffffff", { slot: "logo" }),
@@ -3621,7 +3715,7 @@
     return supImgCache[src];
   }
   function customToTpl(m) {
-    return { id: m.id, name: m.name, bg: m.bg, ref: m.ref, custom: true,
+    return { id: m.id, name: m.name, bg: m.bg, ref: m.ref, fit: m.fit, custom: true,
       els: function () { return m.els.map(function (e) {
         var o = Object.assign({}, e);
         if (e.colors) o.colors = e.colors.slice();
@@ -3666,7 +3760,10 @@
       }
       return o;
     });
-    return { id: id, name: name, bg: sup.texture === "wood" ? WOOD_BG : sup.bg, ref: ref, els: els };
+    var chip = sup.shape === "circle" || Math.max(sup.w, sup.h) < 50;   // los chips guardan su medida y forma
+    if (chip) ref = [W, H];
+    return { id: id, name: name, bg: sup.texture === "wood" ? WOOD_BG : sup.bg, ref: ref, els: els,
+      fit: chip ? { w: W, h: H, shape: sup.shape || null, preset: sup.preset } : undefined };
   }
 
   // Crea los elementos del modelo para un soporte de W × H mm
@@ -3685,7 +3782,7 @@
 
   // Diseño de un modelo con el logo actual y, si está activado, sus colores
   function supTemplateDesign(t, W, H, needSrc) {
-    var d = { w: W, h: H, bg: t.bg, baseBg: t.bg, rounded: false, els: supTemplateEls(t, W, H) };
+    var d = { w: W, h: H, bg: t.bg, baseBg: t.bg, rounded: false, shape: t.fit && t.fit.shape || null, els: supTemplateEls(t, W, H) };
     applyMaterial(d, sup.material);
     if (!supLogo) return d;
     var keep = sup; sup = d;
@@ -3737,10 +3834,12 @@
     supModels().forEach(function (t) {
       var b = document.createElement("button");
       b.className = "tplbtn"; b.dataset.t = t.id; b.setAttribute("aria-pressed", String(t.id === sup.tplId));
-      var land = t.ref && t.ref[0] > t.ref[1], tw = land ? H : W, th = land ? W : H;
+      var land = t.ref && t.ref[0] > t.ref[1], tw = land ? H : W, th = land ? W : H, TS = S;
+      if (t.fit) { tw = t.fit.w; th = t.fit.h; TS = S * W / Math.max(tw, th); }
       var cv = document.createElement("canvas");
-      cv.width = Math.round(tw * S); cv.height = Math.round(th * S);
-      drawSupport(cv.getContext("2d"), S, 0, supTemplateDesign(t, tw, th, false));
+      cv.width = Math.round(tw * TS); cv.height = Math.round(th * TS);
+      if (t.fit && t.fit.shape === "circle") { cv.style.background = "transparent"; cv.style.boxShadow = "none"; }
+      drawSupport(cv.getContext("2d"), TS, 0, supTemplateDesign(t, tw, th, false));
       var sp = document.createElement("span"); sp.textContent = t.name + (t.edited ? " ✎" : "");
       if (t.edited) b.title = "Modelo editado (puedes restaurar el original)";
       b.appendChild(cv); b.appendChild(sp);
@@ -3786,7 +3885,13 @@
     var t = supModel(b.dataset.t);
     if (sup.els.length && !confirm("¿Reemplazar el diseño actual por el modelo \"" + t.name + "\"?")) return;
     var land = t.ref && t.ref[0] > t.ref[1];   // los modelos van en vertical, salvo uno guardado en horizontal
-    if ((sup.w > sup.h) !== !!land) { var w = sup.w; sup.w = sup.h; sup.h = w; }
+    if (t.fit) {   // modelo de chip: toma su medida y forma
+      sup.w = t.fit.w; sup.h = t.fit.h; sup.shape = t.fit.shape || null; sup.preset = t.fit.preset || "custom";
+    } else {
+      if (sup.shape === "circle" || Math.max(sup.w, sup.h) < 50) { sup.w = 76; sup.h = 127.5; sup.preset = "127.5x76"; }
+      sup.shape = null;
+      if ((sup.w > sup.h) !== !!land) { var w = sup.w; sup.w = sup.h; sup.h = w; }
+    }
     var d = supTemplateDesign(t, sup.w, sup.h, true);
     sup.bg = d.bg; sup.baseBg = d.baseBg; sup.texture = d.texture || null; sup.logoPal = d.logoPal || null; sup.tplId = t.id;
     sup.els = d.els;
@@ -3797,6 +3902,11 @@
   });
 
   // ---- Maqueta 3D: soporte en L de acrílico sobre una mesa ----
+  var tkRaf = 0;
+  function updateTicketSoon() {
+    if (tkRaf) return;
+    tkRaf = requestAnimationFrame(function () { tkRaf = 0; updateTicket(); });
+  }
   var r3dRaf = 0;
   function render3DSoon() {
     if ($("s-3d").classList.contains("hidden") || r3dRaf) return;
@@ -4045,7 +4155,7 @@
   // ---- Guardar en el navegador (imágenes incluidas si caben) ----
   function saveSup() {
     function pack(withImg) {
-      return JSON.stringify({ w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal, tplId: sup.tplId, material: sup.material, texture: sup.texture,
+      return JSON.stringify({ w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal, tplId: sup.tplId, material: sup.material, texture: sup.texture, shape: sup.shape || null,
         logo: withImg && supLogo ? { src0: supLogo.src0, pal: supLogo.pal, ink: supLogo.ink, tintable: supLogo.tintable } : null,
         els: sup.els.filter(function (e) { return withImg || e.type !== "img"; }).map(function (e) {
           var o = {}; SUP_EL_KEYS.forEach(function (k) { if (e[k] !== undefined) o[k] = e[k]; }); return o;
@@ -4064,7 +4174,7 @@
       ];
       return;
     }
-    ["w", "h", "preset", "bg", "rounded", "baseBg", "logoPal", "tplId", "material", "texture"].forEach(function (k) { if (k in o) sup[k] = o[k]; });
+    ["w", "h", "preset", "bg", "rounded", "baseBg", "logoPal", "tplId", "material", "texture", "shape"].forEach(function (k) { if (k in o) sup[k] = o[k]; });
     if (o.logo && o.logo.src0) supLoadImg(o.logo.src0, function (img) {
       if (!img) return;
       supLogo = { img: img, src0: o.logo.src0, pal: o.logo.pal || [], ink: o.logo.ink, tintable: o.logo.tintable };
@@ -4116,7 +4226,8 @@
       doc.addImage(data, "PNG", x, y, f.w, f.h, "sup", "FAST");
       if ($("s-cut").checked) {
         doc.setDrawColor(150, 155, 165); doc.setLineWidth(0.1);
-        if (sup.rounded && !b) doc.roundedRect(x, y, f.w, f.h, CORNER_MM, CORNER_MM, "S");
+        if (sup.shape === "circle") doc.circle(x + f.w / 2, y + f.h / 2, Math.min(sup.w, sup.h) / 2, "S");
+        else if (sup.rounded && !b) doc.roundedRect(x, y, f.w, f.h, CORNER_MM, CORNER_MM, "S");
         else doc.rect(x + b, y + b, f.w - 2 * b, f.h - 2 * b, "S");
       }
     }
@@ -4125,6 +4236,151 @@
   });
 
   function supName() { return String(sup.w / 10).replace(".", ",") + "x" + String(sup.h / 10).replace(".", ",") + "cm"; }
+
+  // ---- Ticket térmico: varios stickers pequeños (chips NFC) en una etiqueta ----
+  var tkQueue = [];   // { cv, w, h, shape, qty, name, thumb } (en memoria)
+  var TK_MARGIN = 1.5;
+  function tkLabel() {
+    return { w: clamp(parseFloat($("s-tkw").value) || 70, 15, 120), h: clamp(parseFloat($("s-tkh").value) || 40, 15, 200), gap: parseFloat($("s-tkgap").value) || 0 };
+  }
+  // Cuántos de w × h caben en la etiqueta, normal o girados
+  function tkFit(w, h) {
+    var L = tkLabel(), M = TK_MARGIN;
+    function fit(a, b) {
+      var cols = Math.max(0, Math.floor((L.w - 2 * M + L.gap) / (a + L.gap))), rows = Math.max(0, Math.floor((L.h - 2 * M + L.gap) / (b + L.gap)));
+      return { cols: cols, rows: rows, cap: cols * rows, sw: a, sh: b };
+    }
+    var n = fit(w, h), r = fit(h, w), best = r.cap > n.cap ? r : n;
+    best.rot = best === r; best.L = L;
+    return best;
+  }
+  function tkCurrent(qty) {
+    var nm = "";
+    sup.els.some(function (e) { if (e.type === "text" && e.text && !e.slot) { nm = e.text.replace(/\n/g, " "); return true; } return false; });
+    return { cv: renderSupport(12, 0), w: sup.w, h: sup.h, shape: sup.shape || null, qty: qty, name: (nm || "Diseño") + " · " + supName() };
+  }
+  function tkItems() {
+    var list = tkQueue.length ? tkQueue : [tkCurrent(clamp(parseInt($("s-tkqty").value, 10) || 1, 1, 500))];
+    var out = [];
+    list.forEach(function (q) { for (var i = 0; i < q.qty; i++) out.push(q); });
+    return out;
+  }
+  // Arma las etiquetas a ppmm: un tamaño de sticker por etiqueta (si cambia, empieza otra)
+  function tkTickets(ppmm, max) {
+    var stk = tkItems(), pages = [], i = 0;
+    while (i < stk.length && (!max || pages.length < max)) {
+      var q = stk[i], f = tkFit(q.w, q.h);
+      if (!f.cap) return { pages: pages, error: "El sticker de " + q.w / 10 + " × " + q.h / 10 + " cm no cabe en la etiqueta." };
+      var L = f.L, cv = document.createElement("canvas");
+      cv.width = Math.round(L.w * ppmm); cv.height = Math.round(L.h * ppmm);
+      var c = cv.getContext("2d");
+      c.fillStyle = "#ffffff"; c.fillRect(0, 0, cv.width, cv.height);
+      var gw = f.cols * f.sw + (f.cols - 1) * L.gap, gh = f.rows * f.sh + (f.rows - 1) * L.gap;
+      var x0 = (L.w - gw) / 2, y0 = (L.h - gh) / 2, slots = [];
+      for (var k = 0; k < f.cap && i < stk.length; k++) {
+        var it = stk[i];
+        if (it.w !== q.w || it.h !== q.h || it.shape !== q.shape) break;
+        var x = x0 + (k % f.cols) * (f.sw + L.gap), y = y0 + Math.floor(k / f.cols) * (f.sh + L.gap);
+        c.save();
+        c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+        if (f.rot) { c.translate((x + f.sw) * ppmm, y * ppmm); c.rotate(Math.PI / 2); }
+        else c.translate(x * ppmm, y * ppmm);
+        c.drawImage(it.cv, 0, 0, it.w * ppmm, it.h * ppmm);
+        c.restore();
+        slots.push({ x: x, y: y, w: f.sw, h: f.sh, shape: it.shape });
+        i++;
+      }
+      if ($("s-tkmono").checked) toMono(cv, $("s-tkdither").checked, false);
+      if ($("s-tkcut").checked) {
+        c.strokeStyle = "#000000"; c.lineWidth = Math.max(1, ppmm * 0.12);
+        slots.forEach(function (sl) {
+          c.beginPath();
+          if (sl.shape === "circle") c.arc((sl.x + sl.w / 2) * ppmm, (sl.y + sl.h / 2) * ppmm, Math.min(sl.w, sl.h) / 2 * ppmm, 0, 2 * Math.PI);
+          else c.rect(sl.x * ppmm, sl.y * ppmm, sl.w * ppmm, sl.h * ppmm);
+          c.stroke();
+        });
+      }
+      pages.push(cv);
+    }
+    return { pages: pages, total: stk.length };
+  }
+  function tkCount() {
+    // número de etiquetas sin dibujar
+    var stk = tkItems(), n = 0, i = 0;
+    while (i < stk.length) {
+      var q = stk[i], f = tkFit(q.w, q.h); if (!f.cap) return -1;
+      for (var k = 0; k < f.cap && i < stk.length; k++) { var it = stk[i]; if (it.w !== q.w || it.h !== q.h || it.shape !== q.shape) break; i++; }
+      n++;
+    }
+    return n;
+  }
+  function updateTicket() {
+    if (!$("s-tk").classList.contains("on")) return;
+    var r = tkTickets(10, 1), pv = $("s-tkpv"), L = tkLabel();
+    var maxW = 280, sc = Math.min(maxW / L.w, 200 / L.h);
+    pv.width = Math.round(L.w * sc); pv.height = Math.round(L.h * sc);
+    var c = pv.getContext("2d");
+    c.fillStyle = "#ffffff"; c.fillRect(0, 0, pv.width, pv.height);
+    if (r.pages[0]) c.drawImage(r.pages[0], 0, 0, pv.width, pv.height);
+    var n = tkCount(), q0 = tkItems()[0], f = q0 ? tkFit(q0.w, q0.h) : null;
+    $("s-tkinfo").innerHTML = r.error || n < 0 ? (r.error || "No cabe en la etiqueta.")
+      : "Caben <b>" + f.cap + "</b> por etiqueta " + L.w + " × " + L.h + (f.rot ? " (girados)" : "") + ". " +
+        r.total + " sticker" + (r.total > 1 ? "s" : "") + " = <b>" + n + "</b> etiqueta" + (n > 1 ? "s" : "") + ".";
+    $("s-tkpdf").disabled = n < 1;
+    $("s-tkpdflabel").textContent = "PDF tickets (" + Math.max(0, n) + ")";
+  }
+  function updateTkList() {
+    var list = $("s-tklist");
+    list.innerHTML = "";
+    tkQueue.forEach(function (q) {
+      var row = document.createElement("div"); row.className = "qitem";
+      var img = document.createElement("img"); img.src = q.thumb; img.alt = q.name;
+      var info = document.createElement("div"); info.className = "qinfo";
+      var nm = document.createElement("div"); nm.className = "qname"; nm.textContent = q.name;
+      var qty = document.createElement("div"); qty.className = "qty";
+      var minus = document.createElement("button"); minus.textContent = "−"; minus.setAttribute("aria-label", "Menos");
+      var inp = document.createElement("input"); inp.type = "number"; inp.min = 1; inp.max = 500; inp.value = q.qty;
+      var plus = document.createElement("button"); plus.textContent = "+"; plus.setAttribute("aria-label", "Más");
+      minus.addEventListener("click", function () { q.qty = Math.max(1, q.qty - 1); updateTkList(); });
+      plus.addEventListener("click", function () { q.qty = Math.min(500, q.qty + 1); updateTkList(); });
+      inp.addEventListener("change", function () { q.qty = clamp(parseInt(inp.value, 10) || 1, 1, 500); updateTkList(); });
+      qty.appendChild(minus); qty.appendChild(inp); qty.appendChild(plus);
+      info.appendChild(nm); info.appendChild(qty);
+      var act = document.createElement("div"); act.className = "qact";
+      var del = document.createElement("button"); del.textContent = "×"; del.title = "Quitar";
+      del.addEventListener("click", function () { tkQueue.splice(tkQueue.indexOf(q), 1); updateTkList(); });
+      act.appendChild(del);
+      row.appendChild(img); row.appendChild(info); row.appendChild(act);
+      list.appendChild(row);
+    });
+    $("s-tkclear").classList.toggle("hidden", !tkQueue.length);
+    $("s-tkadd").textContent = tkQueue.length ? "Agregar este diseño a la lista" : "Agregar este diseño a los tickets";
+    updateTicket();
+  }
+  $("s-tkadd").addEventListener("click", function () {
+    if (!supReady()) return;
+    var q = tkCurrent(clamp(parseInt($("s-tkqty").value, 10) || 1, 1, 500));
+    var tc = document.createElement("canvas"), sc = 120 / Math.max(q.w, q.h);
+    tc.width = Math.round(q.w * sc); tc.height = Math.round(q.h * sc);
+    tc.getContext("2d").drawImage(q.cv, 0, 0, tc.width, tc.height);
+    q.thumb = tc.toDataURL("image/png");
+    tkQueue.push(q);
+    updateTkList();
+  });
+  $("s-tkclear").addEventListener("click", function () {
+    if (!confirm("¿Vaciar la lista de stickers?")) return;
+    tkQueue = []; updateTkList();
+  });
+  $("s-tkpdf").addEventListener("click", function () {
+    if (!supReady()) return;
+    var r = tkTickets((parseInt($("s-tkdpi").value, 10) || 203) / 25.4);
+    if (r.error) { alert(r.error); return; }
+    var L = tkLabel();
+    labelPDF(r.pages, L.w, L.h, 1, "tickets-nfc");
+  });
+  ["s-tkw", "s-tkh", "s-tkgap", "s-tkmono", "s-tkdither", "s-tkcut", "s-tkqty"].forEach(function (id) {
+    $(id).addEventListener("change", updateTicket);
+  });
 
   $("s-pdf").addEventListener("click", function () {
     if (!supReady()) return;

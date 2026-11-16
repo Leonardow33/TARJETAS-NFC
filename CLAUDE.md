@@ -98,6 +98,15 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - `render3D(o)` acepta `{ cv, yaw, tex, zoom, side, caption }` para dibujar en otro canvas; textos y líneas escalan con `U`.
   - **Video para redes** (`s-3dvid`, `s-3dvfmt`, `s-3dvdur`, `s-3dvtxt`): `videoFrame` gira de −52° a −4° con un acercamiento leve, en un canvas de 1080×1920, 1080×1080 o 1920×1080. Se graba con `captureStream` + `MediaRecorder` (MP4 en Chrome y Edge; si no, WEBM), sin audio: la música se agrega en CapCut, InShot, etc.
   - Para probar la grabación real, el tiempo virtual no sirve: lanza Edge con `--remote-debugging-port` y lee el resultado con `cdp.js` (Node con WebSocket).
+- **Chips NFC pequeños:**
+  - Presets `25x25c` (redonda Ø 25 mm; `sup.shape = "circle"`, check `#s-circle`) y `30x20.8` (rectangular).
+  - `supSetSize(w,h,scale)` escala también los elementos al cambiar de medida, no al girar.
+  - Modelos chip-toca, chip-logo y chip-rect con `fit` (medida, forma y preset que toman). Al elegir un modelo normal desde un chip, se vuelve a 76 × 127.5.
+  - Zona segura: min(3 mm, 7 % del lado). El A4 dibuja el corte redondo con `doc.circle`.
+- **Ticket térmico** (`#s-tk`, en la pestaña Imprimir): varios stickers por etiqueta (70 × 40 por defecto).
+  - `tkQueue` vive en memoria; si está vacía, se usa el diseño actual × `s-tkqty`.
+  - `tkFit` prueba normal y girado con margen de 1.5 mm. `tkTickets(ppmm)` pone un solo tamaño por etiqueta, aplica `toMono` (B/N y tramado opcional) y dibuja la línea de corte. El PDF se arma con `labelPDF`.
+  - Ø25 → 2 por 70 × 40; 30 × 20.8 → 3 girados.
 - **Guardado:** localStorage `nfc-soporte`, con imágenes y logo en dataURL; si no caben, sin ellas.
 - **Exportar:**
   - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.
