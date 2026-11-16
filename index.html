@@ -492,6 +492,16 @@
               <input type="number" id="t-tkh" min="15" max="200" step="1" value="40" inputmode="decimal">
             </div>
           </div>
+          <div class="field" style="margin-top:10px">
+            <label for="t-chipinset">Franja visible del chip (corte más adentro)</label>
+            <select id="t-chipinset">
+              <option value="0">Sin franja: cubre todo el chip</option>
+              <option value="0.5">0.5 mm por lado</option>
+              <option value="1" selected>1 mm por lado</option>
+              <option value="1.5">1.5 mm por lado</option>
+              <option value="2">2 mm por lado</option>
+            </select>
+          </div>
           <label class="check" style="margin-top:8px"><input type="checkbox" id="t-tkcut" checked> Línea de corte</label>
           <div class="labelframe" style="margin-top:12px;padding:14px">
             <canvas id="t-tkpv" width="280" height="160" role="img" aria-label="Vista del ticket"></canvas>
@@ -2130,18 +2140,23 @@
     mono: "'Courier New', Courier, monospace"
   };
   var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link", "short", "chiplink", "short2"];
-  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded"].concat(TPL_FIELDS);
+  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded", "chipInset"].concat(TPL_FIELDS);
   var tpl = {
     template: "clasica", backTemplate: "nfc", side: "front", size: "card", font: "sans",
     name: "", role: "", company: "", phone: "", email: "", link: "",
-    qr: true, invert: false, material: "white", rounded: true, shrink: 0,
+    qr: true, invert: false, material: "white", rounded: true, shrink: 0, chipInset: 1,
     logo: null, logoMode: "logo", logoInv: false   // logo = { img, cache }
   };
   var tplEditingId = null;
 
   // Medidas del diseño; shrink (mm por lado) achica la tarjeta para que el sticker no llegue al canto
   function tplDims(t) {
-    if (t.size !== "card") return TPL_SIZES[t.size];
+    var d0 = TPL_SIZES[t.size];
+    if (d0 && d0.chip) {   // el sticker queda más chico que el chip: se ve una franja del chip alrededor
+      var i = t.chipInset == null ? 1 : +t.chipInset;
+      return { w: d0.w - 2 * i, h: d0.h - 2 * i, circle: d0.circle, chip: true };
+    }
+    if (t.size !== "card") return d0;
     var s = t.shrink || 0;
     return { w: CARD.w - 2 * s, h: CARD.h - 2 * s };
   }
@@ -2445,7 +2460,7 @@
         a.p, a.p, a.W - 2 * a.p, a.H - 2 * a.p, "center");
     } },
     { id: "qrsolo", name: "Solo QR (sello de chip)", draw: function (a) {
-      var q = Math.min(a.W, a.H) - 2 * a.p;
+      var q = Math.min(a.W, a.H) - 0.1;   // el borde blanco propio del QR ya hace de margen
       if (!a.qr((a.W - q) / 2, (a.H - q) / 2, q, chipLink(a.t)))
         a.stack([{ t: "Sin link", s: 3 * a.f, b: true }], a.p, a.p, a.W - 2 * a.p, a.H - 2 * a.p, "center");
     } },
@@ -2454,9 +2469,9 @@
       if (!words) { var q0 = Math.min(a.W, a.H) - 2 * p; a.qr((a.W - q0) / 2, (a.H - q0) / 2, q0, link); return; }
       var lines = words.split(/\s*[\/·|]\s*/).filter(Boolean).map(function (w, i) { return { t: w, s: 4 * a.f, b: true, g: i ? 0.4 * a.f : 0, up: true }; });
       if (a.W > a.H * 1.2) {   // rectangular: QR a la izquierda, palabras a la derecha
-        var q = a.H - 2 * p;
-        a.qr(p, p, q, link);
-        a.stack(lines, 2 * p + q, p, a.W - 3 * p - q, a.H - 2 * p, "center");
+        var q = a.H - 0.1;
+        a.qr(0.05, 0.05, q, link);
+        a.stack(lines, q + p * 0.5, p, a.W - q - p * 1.5, a.H - 2 * p, "center");
       } else {                 // redonda o cuadrada: QR arriba, una línea abajo
         var q2 = (a.H - 2 * p) * 0.74;
         a.qr((a.W - q2) / 2, p, q2, link);
@@ -2710,6 +2725,7 @@
     setSeg("tplside", document.querySelector('#tplside button[data-side="' + tpl.side + '"]'));
     setSeg("tplfont", document.querySelector('#tplfont button[data-f="' + tpl.font + '"]'));
     setSeg("tpllogomode", document.querySelector('#tpllogomode button[data-m="' + tpl.logoMode + '"]'));
+    $("t-chipinset").value = String(tpl.chipInset == null ? 1 : tpl.chipInset);
     $("t-qr").checked = tpl.qr;
     if (!tpl.material) tpl.material = tpl.invert ? "black" : "white";
     $("tplmatwood").classList.toggle("hidden", tpl.size !== "card");
@@ -2726,7 +2742,12 @@
     $("t-roundedwrap").classList.toggle("hidden", !card);
     $("tplsizenote").textContent = card
       ? "Cubre toda la cara de la tarjeta. Imprímela en térmica (etiqueta 60 × 90) o en papel de stickers A4."
-      : d.chip ? "Sticker para chip NFC de " + (d.circle ? "Ø " + d.w / 10 + " cm" : d.w / 10 + " × " + d.h / 10 + " cm") + ": cara (Frente) y sello (Reverso) salen juntos en la misma etiqueta térmica."
+      : d.chip ? (function () {
+          var c = tplDims(tpl), i = (d.w - c.w) / 2;
+          return "Chip NFC de " + (d.circle ? "Ø " + d.w / 10 + " cm" : d.w / 10 + " × " + d.h / 10 + " cm") + ". Sticker de " +
+            (d.circle ? "Ø " + +(c.w / 10).toFixed(2) + " cm" : +(c.w / 10).toFixed(2) + " × " + +(c.h / 10).toFixed(2) + " cm") +
+            (i ? ": queda una franja de " + i + " mm del chip alrededor." : ": cubre todo el chip.") + " Cara (Frente) y sello (Reverso) salen juntos en la misma etiqueta.";
+        })()
       : "Sticker de " + d.w + " × " + d.h + " mm para la impresora térmica (cubre parte de la tarjeta).";
     $("t-tk").classList.toggle("hidden", !d.chip);
     $("t-rotatewrap").classList.toggle("hidden", !!d.chip);
@@ -4496,7 +4517,7 @@
   });
   // ---- Plantillas con medida de chip: mismo ticket y misma lista ----
   function tplChipItem(qty) {
-    var d = TPL_SIZES[tpl.size], cur = sideTpl(tpl, "front") || Object.assign({}, tpl, { template: "__blank" }), back = sideTpl(tpl, "back");
+    var d = tplDims(tpl), d0 = TPL_SIZES[tpl.size], cur = sideTpl(tpl, "front") || Object.assign({}, tpl, { template: "__blank" }), back = sideTpl(tpl, "back");
     var face = (tpl.short || "").trim() || tpl.name || "Plantilla";
     var cache = {};
     function at(ppmm, i) {   // cara (0) o sello (1) a ppmm, sin reescalar: el QR queda nítido
@@ -4506,7 +4527,7 @@
     }
     return { cv: at(12, 0), cvBack: back ? at(12, 1) : null, at: at, side: 0,
       w: d.w, h: d.h, shape: d.circle ? "circle" : null, qty: qty,
-      name: face + " · " + (d.circle ? "Ø " + d.w / 10 : d.w / 10 + "x" + d.h / 10) + " cm" + (back ? " · cara y sello" : "") };
+      name: face + " · chip " + (d0.circle ? "Ø " + d0.w / 10 : d0.w / 10 + "x" + d0.h / 10) + " cm" + (back ? " · cara y sello" : "") };
   }
   function tplCopies() { return clamp(parseInt($("t-copies").value, 10) || 1, 1, 500); }
   var tplTkRaf = 0;
@@ -4526,6 +4547,7 @@
     labelPDF(r.pages, L.w, L.h, 1, "tickets-nfc");
   }
   $("t-tkadd").addEventListener("click", function () { tkAdd(tplChipItem(tplCopies())); });
+  $("t-chipinset").addEventListener("change", function (ev) { tpl.chipInset = parseFloat(ev.target.value) || 0; saveTpl(); syncTplUI(); });
   // la medida de la etiqueta y el corte se comparten con Soportes
   [["t-tkw", "s-tkw"], ["t-tkh", "s-tkh"], ["t-tkcut", "s-tkcut"]].forEach(function (pr) {
     function copy(a, b) { var A = $(a), B = $(b); if (A.type === "checkbox") B.checked = A.checked; else B.value = A.value; }

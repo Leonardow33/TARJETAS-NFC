@@ -49,6 +49,10 @@ Enlaces:
   - **Cara y sello:** `tplChipItem` trae `cv`/`cvBack` y `at(ppmm, lado)`. `tkItems` los pone seguidos (`pairStart`) y `tkTickets` no los separa entre etiquetas.
   - Con `at`, cada sticker se dibuja a la resolución exacta de la impresora y se copia en píxeles enteros, para que el QR salga nítido.
   - Sellos: "qrsolo" (solo QR) y "qrpal" (QR + `short2`, p. ej. "IA · DATOS"; en rectangular las palabras van a la derecha).
+    - El QR del sello ocupa el alto menos 0.1 mm: su borde blanco hace de margen.
+    - Con 1 mm de franja, el rectangular sale con cuadros de 4 puntos a 203 DPI. Ojo: con más margen el QR cae a 3 puntos.
+  - **Franja visible** (`tpl.chipInset`, `#t-chipinset`, por defecto 1 mm por lado): `tplDims` achica el sticker, no el chip.
+    - Ø25 → sticker Ø23; 30 × 20.8 → 28 × 18.8. Así se ve un borde del chip y el corte no tiene que ser perfecto.
   - El QR usa `chipLink(t)` = `t.chiplink` (por defecto la tarjeta digital `perfil/`) o, si está vacío, `t.link`. `qr(x,y,size,link)` acepta un link propio.
   - Botones de etiqueta 70 × 40 / 70 × 50 (`.tkpre`, se recuerdan en localStorage `nfc-ticket`). Ø25: 1 chip (cara + sello) por etiqueta; 30 × 20.8 en 70 × 50: 2 chips.
   - Se imprime con el ticket compartido de Soportes (`tplChipItem`, `updateTplTicket`, `tplTicketPDF`, `#t-tk`). `tkQueue` y la medida de la etiqueta se comparten (t-tkw ↔ s-tkw).
