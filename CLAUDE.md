@@ -127,6 +127,20 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Fondo blanco: no hace falta.
 - **Plástico:** si el fondo del diseño coincide con el plástico, un sticker un poco chico o corrido no se nota. Si no coinciden, hay que cortar exacto y centrar bien.
 - Medir el acrílico antes de una tanda, porque puede variar 1–2 mm. Si cambia, usar la medida "Otra".
+- **Papel recomendado (acabado pro):** vinil adhesivo blanco imprimible A4 + laminado en frío transparente.
+  - Impresora de tinta: vinil para inyección (brillante o satinado), calidad alta, tipo "fotográfico brillante"; secar 20–30 min antes de laminar.
+  - Impresora láser: vinil o papel adhesivo para láser (el de inyección se derrite).
+  - Laminado mate: elegante, sin reflejos y el QR se lee mejor (ideal con fondo negro). Brillante: combina con el acrílico.
+  - Evitar papel metalizado, holográfico, dorado o plateado (bloquea el NFC), vinil transparente sobre acrílico negro (no hay tinta blanca) y papel bond o adhesivo común.
+  - Proceso: laminar y luego cortar con cúter y regla metálica; esquinas con sacabocados R3–R5; limpiar el acrílico con alcohol y pegar desde un borde con una tarjeta para que no queden burbujas.
+  - En Perú: "vinil adhesivo imprimible A4" y "laminado en frío A4" (librerías, insumos de impresión, Mercado Libre).
+
+## Herramientas externas evaluadas
+El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta, revísalo y explica riesgos y costos.
+- **open-jarvis/openjarvis:** asistente de IA local (Ollama), NO da voz a Claude Code; ejecuta comandos, pide Google OAuth y se instala con `curl | bash`. No recomendado.
+  - Para dictarle a Claude Code: dictado de Windows con **Win + H** en la caja de texto.
+- **tashfeenahmed/freellmapi:** router de las capas gratuitas de otros proveedores con las claves propias del usuario. No incluye Claude ni modelos top, no sirve para Claude Code, es inestable y los planes gratis pueden usar los datos para entrenar.
+- **lemomo-ai/lemo-opuscar:** plugin real de Claude Code que hace videos animados con código (canvas/WebGL + TTS + música). Gasta muchos tokens (30–60 min por video) e instala ffmpeg, Node y Python. Se descartó; en su lugar se hizo el video del soporte dentro de la app (ver Maqueta 3D).
 
 ## Impresora del usuario: BIENEX HQ300B
 - **Hardware:** 203 DPI, etiquetas de 20–80 mm de ancho, rollo de máximo 50 mm de diámetro. USB solo en Windows, Bluetooth solo en Android.
