@@ -170,6 +170,7 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - Para dictarle a Claude Code: dictado de Windows con **Win + H** en la caja de texto.
 - **tashfeenahmed/freellmapi:** router de las capas gratuitas de otros proveedores con las claves propias del usuario. No incluye Claude ni modelos top, no sirve para Claude Code, es inestable y los planes gratis pueden usar los datos para entrenar.
 - **lemomo-ai/lemo-opuscar:** plugin real de Claude Code que hace videos animados con código (canvas/WebGL + TTS + música). Gasta muchos tokens (30–60 min por video) e instala ffmpeg, Node y Python. Se descartó; en su lugar se hizo el video del soporte dentro de la app (ver Maqueta 3D).
+- **google/elephant-goldfish-model (EGM):** plugin de Claude Code (Apache 2.0, ~20k estrellas; "no es producto oficial de Google") para escribir y revisar documentos de diseño de software con subagentes "sin memoria". Solo trae skills y agentes en markdown, sin hooks ni MCP. Útil para proyectos grandes con varias personas; para esta app de un archivo aporta poco y gasta muchos tokens por revisión. Opcional, no instalado.
 
 ## Impresora del usuario: BIENEX HQ300B
 - **Hardware:** 203 DPI, etiquetas de 20–80 mm de ancho, rollo de máximo 50 mm de diámetro. USB solo en Windows, Bluetooth solo en Android.
