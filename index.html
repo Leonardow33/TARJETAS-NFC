@@ -581,6 +581,32 @@
         </div>
         <label class="check" style="margin-top:10px"><input type="checkbox" id="s-3dmeas" checked> Mostrar medidas (alto, ancho y base)</label>
         <button class="btn" id="s-3ddl" style="margin-top:10px">Descargar imagen de la maqueta</button>
+        <div class="glabel" style="margin-top:16px">Video para redes (sin música)</div>
+        <div class="opts">
+          <div class="field">
+            <label for="s-3dvfmt">Formato</label>
+            <select id="s-3dvfmt">
+              <option value="vertical">Vertical 9:16 (historias, reels, TikTok)</option>
+              <option value="square">Cuadrado 1:1 (publicación)</option>
+              <option value="landscape">Horizontal 16:9</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="s-3dvdur">Duración</label>
+            <select id="s-3dvdur">
+              <option value="6">6 s</option>
+              <option value="8" selected>8 s</option>
+              <option value="12">12 s</option>
+              <option value="15">15 s</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="s-3dvtxt">Texto arriba (opcional, Enter para una segunda línea)</label>
+          <textarea id="s-3dvtxt" rows="2" maxlength="120" placeholder="Soporte NFC para reseñas&#10;Acerca tu celular y califícanos"></textarea>
+        </div>
+        <button class="btn primary" id="s-3dvid" style="margin-top:6px">Grabar y descargar video</button>
+        <p class="note" id="s-3dvnote" style="margin-top:8px">El soporte gira suavemente con el diseño actual, la mesa y las medidas elegidas. Mantén esta pestaña abierta mientras graba.</p>
         <p class="note" style="margin-top:8px">Vista aproximada para mostrar al cliente: soporte en L de acrílico (bordes y base del color del material), con el diseño impreso al frente.</p>
       </div>
     </section>
@@ -3796,10 +3822,13 @@
     c.restore();
   }
 
-  function render3D() {
-    var cv = $("s-3dcv"), c = cv.getContext("2d"), CW = cv.width, CH = cv.height;
+  // o (opcional, para el video): { cv, yaw (grados), tex, zoom, side, caption }
+  function render3D(o) {
+    o = o || {};
+    var cv = o.cv || $("s-3dcv"), c = cv.getContext("2d"), CW = cv.width, CH = cv.height;
+    var U = Math.min(CW, CH) / 760;   // escala de textos y líneas (1 en la vista normal)
     var W = sup.w, H = sup.h, th = 3, tilt = 10 * Math.PI / 180, D = Math.min(50, Math.min(W, H) * 0.66);   // pie de 5 cm, como el soporte de 7.6 × 12.75
-    var yaw = (parseFloat($("s-3dyaw").value) || 0) * Math.PI / 180, pitch = 20 * Math.PI / 180;
+    var yaw = (o.yaw != null ? o.yaw : parseFloat($("s-3dyaw").value) || 0) * Math.PI / 180, pitch = 20 * Math.PI / 180;
     var mat = sup.material || "free";
     var edge = mat === "black" ? "#1d1f25" : mat === "wood" ? "#a87443" : "#eef0f2";
     var ct = Math.cos(tilt), st = Math.sin(tilt);
@@ -3823,8 +3852,8 @@
     var all = [FL, FR, TR, TL, bFL, bFR, bTR, bTL].concat(foot, footB), minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
     all.forEach(function (p) { var q = cam(p); minx = Math.min(minx, q[0]); maxx = Math.max(maxx, q[0]); miny = Math.min(miny, q[1]); maxy = Math.max(maxy, q[1]); });
     var meas = $("s-3dmeas").checked;
-    var k = Math.min(CW * (meas ? 0.5 : 0.62) / (maxx - minx), CH * (meas ? 0.62 : 0.72) / (maxy - miny));
-    var ox = CW / 2 - (minx + maxx) / 2 * k, oy = CH * 0.52 - (miny + maxy) / 2 * k;
+    var k = Math.min(CW * (meas ? 0.5 : 0.62) / (maxx - minx), CH * (meas ? 0.62 : 0.72) / (maxy - miny)) * (o.zoom || 1) * (o.caption ? 0.85 : 1);
+    var ox = CW / 2 - (minx + maxx) / 2 * k, oy = CH * (o.caption ? 0.585 : 0.52) - (miny + maxy) / 2 * k;
     function scr(p) { var q = cam(p); return [ox + q[0] * k, oy + q[1] * k, q[2]]; }
 
     // mesa
@@ -3868,7 +3897,7 @@
     faces.forEach(function (f) { poly(f.p, f.c); });
 
     // frente con el diseño (malla para que la perspectiva sea real)
-    var tex = renderSupport(Math.min(6, 900 / Math.max(W, H)), 0), TW = tex.width, TH = tex.height, N = 14;
+    var tex = o.tex || renderSupport(Math.min(6, 900 / Math.max(W, H)), 0), TW = tex.width, TH = tex.height, N = 14;
     function pt(u, v) { return scr(add(add(FL, [FR[0] - FL[0], FR[1] - FL[1], FR[2] - FL[2]], u), [TL[0] - FL[0], TL[1] - FL[1], TL[2] - FL[2]], v)); }
     for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) {
       var u0 = i / N, u1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
@@ -3886,37 +3915,51 @@
     c.fillStyle = gl; c.fill();
     c.restore();
 
+    var lineCol = tb === "light" ? "#2b2d33" : "#f2f2f2", pillBg = tb === "light" ? "rgba(255,255,255,.92)" : "rgba(20,21,25,.85)";
+    // texto del video, arriba
+    if (o.caption) {
+      var lines = String(o.caption).split("\n").slice(0, 3), fsz = Math.round(Math.min(CW * 0.065, CH * 0.055));
+      c.save();
+      c.fillStyle = lineCol; c.textAlign = "center"; c.textBaseline = "middle";
+      lines.forEach(function (l, i) {
+        var sz = i ? Math.round(fsz * 0.6) : fsz;
+        c.font = (i ? "500 " : "700 ") + sz + "px " + FONTS.sans;
+        while (c.measureText(l).width > CW * 0.9 && sz > 12) { sz -= 2; c.font = (i ? "500 " : "700 ") + sz + "px " + FONTS.sans; }
+        var y = CH * (CH > CW ? 0.13 : 0.1) + (i ? fsz * 0.55 + i * fsz * 0.75 : 0);
+        c.fillText(l, CW / 2, y);
+      });
+      c.restore();
+    }
     // medidas: alto y ancho de la cara, y fondo de la base
     if (!meas) return;
-    var lineCol = tb === "light" ? "#2b2d33" : "#f2f2f2", pillBg = tb === "light" ? "rgba(255,255,255,.92)" : "rgba(20,21,25,.85)";
     function cm(mm) { return +(mm / 10).toFixed(2) + " cm"; }
     function dim(A, B, label, ext) {
       var a = scr(A), b = scr(B), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.sqrt(dx * dx + dy * dy) || 1;
-      var nx = -dy / L, ny = dx / L, tk = 9;
+      var nx = -dy / L, ny = dx / L, tk = 9 * U;
       c.save();
-      c.strokeStyle = lineCol; c.fillStyle = lineCol; c.lineWidth = 2;
+      c.strokeStyle = lineCol; c.fillStyle = lineCol; c.lineWidth = 2 * U;
       // líneas de referencia hacia la pieza
-      if (ext) { c.globalAlpha = 0.45; c.setLineDash([4, 4]); ext.forEach(function (pr) { var p = scr(pr[0]), q2 = scr(pr[1]); c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(q2[0], q2[1]); c.stroke(); }); c.setLineDash([]); c.globalAlpha = 1; }
+      if (ext) { c.globalAlpha = 0.45; c.setLineDash([4 * U, 4 * U]); ext.forEach(function (pr) { var p = scr(pr[0]), q2 = scr(pr[1]); c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(q2[0], q2[1]); c.stroke(); }); c.setLineDash([]); c.globalAlpha = 1; }
       c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke();
       [a, b].forEach(function (p, i) {
         var s = i ? -1 : 1;
         c.beginPath(); c.moveTo(p[0] + nx * tk, p[1] + ny * tk); c.lineTo(p[0] - nx * tk, p[1] - ny * tk); c.stroke();
         c.beginPath(); c.moveTo(p[0], p[1]);   // punta de flecha
-        c.lineTo(p[0] + s * dx / L * 12 + nx * 5, p[1] + s * dy / L * 12 + ny * 5);
-        c.lineTo(p[0] + s * dx / L * 12 - nx * 5, p[1] + s * dy / L * 12 - ny * 5);
+        c.lineTo(p[0] + s * dx / L * 12 * U + nx * 5 * U, p[1] + s * dy / L * 12 * U + ny * 5 * U);
+        c.lineTo(p[0] + s * dx / L * 12 * U - nx * 5 * U, p[1] + s * dy / L * 12 * U - ny * 5 * U);
         c.closePath(); c.fill();
       });
       var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
-      c.font = "700 22px " + FONTS.sans; c.textAlign = "center"; c.textBaseline = "middle";
-      var tw = c.measureText(label).width + 20;
-      c.fillStyle = pillBg; c.strokeStyle = lineCol; c.lineWidth = 1.5;
+      c.font = "700 " + Math.round(22 * U) + "px " + FONTS.sans; c.textAlign = "center"; c.textBaseline = "middle";
+      var tw = c.measureText(label).width + 20 * U;
+      c.fillStyle = pillBg; c.strokeStyle = lineCol; c.lineWidth = 1.5 * U;
       c.beginPath();
-      if (c.roundRect) c.roundRect(mx - tw / 2, my - 16, tw, 32, 16); else c.rect(mx - tw / 2, my - 16, tw, 32);
+      if (c.roundRect) c.roundRect(mx - tw / 2, my - 16 * U, tw, 32 * U, 16 * U); else c.rect(mx - tw / 2, my - 16 * U, tw, 32 * U);
       c.fill(); c.stroke();
       c.fillStyle = lineCol; c.fillText(label, mx, my + 1);
       c.restore();
     }
-    var side = yaw < 0 ? 1 : -1, off = 9;   // la base se ve del lado hacia donde gira
+    var side = o.side || (yaw < 0 ? 1 : -1), off = 9;   // la base se ve del lado hacia donde gira
     var hx = -side * (W / 2 + off), fx = side * (W / 2 + off);
     var topY = H * ct, topZ = -H * st;
     // alto (sobre el canto de la cara, del lado contrario a la base)
@@ -3950,6 +3993,53 @@
     if (!supReady()) return;
     render3D();
     $("s-3dcv").toBlob(function (blob) { downloadBlob(blob, "maqueta-soporte-" + supName() + ".png"); }, "image/png");
+  });
+
+  // ---- Video del soporte girando (sin música; se agrega luego en CapCut, InShot, Instagram...) ----
+  var VID_FORMATS = { vertical: [1080, 1920], square: [1080, 1080], landscape: [1920, 1080] };
+  function videoMime() {
+    if (!window.MediaRecorder) return null;
+    var list = ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+    for (var i = 0; i < list.length; i++) if (MediaRecorder.isTypeSupported(list[i])) return list[i];
+    return null;
+  }
+  // Fotograma t (s) del video: giro suave de ida y vuelta mostrando el lado del pie, con un acercamiento leve
+  function videoFrame(cv, tex, t, secs, caption) {
+    var a = t / secs;
+    render3D({ cv: cv, tex: tex, yaw: -28 + 24 * Math.sin(a * 2 * Math.PI), zoom: 1 + 0.06 * (0.5 - 0.5 * Math.cos(a * 2 * Math.PI)), side: 1, caption: caption });
+  }
+  var vidBusy = false;
+  $("s-3dvid").addEventListener("click", function () {
+    if (vidBusy || !supReady()) return;
+    var mime = videoMime(), btn = $("s-3dvid"), label = btn.textContent;
+    if (!mime || !document.createElement("canvas").captureStream) { alert("Este navegador no puede grabar video. Usa Chrome o Edge actualizados."); return; }
+    var fmt = VID_FORMATS[$("s-3dvfmt").value] || VID_FORMATS.vertical, secs = parseFloat($("s-3dvdur").value) || 8;
+    var cv = document.createElement("canvas"); cv.width = fmt[0]; cv.height = fmt[1];
+    var tex = renderSupport(Math.min(8, 1400 / Math.max(sup.w, sup.h)), 0);
+    var caption = $("s-3dvtxt").value.trim();
+    videoFrame(cv, tex, 0, secs, caption);
+    var stream = cv.captureStream(30), chunks = [], rec;
+    try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10000000 }); }
+    catch (err) { alert("No se pudo iniciar la grabación: " + err.message); return; }
+    rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = function () {
+      vidBusy = false; btn.disabled = false; btn.textContent = label;
+      var ext = mime.indexOf("mp4") >= 0 ? "mp4" : "webm";
+      downloadBlob(new Blob(chunks, { type: mime.split(";")[0] }), "video-soporte-" + supName() + "." + ext);
+      $("s-3dvnote").textContent = ext === "webm"
+        ? "Listo. Se descargó en WEBM: CapCut lo abre; si otra app no lo acepta, conviértelo a MP4."
+        : "Listo. Se descargó en MP4: agrégale música en CapCut, InShot o al subirlo a Instagram o TikTok.";
+    };
+    vidBusy = true; btn.disabled = true;
+    var t0 = performance.now();
+    rec.start(500);
+    (function loop() {
+      var t = (performance.now() - t0) / 1000;
+      if (t >= secs) { videoFrame(cv, tex, secs, secs, caption); setTimeout(function () { rec.stop(); }, 150); return; }
+      videoFrame(cv, tex, t, secs, caption);
+      btn.textContent = "Grabando... " + Math.ceil(secs - t) + " s";
+      requestAnimationFrame(loop);
+    })();
   });
 
   // ---- Guardar en el navegador (imágenes incluidas si caben) ----

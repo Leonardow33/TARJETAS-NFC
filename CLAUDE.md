@@ -95,6 +95,9 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - El frente lleva el diseño en perspectiva real, con una malla de triángulos afines (`texTri`).
   - Se gira con el deslizador o arrastrando (yaw de ±60°). Mesa oscura, clara o de madera, y descarga en PNG.
   - "Mostrar medidas" (`#s-3dmeas`, activo por defecto): cotas de alto, ancho y base (pie) en cm; salen también en el PNG.
+  - `render3D(o)` acepta `{ cv, yaw, tex, zoom, side, caption }` para dibujar en otro canvas; textos y líneas escalan con `U`.
+  - **Video para redes** (`s-3dvid`, `s-3dvfmt`, `s-3dvdur`, `s-3dvtxt`): `videoFrame` gira de −52° a −4° con un acercamiento leve, en un canvas de 1080×1920, 1080×1080 o 1920×1080. Se graba con `captureStream` + `MediaRecorder` (MP4 en Chrome y Edge; si no, WEBM), sin audio: la música se agrega en CapCut, InShot, etc.
+  - Para probar la grabación real, el tiempo virtual no sirve: lanza Edge con `--remote-debugging-port` y lee el resultado con `cdp.js` (Node con WebSocket).
 - **Guardado:** localStorage `nfc-soporte`, con imágenes y logo en dataURL; si no caben, sin ellas.
 - **Exportar:**
   - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.
