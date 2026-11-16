@@ -12,6 +12,9 @@ Enlaces:
 - En línea: https://leonardow33.github.io/TARJETAS-NFC/ (tras cada push: Ctrl+F5)
 - Repo: https://github.com/Leonardow33/TARJETAS-NFC, rama `main`
 - Registro de cambios (Claude Docs): https://claude.ai/artifact/LXordyaZsW6rFcCFVkYFLQ
+- **Tarjeta digital del usuario** (para grabar en el chip NFC o en un QR): https://leonardow33.github.io/TARJETAS-NFC/perfil/
+  - `perfil/index.html` (página aparte, oscura con dorado, sin librerías) y `perfil/doriant-cardenas.vcf` (botón "Guardar contacto").
+  - WhatsApp y llamada al +51 910236424, LinkedIn `linkedin.com/in/doriant-cardenas-fernandez-72b071240`, Instagram `@cf.leonardo`. El usuario no pidió poner su correo.
 
 ## Git
 - Usa solo el repo de esta carpeta. NUNCA el repo externo de `C:/Users/elirg` (es todo el home).
