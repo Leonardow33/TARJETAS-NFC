@@ -6,7 +6,8 @@ Responde siempre en español. Lee este archivo antes de tocar código y actualí
 App web de un solo archivo (`index.html`) para crear:
 - stickers de tarjetas NFC CR80 (85.6 × 54 mm);
 - etiquetas térmicas;
-- stickers para soportes NFC de acrílico en L (7.6 × 12.75 cm).
+- stickers para soportes NFC de acrílico en L (7.6 × 12.75 cm);
+- un brochure PDF para enviar a clientes (usos de los soportes NFC y link de reseñas de Google).
 
 Enlaces:
 - En línea: https://leonardow33.github.io/TARJETAS-NFC/ (tras cada push: Ctrl+F5)
@@ -22,7 +23,7 @@ Enlaces:
 - Commits en español, con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - El usuario espera push tras cada cambio terminado y probado.
 
-## Código (`index.html`, ~4000 líneas)
+## Código (`index.html`, ~4900 líneas)
 - JS ES5 dentro de una IIFE (`var`, `function`, sin flechas). CSS con tokens y modo oscuro.
 - Librerías por cdnjs: jsPDF 2.5.1 (`window.jspdf.jsPDF`) y qrcode-generator 1.4.4.
 - Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes) y `#view-print` (Hoja A4). `showView(v)` las cambia.
@@ -75,7 +76,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Soportes: menú de pestañas `#s-tabs` (Modelos, Elemento, Medida, Fondo, Imprimir) y solo se ve el `.group[data-tab]` con clase `on`. `showSupTab(t)`.
   - Al tocar un elemento se abre la pestaña Elemento (en `syncSupEl`), y un punto verde indica que hay uno seleccionado.
   - Celular: la vista previa queda fija arriba (`.stage.stick`, `syncSupStick`, `--stage-h`), salvo con la maqueta 3D abierta.
-- `sup`: w, h (mm), preset, bg, rounded, els, material, texture, baseBg, logoPal y tplId.
+- `sup`: w, h (mm), preset, bg, rounded, els, material, texture, baseBg, logoPal, tplId, shape y link.
   - preset: `127.5x76` = 12.75 × 7.6 cm, `85.6x54` o `custom`. Los campos van en cm.
 - Elementos en `sup.els`: x, y (centro en mm), rot (×90°), w o size (mm) y color.
   - Tipos: img, text, qr, ring (aro), bar, stars y nfc (ícono).
@@ -122,7 +123,6 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
 - **Brochure para clientes** (`#s-brochure`, `brochurePDF()`): PDF A4 de 3 páginas hecho con jsPDF (texto vectorial, helvetica, solo Latin-1).
   - P1: portada oscura con maqueta 3D de "califica-g" (`render3D` acepta `w`, `h`, `mat`, `meas`, `table`), qué es NFC y 4 beneficios. P2: 6 modelos predeterminados (sin el logo actual) con su uso, y tarjetas/stickers NFC. P3: link de Google paso a paso, crear el perfil, flujo del pedido y contacto con QR vectorial a `chipLink`.
   - Nombre, cargo y teléfono salen de los datos de Plantillas (`tpl`).
-  - Para revisar el PDF: no hay poppler; se renderiza con pdf.js (cdnjs, worker cargado como script) en Edge headless.
 - **Chips NFC pequeños:**
   - Presets `25x25c` (redonda Ø 25 mm; `sup.shape = "circle"`, check `#s-circle`) y `30x20.8` (rectangular).
   - `supSetSize(w,h,scale)` escala también los elementos al cambiar de medida, no al girar.
@@ -149,7 +149,11 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - exponla con reemplazos dentro de la IIFE (p. ej. `window.__lg`);
   - escribe en `<pre id="res">` los logs y las imágenes como `IMG<nombre> data:...`;
   - extrae las imágenes con un script de Python y revísalas con Read;
-  - parchea `jspdf.jsPDF.API.save` para contar páginas.
+  - parchea `jspdf.jsPDF.API.save` para contar páginas, o para sacar el PDF con `this.output("datauristring")`.
+- Para ver un PDF no hay poppler (Read no lo abre): se renderiza con pdf.js 3.11.174 de cdnjs en Edge headless.
+  - El PDF va embebido en base64 (fetch de file:// falla) y `pdf.worker.min.js` se carga como `<script>` (worker falso); `--virtual-time-budget=30000`.
+  - Scripts en el scratchpad: `mkbro.py` (página de prueba), `expdf.py`, `mkpv.py` y `eximg.py`.
+- Para varias líneas de Python desde PowerShell, usa un `.py`: `python -c` con comillas y `<` se rompe.
 - Las cargas de archivos (FileReader, toBlob) a veces no terminan dentro del tiempo virtual: dales 1.5–2.5 s y repite antes de suponer un error.
 - Los parches grandes van en un `.py` del scratchpad (Write + `python archivo.py`). Los heredoc largos en Bash fallan con las comillas.
 
@@ -196,6 +200,8 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - "Reducir sticker" (0.5–1 mm por lado) en Soportes, como en tarjetas, para cuando el fondo coincide con el plástico;
   - estrellas doradas brillantes con borde oscuro sobre madera (hoy salen en dorado oscuro).
 - **Por probar con el usuario:**
+  - escanear con el celular el QR impreso de los chips NFC (no se pudo verificar sin OpenCV);
+  - el brochure con un negocio real: los nombres de los botones de Google ("Pedir reseñas") pueden cambiar;
   - impresión real de un soporte (medidas, corte y sangrado);
   - foto en vertical con la mejora automática, Density 8 y márgenes en Ninguno.
 - **Posible:** ajuste de desplazamiento si la impresión sale corrida, y tamaño 50 × 25 para fotos.
