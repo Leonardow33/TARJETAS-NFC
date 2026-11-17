@@ -88,6 +88,19 @@
     }
     .layout > .stage { position: sticky; top: 12px; }
   }
+  /* Ordenador ancho: usa todo el ancho y las opciones van en 2 columnas (menos scroll) */
+  @media (min-width: 1200px) {
+    .wrap { max-width: 1500px; padding-top: 16px; }
+    header.top { margin-bottom: 14px; }
+    .layout { grid-template-columns: minmax(0, 1fr) 700px; }
+    #view-sup.layout { grid-template-columns: minmax(0, 1fr) 420px; }
+    .layout > .controls:not(.s-controls) {
+      display: block; column-count: 2; column-gap: 14px;
+      position: static; max-height: none; overflow: visible; padding: 0; margin: 0;
+    }
+    .layout > .controls:not(.s-controls) > * { break-inside: avoid; margin: 0 0 14px; }
+    canvas#tplpreview { max-width: 620px; }
+  }
   /* Menú de opciones tipo filtros (Soportes) */
   .ctabs {
     position: sticky; top: 0; z-index: 4; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none;
@@ -567,7 +580,7 @@
 
       <!-- Tarjeta: hoja A4 -->
       <div class="group" id="t-card">
-        <div class="glabel">Papel de stickers A4 / PDF · tarjeta 85.6 × 54</div>
+        <div class="glabel" id="t-cardtitle">Papel de stickers A4 / PDF · tarjeta 85.6 × 54</div>
         <p class="note hidden" style="margin-bottom:10px" id="t-cardnote">Se agrega con la medida de la tarjeta (85.6 × 54 mm), con el mismo diseño de frente y reverso.</p>
         <div class="stack">
           <button class="btn primary" id="t-add">
@@ -869,9 +882,14 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
             <span id="s-a4label">PDF hoja A4</span>
           </button>
+          <button class="btn" id="s-addA4">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Agregar a hoja A4 (junto con tarjetas y chips)
+          </button>
           <button class="btn" id="s-pdf">PDF tamaño real</button>
           <button class="btn" id="s-png">Imagen PNG 300 DPI</button>
         </div>
+        <p class="note hidden" style="margin-top:10px" id="s-addedA4"></p>
         <p class="note" style="margin-top:10px" id="s-a4note"></p>
         <p class="note" style="margin-top:8px">Imprime el PDF al <b>100 %</b> (tamaño real, sin "ajustar a la página") en vinil imprimible o papel adhesivo, recórtalo y pégalo en el soporte.</p>
       </div>
@@ -1884,6 +1902,17 @@
     return item;
   }
 
+  // Medida del diseño en mm (sin girar) y grupo de medida para la hoja A4
+  function itemMM(q) { return q.mm || cardMM(q.d); }
+  function itemKey(q) {
+    var m = itemMM(q);
+    return Math.max(m.w, m.h).toFixed(2) + "x" + Math.min(m.w, m.h).toFixed(2);
+  }
+  function mmLabel(m, circle) {
+    function f(v) { return String(+v.toFixed(2)).replace(".", ","); }
+    return circle ? "Ø " + f(m.w) + " mm" : f(m.w) + " × " + f(m.h) + " mm";
+  }
+
   function itemName(q, i) {
     return q.name ? q.name : "Diseño " + (i + 1);
   }
@@ -1914,6 +1943,8 @@
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>' +
         '<button data-a="del" class="del" title="Quitar" aria-label="Quitar">×</button></div>';
       row.querySelector("img").src = q.thumbURL;
+      if (q.kind === "sup") row.querySelector('[data-a="edit"]').style.display = "none";
+      if (q.shape === "circle") row.querySelector("img").style.borderRadius = "50%";
       row.querySelector(".qname").textContent = itemName(q, i);
       var input = row.querySelector("input");
       input.value = q.qty;
@@ -1972,8 +2003,9 @@
   // Busca la distribución con más tarjetas: cuadrícula en una orientación,
   // o bandas mixtas (filas/columnas normales + giradas 90° en el espacio sobrante).
   // Cada hueco: { x, y, w, h, rot } en mm; rot = hueco vertical.
-  function sheetLayout(o) {
-    var cw = CARD.w, ch = CARD.h;
+  function sheetLayout(o, mm) {
+    mm = mm || CARD;
+    var cw = Math.max(mm.w, mm.h), ch = Math.min(mm.w, mm.h);
     var UW = A4.w - 2 * o.margin, UH = A4.h - 2 * o.margin, g = o.gap;
     function fit(len, size) { return Math.max(0, Math.floor((len + g) / (size + g) + 1e-9)); }
     function grid(x0, y0, w, h, rot, out) {
@@ -2008,21 +2040,73 @@
     return best;
   }
 
-  // Reparte las copias de cada diseño en hojas: [[{slot, item}], ...]
-  function paginate(slots) {
-    var seq = [];
-    queue.forEach(function (q) { for (var i = 0; i < q.qty; i++) seq.push(q); });
-    var pages = [];
-    if (!slots.length) return pages;
-    for (var p = 0; p < seq.length; p += slots.length) {
-      pages.push(seq.slice(p, p + slots.length).map(function (q, i) { return { slot: slots[i], item: q }; }));
-    }
+  // Agrupa la cola por medida: cada medida tiene su propia distribución en la hoja
+  function sheetGroups(o) {
+    var groups = [], byKey = {};
+    queue.forEach(function (q) {
+      var k = itemKey(q), g = byKey[k];
+      if (!g) {
+        var m = itemMM(q);
+        g = byKey[k] = { key: k, mm: m, circle: q.shape === "circle", items: [], slots: sheetLayout(o, m) };
+        groups.push(g);
+      }
+      g.items.push(q);
+    });
+    groups.forEach(function (g) {
+      g.total = g.items.reduce(function (s, q) { return s + q.qty; }, 0);
+      g.cap = g.slots.length;
+    });
+    return groups;
+  }
+
+  // Reparte las copias en hojas → [{ slots, items: [{slot, item}] }].
+  // Las hojas llenas de una medida usan su mejor distribución; lo que sobra de cada
+  // medida se acomoda en franjas, compartiendo hoja con las demás medidas.
+  function paginate(o, groups) {
+    var pages = [], rest = [];
+    (groups || sheetGroups(o)).forEach(function (g) {
+      var seq = [], slots = g.slots;
+      g.items.forEach(function (q) { for (var i = 0; i < q.qty; i++) seq.push(q); });
+      if (!slots.length) return;
+      var full = Math.floor(seq.length / slots.length) * slots.length;
+      for (var p = 0; p < full; p += slots.length) {
+        pages.push({ slots: slots, items: seq.slice(p, p + slots.length).map(function (q, i) { return { slot: slots[i], item: q }; }) });
+      }
+      if (seq.length > full) rest.push({ mm: g.mm, seq: seq.slice(full) });
+    });
+    var UW = A4.w - 2 * o.margin, UH = A4.h - 2 * o.margin, gp = o.gap, cur = null, y = 0;
+    function fit(len, size) { return Math.max(0, Math.floor((len + gp) / (size + gp) + 1e-9)); }
+    rest.forEach(function (r) {
+      var m = r.mm, left = r.seq;
+      while (left.length) {
+        if (!cur) { cur = { slots: [], items: [] }; pages.push(cur); y = 0; }
+        var best = null;
+        [false, true].forEach(function (rot) {
+          var sw = rot ? Math.min(m.w, m.h) : Math.max(m.w, m.h), sh = rot ? Math.max(m.w, m.h) : Math.min(m.w, m.h);
+          var cols = fit(UW, sw); if (!cols) return;
+          var rows = Math.min(fit(UH - y, sh), Math.ceil(left.length / cols));
+          var n = Math.min(left.length, cols * rows), h = rows * (sh + gp);
+          if (n && (!best || n > best.n || (n === best.n && h < best.h))) best = { rot: rot, sw: sw, sh: sh, cols: cols, n: n, h: h };
+        });
+        if (!best) { if (!cur.items.length) return; cur = null; continue; }
+        var x0 = o.margin + (UW - Math.min(best.cols, best.n) * (best.sw + gp) + gp) / 2;
+        for (var i = 0; i < best.n; i++) {
+          var sl = { x: x0 + (i % best.cols) * (best.sw + gp), y: o.margin + y + Math.floor(i / best.cols) * (best.sh + gp), w: best.sw, h: best.sh, rot: best.rot };
+          cur.slots.push(sl); cur.items.push({ slot: sl, item: left[i] });
+        }
+        left = left.slice(best.n);
+        y += best.h;
+        if (left.length) cur = null;
+      }
+    });
     return pages;
   }
 
-  // ¿Hay que girar el diseño para que entre en el hueco?
+  // ¿Hay que girar el diseño para que entre en el hueco? (los cuadrados y redondos nunca)
   function needsRotate(item, slot) {
-    return (item.orientation === "landscape") === slot.rot;
+    var m = itemMM(item);
+    if (Math.abs(m.w - m.h) < 0.01) return false;
+    return (m.w > m.h) === slot.rot;
   }
 
   function drawSheetPage(cv, page, slots, o) {
@@ -2041,7 +2125,7 @@
     c.setLineDash([]);
 
     page.forEach(function (p) {
-      var s = p.slot, cm = cardMM(p.item);
+      var s = p.slot, cm = itemMM(p.item);
       c.save();
       if (needsRotate(p.item, s)) {
         c.translate((s.x + s.w) * k, s.y * k);
@@ -2052,7 +2136,8 @@
       c.drawImage(p.item.thumb, 0, 0, cm.w * k, cm.h * k);
       if (o.cutlines) {
         c.strokeStyle = "#9aa0ab"; c.lineWidth = 0.6;
-        if (p.item.rounded) { roundRect(c, 0, 0, cm.w * k, cm.h * k, CORNER_MM * k); c.stroke(); }
+        if (p.item.shape === "circle") { c.beginPath(); c.arc(cm.w * k / 2, cm.h * k / 2, Math.min(cm.w, cm.h) * k / 2, 0, 2 * Math.PI); c.stroke(); }
+        else if (p.item.rounded) { roundRect(c, 0, 0, cm.w * k, cm.h * k, CORNER_MM * k); c.stroke(); }
         else c.strokeRect(0, 0, cm.w * k, cm.h * k);
       }
       c.restore();
@@ -2061,16 +2146,16 @@
 
   function renderSheet() {
     var o = sheetOpts();
-    var slots = sheetLayout(o);
-    var pages = paginate(slots);
-    var n = totalQty(), cap = slots.length;
+    var groups = sheetGroups(o);
+    var pages = paginate(o, groups);
+    var n = totalQty();
     var wrap = $("pages");
     wrap.innerHTML = "";
     $("emptysheet").classList.toggle("hidden", queue.length > 0);
     $("sheethead").classList.toggle("hidden", queue.length === 0);
     if (!queue.length) return;
 
-    if (!pages.length) pages = [[]];   // muestra una hoja vacía si todo está en 0
+    if (!pages.length) pages = [{ slots: groups[0].slots, items: [] }];   // muestra una hoja vacía si todo está en 0
     wrap.classList.toggle("single", pages.length === 1);
     pages.forEach(function (page, i) {
       var fig = document.createElement("figure");
@@ -2080,18 +2165,23 @@
       fig.appendChild(cv);
       if (pages.length > 1) {
         var cap2 = document.createElement("figcaption");
-        cap2.textContent = "Hoja " + (i + 1) + " · " + page.length + (page.length === 1 ? " sticker" : " stickers");
+        var m0 = page.items.length ? itemMM(page.items[0].item) : null;
+        cap2.textContent = "Hoja " + (i + 1) + " · " + page.items.length + (page.items.length === 1 ? " sticker" : " stickers") +
+          (groups.length > 1 && m0 && page.items.every(function (p) { return itemKey(p.item) === itemKey(page.items[0].item); })
+            ? " de " + mmLabel(m0, page.items[0].item.shape === "circle") : "");
         fig.appendChild(cap2);
       }
       wrap.appendChild(fig);
-      drawSheetPage(cv, page, slots, o);
+      drawSheetPage(cv, page.items, page.slots, o);
     });
 
-    var free = freeSlots(n, cap);
-    $("sheetstat").innerHTML = cap
-      ? "<b>" + n + "</b> stickers · <b>" + Math.max(1, Math.ceil(n / cap)) + "</b> hoja" + (Math.ceil(n / cap) > 1 ? "s" : "") +
-        " A4 · caben <b>" + cap + "</b> por hoja"
-      : "No cabe ninguna tarjeta con estos márgenes";
+    var free = groupsFree(groups, n), np = Math.max(1, pages.length);
+    var caps = groups.filter(function (g) { return g.cap; });
+    $("sheetstat").innerHTML = caps.length
+      ? "<b>" + n + "</b> stickers · <b>" + np + "</b> hoja" + (np > 1 ? "s" : "") + " A4 · caben " +
+        (groups.length === 1 ? "<b>" + groups[0].cap + "</b> por hoja"
+          : groups.map(function (g) { return "<b>" + g.cap + "</b> de " + mmLabel(g.mm, g.circle); }).join(", ") + " por hoja")
+      : "No cabe ningún diseño con estos márgenes";
     var fb = $("fillSheet");
     fb.textContent = free ? "Completar hoja (+" + free + ")" : "Hoja completa";
     fb.disabled = !free;
@@ -2103,18 +2193,26 @@
     return n ? (cap - (n % cap)) % cap : cap;
   }
 
-  // Rellena los huecos libres de la última hoja repartiendo entre los diseños
+  function groupFree(g, n) { return g.total || !n ? freeSlots(g.total, g.cap) : 0; }
+  function groupsFree(groups, n) {
+    return groups.reduce(function (s, g) { return s + groupFree(g, n); }, 0);
+  }
+
+  // Rellena los huecos libres de la última hoja de cada medida, repartiendo entre sus diseños
   $("fillSheet").addEventListener("click", function () {
     if (!queue.length) return;
-    var free = freeSlots(totalQty(), sheetLayout(sheetOpts()).length);
-    for (var i = 0; i < free; i++) queue[i % queue.length].qty++;
+    var n = totalQty();
+    sheetGroups(sheetOpts()).forEach(function (g) {
+      var free = groupFree(g, n);
+      for (var i = 0; i < free; i++) g.items[i % g.items.length].qty++;
+    });
     updateQueue();
   });
 
   function buildSheetPDF() {
     var JsPDF = getJsPDF(); if (!JsPDF) return null;
     var o = sheetOpts();
-    var pages = paginate(sheetLayout(o));
+    var pages = paginate(o).map(function (pg) { return pg.items; });
     if (!pages.length) return null;
     var b = o.bleed;
     var doc = new JsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
@@ -2140,12 +2238,13 @@
         doc.setLineWidth(0.15);
         page.forEach(function (p) {
           var s = p.slot;
-          if (p.item.rounded) doc.roundedRect(s.x, s.y, s.w, s.h, CORNER_MM, CORNER_MM, "S");
+          if (p.item.shape === "circle") doc.circle(s.x + s.w / 2, s.y + s.h / 2, Math.min(s.w, s.h) / 2, "S");
+          else if (p.item.rounded) doc.roundedRect(s.x, s.y, s.w, s.h, CORNER_MM, CORNER_MM, "S");
           else doc.rect(s.x, s.y, s.w, s.h, "S");
         });
       }
     });
-    doc.setProperties({ title: "Stickers tarjeta NFC (" + totalQty() + ") - A4" });
+    doc.setProperties({ title: "Stickers NFC (" + totalQty() + ") - A4" });
     return doc;
   }
 
@@ -2640,7 +2739,7 @@
       var pv = $("tplpreview"), dots = !card && $("t-dots").checked;
       // Resolución de pantalla real para que la vista previa se vea nítida
       var cssW = pv.parentNode.clientWidth - 32 || 460;
-      var dispPx = Math.min(cssW, 460) * (window.devicePixelRatio || 1);
+      var dispPx = Math.min(cssW, 620) * (window.devicePixelRatio || 1);
       var sharpPPMM = Math.max(12, dispPx / tplDims(cur).w);
       var out;
       if (dots) {
@@ -2773,6 +2872,15 @@
     $("t-thermal").classList.toggle("hidden", card);
     $("t-cardthermal").classList.toggle("hidden", !card);
     $("t-cardnote").classList.toggle("hidden", card);
+    if (d.chip) {
+      var cd = tplDims(tpl);
+      $("t-cardtitle").textContent = "Impresora A4 / PDF · chip " + mmLabel(cd, cd.circle);
+      $("t-cardnote").textContent = "Se agrega a la hoja A4 con la medida del sticker (" + mmLabel(cd, cd.circle) +
+        "), cara y sello, con línea de corte" + (cd.circle ? " redonda" : "") + ". Imprime al 100 % en vinil o papel adhesivo.";
+    } else {
+      $("t-cardtitle").textContent = "Papel de stickers A4 / PDF · tarjeta 85.6 × 54";
+      $("t-cardnote").textContent = "Se agrega con la medida de la tarjeta (85.6 × 54 mm), con el mismo diseño de frente y reverso.";
+    }
     $("t-roundedwrap").classList.toggle("hidden", !card);
     $("tplsizenote").textContent = card
       ? "Cubre toda la cara de la tarjeta. Imprímela en térmica (etiqueta 60 × 90) o en papel de stickers A4."
@@ -2935,17 +3043,25 @@
   });
 
   // ---- Tarjeta 85.6×54: hoja A4 y PDF ----
+  // Copia de la plantilla para la hoja A4: los chips conservan su medida; las etiquetas pasan a tarjeta
+  function tplA4Snap() {
+    var d = TPL_SIZES[tpl.size];
+    return Object.assign({}, tpl, { size: d && d.chip ? tpl.size : "card", shrink: 0 });
+  }
+
   function tplItem(snap, side) {
-    var st = sideTpl(snap, side);
+    var st = sideTpl(snap, side), m = tplDims(st), chip = !!m.chip;
     return {
-      kind: "tpl", t: snap, side: side, orientation: "landscape", rounded: snap.rounded,
-      name: (snap.name || "Plantilla") + (side === "back" ? " · reverso" : " · frente"),
+      kind: "tpl", t: snap, side: side, orientation: m.w >= m.h ? "landscape" : "portrait",
+      mm: { w: m.w, h: m.h }, shape: m.circle ? "circle" : null, rounded: !chip && snap.rounded,
+      name: (snap.name || "Plantilla") + (chip ? (side === "back" ? " · sello" : " · cara") + " · chip " + mmLabel(m, m.circle)
+        : (side === "back" ? " · reverso" : " · frente")),
       render: function (ppmm, bleed) { return renderTemplate(st, ppmm, bleed, false); }
     };
   }
 
   $("t-add").addEventListener("click", function () {
-    var snap = Object.assign({}, tpl, { size: "card", shrink: 0 });
+    var snap = tplA4Snap(), chip = TPL_SIZES[snap.size].chip;
     var item = tplEditingId && queue.filter(function (q) { return q.id === tplEditingId; })[0];
     if (item) {
       if (sideTpl(snap, item.side)) {
@@ -2957,7 +3073,8 @@
       ["front", "back"].forEach(function (s) { if (sideTpl(snap, s)) addToQueue(tplItem(snap, s)); });
     }
     $("tpladdedmsg").textContent = item ? "Cambios guardados."
-      : "Agregada a la hoja A4" + (sideTpl(snap, "back") ? " (frente y reverso)" : "") + ".";
+      : (chip ? "Chip agregado a la hoja A4" + (sideTpl(snap, "back") ? " (cara y sello)" : "")
+        : "Agregada a la hoja A4" + (sideTpl(snap, "back") ? " (frente y reverso)" : "")) + ".";
     $("tpladded").classList.remove("hidden");
     tplEditingId = null;
     syncTplUI();
@@ -2978,12 +3095,13 @@
 
   $("t-cardpdf").addEventListener("click", function () {
     var JsPDF = getJsPDF(); if (!JsPDF) return;
-    var doc = new JsPDF({ unit: "mm", format: [CARD.w, CARD.h], orientation: "landscape", compress: true });
-    tplSides(Object.assign({}, tpl, { shrink: 0 })).forEach(function (t, i) {
-      if (i) doc.addPage([CARD.w, CARD.h], "landscape");
-      doc.addImage(renderTemplate(t, EXPORT_PPMM, 0, false).toDataURL("image/png"), "PNG", 0, 0, CARD.w, CARD.h, "tcard" + i, "FAST");
+    var snap = tplA4Snap(), m = tplDims(snap), o = m.w >= m.h ? "landscape" : "portrait";
+    var doc = new JsPDF({ unit: "mm", format: [m.w, m.h], orientation: o, compress: true });
+    tplSides(snap).forEach(function (t, i) {
+      if (i) doc.addPage([m.w, m.h], o);
+      doc.addImage(renderTemplate(t, EXPORT_PPMM, 0, false).toDataURL("image/png"), "PNG", 0, 0, m.w, m.h, "tcard" + i, "FAST");
     });
-    doc.save("tarjeta-presentacion-85,6x54mm.pdf");
+    doc.save((m.chip ? "chip-nfc-" : "tarjeta-presentacion-") + String(+m.w.toFixed(2)).replace(".", ",") + "x" + String(+m.h.toFixed(2)).replace(".", ",") + "mm.pdf");
   });
 
   // ================= SOPORTES (medida libre, editor de elementos) =================
@@ -3144,7 +3262,7 @@
     if ($("view-sup").classList.contains("hidden")) return;
     var frame = $("s-frame");
     var cssW = frame.clientWidth || 600;
-    var maxH = window.innerWidth < 760 ? window.innerHeight * 0.42 : Math.min(560, window.innerHeight * 0.7);
+    var maxH = window.innerWidth < 760 ? window.innerHeight * 0.42 : Math.min(window.innerWidth >= 1200 ? 780 : 560, window.innerHeight * 0.75);
     var pad = 14;   // margen alrededor para ver la selección
     var S = Math.min((cssW - 2 * pad) / sup.w, (maxH - 2 * pad) / sup.h);
     var dpr = window.devicePixelRatio || 1;
@@ -4613,6 +4731,30 @@
     }
     doc.setProperties({ title: "Soportes " + sup.w / 10 + " x " + sup.h / 10 + " cm - A4" });
     doc.save("soportes-" + supName() + "-A4-x" + n + ".pdf");
+  });
+
+  // Agrega el soporte actual a la hoja A4 compartida (con tarjetas y chips de Plantillas)
+  $("s-addA4").addEventListener("click", function () {
+    if (!supReady()) return;
+    var d = Object.assign({}, sup, { els: sup.els.map(function (e) { return Object.assign({}, e); }) });
+    var circ = d.shape === "circle";
+    addToQueue({
+      kind: "sup", d: d, qty: supCopies(), mm: { w: d.w, h: d.h }, orientation: d.w >= d.h ? "landscape" : "portrait",
+      shape: circ ? "circle" : null, rounded: !circ && d.rounded,
+      name: "Soporte " + mmLabel({ w: d.w, h: d.h }, circ),
+      render: function (ppmm, bleed) {
+        var out = document.createElement("canvas");
+        out.width = Math.round((d.w + 2 * bleed) * ppmm);
+        out.height = Math.round((d.h + 2 * bleed) * ppmm);
+        drawSupport(out.getContext("2d"), ppmm, bleed, d);
+        return out;
+      }
+    });
+    updateQueue();
+    var msg = $("s-addedA4");
+    msg.innerHTML = "Agregado a la pestaña <b>Hoja A4</b> (" + supCopies() + (supCopies() === 1 ? " copia" : " copias") +
+      "). Ahí puedes juntarlo con tarjetas y chips y sacar un solo PDF.";
+    msg.classList.remove("hidden");
   });
 
   function supName() { return String(sup.w / 10).replace(".", ",") + "x" + String(sup.h / 10).replace(".", ",") + "cm"; }

@@ -62,7 +62,7 @@ Enlaces:
   - `shortLines` corta donde haya "/"; si no, palabra por palabra.
   - Pensado para que la térmica de 203 DPI no empaste letras chicas.
 - Hay 11 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
-- "Agregar a hoja A4" (`#t-card`, `t-add`) se ve en todos los tamaños y siempre agrega la tarjeta en 85.6 × 54 (frente y reverso).
+- "Agregar a hoja A4" (`#t-card`, `t-add`, `tplA4Snap`) se ve en todos los tamaños. Los chips se agregan con la medida de su sticker (Ø 23 / 28 × 18.8, cara y sello, corte redondo en la Ø25); las etiquetas 70 × 40 y 50 × 25 pasan a tarjeta 85.6 × 54. "PDF tamaño real" usa la misma medida.
 - **Material** (`tpl.material`, `#tplmat`): white, black o wood. Reemplaza a "Invertir".
   - `tpl.invert` queda en sync para compatibilidad.
   - Madera solo en tamaño tarjeta y no en térmica.
@@ -73,6 +73,7 @@ Enlaces:
 Editor libre para el sticker que se pega en el soporte de acrílico.
 - **Diseño de pantalla:**
   - Pantalla ancha (≥ 760 px, todas las pestañas): la columna `.controls` (340 px) es sticky con scroll propio, así la vista previa no se pierde.
+  - Ordenador (≥ 1200 px): `.wrap` llega a 1500 px y `.controls` (salvo `.s-controls`) va en 2 columnas CSS (`column-count`, 700 px, sin scroll propio). Soportes usa 420 px y una vista previa más alta (hasta 780 px).
   - Soportes: menú de pestañas `#s-tabs` (Modelos, Elemento, Medida, Fondo, Imprimir) y solo se ve el `.group[data-tab]` con clase `on`. `showSupTab(t)`.
   - Al tocar un elemento se abre la pestaña Elemento (en `syncSupEl`), y un punto verde indica que hay uno seleccionado.
   - Celular: la vista previa queda fija arriba (`.stage.stick`, `syncSupStick`, `--stage-h`), salvo con la maqueta 3D abierta.
@@ -132,6 +133,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - `tkQueue` vive en memoria; si está vacía, se usa el diseño actual × `s-tkqty`.
   - `tkFit` prueba normal y girado con margen de 1.5 mm. `tkTickets(ppmm)` pone un solo tamaño por etiqueta, aplica `toMono` (B/N y tramado opcional) y dibuja la línea de corte. El PDF se arma con `labelPDF`.
   - Ø25 → 2 por 70 × 40; 30 × 20.8 → 3 girados.
+- **"Agregar a hoja A4"** (`s-addA4`, pestaña Imprimir): manda una copia del soporte (× Copias) a la hoja A4 compartida (`kind: "sup"`, sin botón de editar en la lista).
 - **Guardado:** localStorage `nfc-soporte`, con imágenes y logo en dataURL; si no caben, sin ellas.
 - **Exportar:**
   - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.
@@ -139,7 +141,10 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - El diseño cubre toda la cara. Con sangrado, la línea de corte sigue en el tamaño exacto.
 
 ### Hoja A4 y PDF
-- La cola `queue` guarda solo diseños de tamaño tarjeta: `item.render(ppmm, bleed)`. Máximo 11 por A4 con distribución mixta.
+- La cola `queue` acepta cualquier medida: `item.render(ppmm, bleed)`, `item.mm` {w,h} (si falta, `cardMM(item.d)`), `item.shape` ("circle") y `item.rounded`. Helpers `itemMM`, `itemKey`, `mmLabel`.
+- `sheetGroups(o)` agrupa por medida y `sheetLayout(o, mm)` da la mejor distribución de cada una (tarjeta: 11 por A4 con distribución mixta).
+- `paginate(o)` → `[{slots, items}]`: las hojas llenas usan esa distribución; lo que sobra de cada medida se acomoda en franjas y comparte hoja con las demás.
+- `needsRotate` nunca gira cuadrados ni redondos. "Completar hoja" completa la última hoja de cada medida.
 - `labelPDF(pages, w, h, copies, name)`: una página por etiqueta, y los canvas repetidos se guardan una sola vez.
 
 ## Pruebas
