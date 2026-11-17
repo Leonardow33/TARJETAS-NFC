@@ -118,6 +118,11 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - `render3D(o)` acepta `{ cv, yaw, tex, zoom, side, caption }` para dibujar en otro canvas; textos y líneas escalan con `U`.
   - **Video para redes** (`s-3dvid`, `s-3dvfmt`, `s-3dvdur`, `s-3dvtxt`): `videoFrame` gira de −52° a −4° con un acercamiento leve, en un canvas de 1080×1920, 1080×1080 o 1920×1080. Se graba con `captureStream` + `MediaRecorder` (MP4 en Chrome y Edge; si no, WEBM), sin audio: la música se agrega en CapCut, InShot, etc.
   - Para probar la grabación real, el tiempo virtual no sirve: lanza Edge con `--remote-debugging-port` y lee el resultado con `cdp.js` (Node con WebSocket).
+- **Link del cliente** (`#s-link`, `sup.link`, se guarda): se pone en todos los QR del diseño y de los modelos que se apliquen. Debajo, dos `details.howto`: cómo sacar el link de reseñas de Google ("Pedir reseñas", `g.page/r/…/review`) y cómo el cliente crea su Perfil de Empresa (google.com/business, verificación). Alternativa: `search.google.com/local/writereview?placeid=…`.
+- **Brochure para clientes** (`#s-brochure`, `brochurePDF()`): PDF A4 de 3 páginas hecho con jsPDF (texto vectorial, helvetica, solo Latin-1).
+  - P1: portada oscura con maqueta 3D de "califica-g" (`render3D` acepta `w`, `h`, `mat`, `meas`, `table`), qué es NFC y 4 beneficios. P2: 6 modelos predeterminados (sin el logo actual) con su uso, y tarjetas/stickers NFC. P3: link de Google paso a paso, crear el perfil, flujo del pedido y contacto con QR vectorial a `chipLink`.
+  - Nombre, cargo y teléfono salen de los datos de Plantillas (`tpl`).
+  - Para revisar el PDF: no hay poppler; se renderiza con pdf.js (cdnjs, worker cargado como script) en Edge headless.
 - **Chips NFC pequeños:**
   - Presets `25x25c` (redonda Ø 25 mm; `sup.shape = "circle"`, check `#s-circle`) y `30x20.8` (rectangular).
   - `supSetSize(w,h,scale)` escala también los elementos al cambiar de medida, no al girar.

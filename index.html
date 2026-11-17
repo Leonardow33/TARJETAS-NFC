@@ -344,6 +344,11 @@
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px;
   }
   textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  details.howto { margin-top: 10px; border: 1px solid var(--line, #d0d4dc); border-radius: 10px; padding: 8px 12px; }
+  details.howto summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+  details.howto ol { margin: 8px 0 4px 18px; padding: 0; font-size: 12.5px; line-height: 1.5; }
+  details.howto li { margin-bottom: 4px; }
+  details.howto code { font-size: 11.5px; word-break: break-all; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
@@ -602,6 +607,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>
         <span id="s-3dlabel">Ver maqueta 3D</span>
       </button>
+      <button class="btn" id="s-brochure" style="margin-top:8px" title="Brochure de 3 páginas para enviar a clientes: usos de los soportes NFC, beneficios y cómo sacar el link de Google">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span id="s-brochurelabel">Brochure para clientes (PDF)</span>
+      </button>
       <div id="s-3d" class="hidden" style="margin-top:12px">
         <canvas id="s-3dcv" width="1000" height="760" role="img" aria-label="Maqueta 3D del soporte"></canvas>
         <div class="opts" style="margin-top:12px">
@@ -669,6 +678,31 @@
         <p class="note" style="margin:8px 0 14px">Con un material, los modelos usan el color del plástico de fondo y ajustan textos e íconos para que resalten. "Libre" deja los colores propios de cada modelo.</p>
         <div class="glabel">Modelos prediseñados</div>
         <div class="s-tplgrid" id="s-tplgrid"></div>
+        <div class="glabel" style="margin-top:14px">Link del cliente (QR y chip NFC)</div>
+        <div class="field">
+          <input type="text" id="s-link" placeholder="Ej.: https://g.page/r/XXXXXXXX/review" maxlength="300" title="Se pone en todos los QR del diseño y en los modelos que elijas. Es el mismo link que se graba en el chip NFC.">
+        </div>
+        <p class="note" style="margin:6px 0 0">Se pone en todos los QR del diseño (y de los modelos que elijas). Graba este mismo link en el chip NFC con la app gratuita <b>NFC Tools</b>: Escribir → Agregar un registro → URL.</p>
+        <details class="howto">
+          <summary>¿Cómo saco el link de reseñas de Google?</summary>
+          <ol>
+            <li>Entra con el Gmail que administra el negocio y busca el nombre del negocio en Google o Google Maps.</li>
+            <li>En el panel del negocio toca <b>"Pedir reseñas"</b> (o "Obtener más reseñas").</li>
+            <li>Copia el link (se ve así: <code>https://g.page/r/XXXX/review</code>) y pégalo arriba.</li>
+            <li>Pruébalo en el celular: debe abrir la ventana de las estrellas.</li>
+          </ol>
+        </details>
+        <details class="howto">
+          <summary>¿El cliente no tiene perfil en Google? Así lo crea</summary>
+          <ol>
+            <li>Entra a <b>google.com/business</b> → "Gestionar ahora" e inicia sesión con un Gmail.</li>
+            <li>Escribe el nombre exacto del negocio y elige la categoría.</li>
+            <li>Marca la dirección en el mapa (o la zona de servicio si atiende a domicilio), y agrega teléfono y web o redes.</li>
+            <li>Verifica el negocio: video corto del local, código por SMS, llamada o correo, o carta. Puede tardar de minutos a varios días.</li>
+            <li>Completa horario, fotos y logo. Ya verificado, aparece "Pedir reseñas" (pasos de arriba). Es gratis.</li>
+          </ol>
+          <p class="note" style="margin:4px 0 2px">Sin acceso al perfil: busca el negocio en el "Place ID Finder" de Google y usa <code>https://search.google.com/local/writereview?placeid=PLACE_ID</code>.</p>
+        </details>
         <div class="glabel" style="margin-top:14px">Editar modelos</div>
         <p class="note" style="margin:0 0 8px">Elige un modelo, cámbialo en la vista previa (textos, colores, posiciones) y guárdalo. El logo queda como espacio "TU LOGO" para cada cliente.</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -4022,10 +4056,229 @@
     var d = supTemplateDesign(t, sup.w, sup.h, true);
     sup.bg = d.bg; sup.baseBg = d.baseBg; sup.texture = d.texture || null; sup.logoPal = d.logoPal || null; sup.tplId = t.id;
     sup.els = d.els;
+    if (sup.link) sup.els.forEach(function (e) { if (e.type === "qr") { e.text = sup.link; e._qr = null; } });
     supSel = -1;
     syncSupPal();
     Array.prototype.forEach.call($("s-tplgrid").children, function (x) { x.setAttribute("aria-pressed", String(x === b)); });
     syncModelBar(); syncSupSize(); syncSupEl(); renderSup(); saveSup();
+  });
+
+  // ---- Link del cliente: va a todos los QR del diseño ----
+  $("s-link").addEventListener("input", function (ev) {
+    sup.link = ev.target.value.trim();
+    if (sup.link) sup.els.forEach(function (e) { if (e.type === "qr") { e.text = sup.link; e._qr = null; } });
+    syncSupEl(); renderSup(); saveSup();
+  });
+
+  // ---- Brochure PDF para clientes (A4, 3 páginas) ----
+  function brochurePDF() {
+    var JsPDF = getJsPDF(); if (!JsPDF) return;
+    var doc = new JsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+    var PW = 210, PH = 297, M = 16, DARK = "#111318", GOLD = "#c9a34e", GRAY = "#5b616e", SOFT = "#f3f4f7";
+    var GC = ["#4285f4", "#ea4335", "#fbbc05", "#34a853"];
+    function fill(h) { var c = hex2rgb(h); doc.setFillColor(c[0], c[1], c[2]); }
+    function stroke(h) { var c = hex2rgb(h); doc.setDrawColor(c[0], c[1], c[2]); }
+    function color(h) { var c = hex2rgb(h); doc.setTextColor(c[0], c[1], c[2]); }
+    function font(sz, style) { doc.setFont("helvetica", style || "normal"); doc.setFontSize(sz); }
+    // texto con ajuste de línea; devuelve la y de abajo
+    function para(str, x, y, w, sz, col, style, lh, align) {
+      lh = lh || 1.35; font(sz, style); color(col);
+      var L = doc.splitTextToSize(str, w);
+      doc.text(L, align === "center" ? x + w / 2 : x, y, { baseline: "top", lineHeightFactor: lh, align: align || "left" });
+      return y + L.length * sz * 0.3528 * lh;
+    }
+    function dot(x, y, col) { fill(col); doc.circle(x, y, 1.1, "F"); }
+    function num(n, x, y, col) {
+      fill(col); doc.circle(x, y, 2.7, "F");
+      font(8, "bold"); color("#ffffff"); doc.text(String(n), x, y + 0.1, { align: "center", baseline: "middle" });
+    }
+    function gbar(x, y, w, h) { GC.forEach(function (c, i) { fill(c); doc.rect(x + i * w / 4, y, w / 4, h, "F"); }); }
+    function qrPDF(text, x, y, size, col) {
+      var q; try { q = qrcode(0, "M"); q.addData(text); q.make(); } catch (e) { return; }
+      var n = q.getModuleCount(), m = size / (n + 2);
+      fill("#ffffff"); doc.rect(x, y, size, size, "F"); fill(col || DARK);
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+        if (!q.isDark(r, c)) continue;
+        var c2 = c; while (c2 + 1 < n && q.isDark(r, c2 + 1)) c2++;
+        doc.rect(x + (c + 1) * m, y + (r + 1) * m, (c2 - c + 1) * m + 0.01, m + 0.01, "F");
+        c = c2;
+      }
+    }
+    // modelo predeterminado (sin el logo ni los colores del cliente actual)
+    var link = String(tpl.chiplink || "leonardow33.github.io/TARJETAS-NFC/perfil/").trim();
+    if (!/^https?:/i.test(link)) link = "https://" + link;
+    function model(id) {
+      var t = SUP_TEMPLATES.filter(function (x) { return x.id === id; })[0];
+      var d = { w: 76, h: 127.5, bg: t.bg, baseBg: t.bg, rounded: false, shape: null, material: "free", els: supTemplateEls(t, 76, 127.5) };
+      d.els.forEach(function (e) { if (e.type === "qr") e.text = link; });
+      return d;
+    }
+    function flat(id, S) {
+      var d = model(id), cv = document.createElement("canvas");
+      cv.width = Math.round(76 * S); cv.height = Math.round(127.5 * S);
+      drawSupport(cv.getContext("2d"), S, 0, d);
+      return cv;
+    }
+    var name = tpl.name || "Doriant Cardenas", phone = tpl.phone || "+51 910236424", role = tpl.role || "";
+    function footer(pg) {
+      stroke("#e2e4ea"); doc.setLineWidth(0.3); doc.line(M, PH - 14, PW - M, PH - 14);
+      font(8.5); color(GRAY);
+      doc.text("Soportes y tarjetas NFC · " + name + " · WhatsApp " + phone, M, PH - 9);
+      doc.text(String(pg) + " / 3", PW - M, PH - 9, { align: "right" });
+    }
+
+    // ===== Página 1: portada =====
+    fill(DARK); doc.rect(0, 0, PW, 128, "F");
+    var hero = document.createElement("canvas"); hero.width = 900; hero.height = 1060;
+    render3D({ cv: hero, yaw: -26, tex: flat("califica-g", 8), w: 76, h: 127.5, mat: "black", meas: true, table: "dark", side: -1 });
+    doc.addImage(hero.toDataURL("image/jpeg", 0.9), "JPEG", 112, 10, 86, 101.3);
+    font(8.5, "bold"); color(GOLD); doc.text("SOPORTES Y TARJETAS NFC PARA NEGOCIOS", M, 24, { charSpace: 0.6 });
+    var y = para("Un toque con el celular y tu cliente te califica en Google", M, 30, 92, 25, "#ffffff", "bold", 1.12);
+    gbar(M, y + 3, 36, 1.4);
+    y = para("Soportes de acrílico con chip NFC y código QR para reseñas, redes sociales, WiFi, carta y pagos. Sin apps, sin baterías, en un segundo.", M, y + 9, 90, 11, "#c9ccd4", "normal", 1.4);
+    font(9, "bold"); color(GOLD);
+    doc.text("Acerca el celular  ·  o escanea el QR  ·  listo", M, Math.min(y + 8, 118));
+    font(7.5); color("#8b909c"); doc.text("Maqueta del soporte en L · cara de 7.6 × 12.75 cm · base de 5 cm", 155, 120, { align: "center" });
+
+    y = 142;
+    font(15, "bold"); color(DARK); doc.text("¿Qué es una tarjeta o soporte NFC?", M, y);
+    y = para("NFC es la misma tecnología del pago sin contacto. Dentro del sticker hay un chip que guarda un enlace: al acercar el celular, se abre al instante tu perfil de Google, tu Instagram, tu carta o tu WiFi. Para celulares sin NFC, el mismo diseño lleva un código QR.", M, y + 4, PW - 2 * M, 10.5, GRAY, "normal", 1.45);
+
+    y += 8;
+    font(15, "bold"); color(DARK); doc.text("¿Por qué le sirve a tu negocio?", M, y);
+    var cards = [
+      ["Más reseñas en Google", "El cliente califica en el momento, cuando la experiencia está fresca. Más reseñas dan más confianza y mejor posición en Google Maps."],
+      ["Cero esfuerzo para el cliente", "No descarga nada ni escribe nada: acerca el celular o escanea el QR y se abre el enlace."],
+      ["Imagen profesional", "Diseño con tu logo y tus colores, en acrílico negro, blanco o madera, para mostrador, mesa o caja."],
+      ["Se actualiza sin reimprimir", "El chip se vuelve a programar: si cambias de link, promoción o red social, el mismo soporte sigue sirviendo."]
+    ];
+    var cw = (PW - 2 * M - 6) / 2, ch = 33;
+    cards.forEach(function (k, i) {
+      var cx = M + (i % 2) * (cw + 6), cy = y + 5 + Math.floor(i / 2) * (ch + 5);
+      fill(SOFT); doc.roundedRect(cx, cy, cw, ch, 3, 3, "F");
+      fill(GC[i]); doc.roundedRect(cx, cy, 2.2, ch, 1, 1, "F");
+      font(11.5, "bold"); color(DARK); doc.text(k[0], cx + 7, cy + 8);
+      para(k[1], cx + 7, cy + 12, cw - 12, 9.5, GRAY, "normal", 1.4);
+    });
+    y += 5 + 2 * (ch + 5) + 4;
+    fill(DARK); doc.roundedRect(M, y, PW - 2 * M, 17, 3, 3, "F");
+    font(10.5, "bold"); color("#ffffff");
+    doc.text("Ideal para:", M + 7, y + 9.6);
+    para("restaurantes y cafés · tiendas · salones y spas · consultorios · hoteles · gimnasios · talleres · ferias y eventos", M + 30, y + 5.6, PW - 2 * M - 37, 9.5, "#c9ccd4", "normal", 1.4);
+    footer(1);
+
+    // ===== Página 2: usos =====
+    doc.addPage();
+    font(8.5, "bold"); color(GOLD); doc.text("USOS DEL SOPORTE NFC", M, 22, { charSpace: 0.6 });
+    font(20, "bold"); color(DARK); doc.text("Un soporte para cada objetivo", M, 31);
+    var uses = [
+      ["califica-g", "Reseñas en Google", "Más estrellas y comentarios: lo que más mira un cliente nuevo antes de elegirte."],
+      ["instagram", "Más seguidores", "Instagram, TikTok o Facebook con un toque: el cliente te sigue antes de irse."],
+      ["wifi", "WiFi sin dictar la clave", "El celular se conecta solo: menos preguntas al personal."],
+      ["menu", "Carta digital", "Menú siempre actualizado, sin reimprimir cartas cuando cambian los precios."],
+      ["pago", "Cobros con Yape / Plin", "Tu QR de pago a la vista y con tu marca, en la caja o en cada mesa."],
+      ["califica", "Encuestas y opiniones", "Lleva a un formulario o a WhatsApp para saber qué mejorar."]
+    ];
+    var gw = (PW - 2 * M - 2 * 7) / 3, iw = 34, ih = iw * 127.5 / 76;
+    uses.forEach(function (u, i) {
+      var gx = M + (i % 3) * (gw + 7), gy = 39 + Math.floor(i / 3) * 99;
+      fill(SOFT); doc.roundedRect(gx, gy, gw, 92, 3, 3, "F");
+      var cv = flat(u[0], 6), ix = gx + (gw - iw) / 2;
+      fill("#000000"); doc.setGState && doc.setGState(new doc.GState({ opacity: 0.12 }));
+      doc.roundedRect(ix + 0.8, gy + 6.8, iw, ih, 1.5, 1.5, "F");
+      doc.setGState && doc.setGState(new doc.GState({ opacity: 1 }));
+      doc.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", ix, gy + 6, iw, ih, "use" + i, "FAST");
+      stroke("#d5d8df"); doc.setLineWidth(0.2); doc.rect(ix, gy + 6, iw, ih, "S");
+      font(11, "bold"); color(DARK); doc.text(u[1], gx + gw / 2, gy + ih + 13, { align: "center" });
+      para(u[2], gx + 4, gy + ih + 16.5, gw - 8, 8.8, GRAY, "normal", 1.35, "center");
+    });
+    y = 39 + 2 * 99 + 3;
+    font(14, "bold"); color(DARK); doc.text("También en tarjetas y stickers NFC", M, y + 4);
+    var also = [
+      ["Tarjeta de presentación NFC:", "comparte tu WhatsApp, LinkedIn y contacto con un toque; el cliente lo guarda en su agenda."],
+      ["Stickers y chips NFC (Ø 2.5 cm o 3 × 2 cm):", "para mostradores, vitrinas, cajas, menús o productos."],
+      ["Etiquetas de producto:", "ficha técnica, garantía, video de uso o recompra en un solo toque."]
+    ];
+    y += 10;
+    also.forEach(function (a, i) {
+      dot(M + 1.5, y + 2.1, GC[i]);
+      font(9.8, "bold"); color(DARK); doc.text(a[0], M + 5, y, { baseline: "top", lineHeightFactor: 1.35 });
+      var tw = doc.getTextWidth(a[0] + " ");
+      y = para(a[1], M + 5 + tw, y, PW - 2 * M - 5 - tw, 9.8, GRAY, "normal", 1.35) + 2.2;
+    });
+    footer(2);
+
+    // ===== Página 3: link de Google =====
+    doc.addPage();
+    font(8.5, "bold"); color(GOLD); doc.text("RESEÑAS EN GOOGLE PASO A PASO", M, 22, { charSpace: 0.6 });
+    font(20, "bold"); color(DARK); doc.text("Cómo obtener tu link de reseñas", M, 31);
+    gbar(M, 34.5, 36, 1.2);
+    function steps(title, sub, list, y0, col) {
+      font(12.5, "bold"); color(DARK); doc.text(title, M, y0);
+      var yy = y0 + 2;
+      if (sub) yy = para(sub, M, yy + 1.5, PW - 2 * M, 9.5, GRAY, "normal", 1.35);
+      yy += 3;
+      list.forEach(function (t, i) {
+        num(i + 1, M + 3, yy + 1.9, col);
+        yy = para(t, M + 9, yy, PW - 2 * M - 9, 9.8, "#2b2d33", "normal", 1.38) + 2.4;
+      });
+      return yy;
+    }
+    y = steps("A. Si tu negocio ya aparece en Google", "Necesitas el Gmail con el que administras tu Perfil de Empresa.", [
+      "Inicia sesión con ese Gmail y busca el nombre de tu negocio en Google o en Google Maps. Arriba aparece tu panel de administración.",
+      "Toca \"Pedir reseñas\" (en algunas versiones: \"Obtener más reseñas\" o \"Compartir formulario de reseñas\").",
+      "Copia el enlace. Se ve así: https://g.page/r/XXXXXXXX/review",
+      "Envíanoslo por WhatsApp: lo grabamos en el chip NFC y lo ponemos en el QR del soporte.",
+      "Tip: ábrelo en tu celular; debe abrirse directo la ventana para poner estrellas."
+    ], 45, "#4285f4");
+    y = steps("B. Si aún no tienes perfil en Google: créalo gratis", "Toma unos 10 minutos más la verificación de Google.", [
+      "Entra a google.com/business, toca \"Gestionar ahora\" e inicia sesión con un Gmail (si no tienes uno, créalo).",
+      "Escribe el nombre exacto de tu negocio y elige la categoría (por ejemplo: Restaurante, Peluquería, Tienda).",
+      "Indica si los clientes te visitan y marca la dirección en el mapa. Si atiendes a domicilio, elige tu zona de servicio.",
+      "Agrega tu teléfono y tu web o redes sociales (opcional).",
+      "Verifica el negocio: Google te pedirá un video corto del local, un código por SMS, llamada o correo, o una carta. Puede tardar de minutos a varios días.",
+      "Completa horario, fotos y logo. Ya verificado, aparece el botón \"Pedir reseñas\": sigue los pasos de la parte A."
+    ], y + 5, "#34a853");
+    fill(SOFT); var by = y + 3, bh = 19;
+    doc.roundedRect(M, by, PW - 2 * M, bh, 3, 3, "F");
+    font(9.5, "bold"); color(DARK); doc.text("¿No tienes acceso al perfil?", M + 6, by + 6.5);
+    para("Busca tu negocio en el \"Place ID Finder\" de Google y arma el link: search.google.com/local/writereview?placeid=TU_PLACE_ID", M + 6, by + 8.6, PW - 2 * M - 12, 9, GRAY, "normal", 1.35);
+
+    y = by + bh + 9;
+    font(12.5, "bold"); color(DARK); doc.text("Así funciona el pedido", M, y);
+    var flow = ["Envías tu logo y tu link", "Te mostramos el diseño y la maqueta 3D", "Imprimimos, laminamos y programamos el chip", "Lo recibes listo para usar"];
+    var fw = (PW - 2 * M - 3 * 4) / 4;
+    flow.forEach(function (f, i) {
+      var fx = M + i * (fw + 4);
+      stroke("#d5d8df"); doc.setLineWidth(0.3); doc.roundedRect(fx, y + 4, fw, 24, 2.5, 2.5, "S");
+      num(i + 1, fx + 6, y + 10, GC[i]);
+      para(f, fx + 3.5, y + 14.5, fw - 7, 8.8, "#2b2d33", "bold", 1.3);
+    });
+    font(8.5); color(GRAY);
+    doc.text("Funciona con iPhone (XS o más nuevo) y con la mayoría de Android con NFC activado. Para el resto, el código QR.", M, y + 34);
+
+    // contacto
+    var cy0 = PH - 14 - 40;
+    fill(DARK); doc.roundedRect(M, cy0, PW - 2 * M, 34, 3, 3, "F");
+    qrPDF(link, PW - M - 30, cy0 + 4, 26);
+    font(8, "bold"); color(GOLD); doc.text("PIDE EL TUYO", M + 8, cy0 + 9, { charSpace: 0.5 });
+    font(16, "bold"); color("#ffffff"); doc.text(name, M + 8, cy0 + 17);
+    font(9.5); color("#c9ccd4");
+    if (role) doc.text(role, M + 8, cy0 + 22.5);
+    font(10.5, "bold"); color("#ffffff"); doc.text("WhatsApp " + phone, M + 8, cy0 + 29);
+    font(8); color("#8b909c"); doc.text("Escanea para ver mi tarjeta digital", PW - M - 33, cy0 + 17, { align: "right" });
+    footer(3);
+
+    doc.setProperties({ title: "Soportes y tarjetas NFC para negocios", author: name });
+    doc.save("brochure-soportes-nfc.pdf");
+  }
+  $("s-brochure").addEventListener("click", function () {
+    var l = $("s-brochurelabel"), t0 = l.textContent;
+    l.textContent = "Generando…";
+    setTimeout(function () {
+      try { brochurePDF(); } catch (err) { alert("No se pudo crear el brochure: " + err.message); }
+      l.textContent = t0;
+    }, 30);
   });
 
   // ---- Maqueta 3D: soporte en L de acrílico sobre una mesa ----
@@ -4064,9 +4317,9 @@
     o = o || {};
     var cv = o.cv || $("s-3dcv"), c = cv.getContext("2d"), CW = cv.width, CH = cv.height;
     var U = Math.min(CW, CH) / 760;   // escala de textos y líneas (1 en la vista normal)
-    var W = sup.w, H = sup.h, th = 3, tilt = 10 * Math.PI / 180, D = Math.min(50, Math.min(W, H) * 0.66);   // pie de 5 cm, como el soporte de 7.6 × 12.75
+    var W = o.w || sup.w, H = o.h || sup.h, th = 3, tilt = 10 * Math.PI / 180, D = Math.min(50, Math.min(W, H) * 0.66);   // pie de 5 cm, como el soporte de 7.6 × 12.75
     var yaw = (o.yaw != null ? o.yaw : parseFloat($("s-3dyaw").value) || 0) * Math.PI / 180, pitch = 20 * Math.PI / 180;
-    var mat = sup.material || "free";
+    var mat = o.mat || sup.material || "free";
     var edge = mat === "black" ? "#1d1f25" : mat === "wood" ? "#a87443" : "#eef0f2";
     var ct = Math.cos(tilt), st = Math.sin(tilt);
     function P(x, y, z) { return [x, y, z]; }
@@ -4088,13 +4341,13 @@
     }
     var all = [FL, FR, TR, TL, bFL, bFR, bTR, bTL].concat(foot, footB), minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
     all.forEach(function (p) { var q = cam(p); minx = Math.min(minx, q[0]); maxx = Math.max(maxx, q[0]); miny = Math.min(miny, q[1]); maxy = Math.max(maxy, q[1]); });
-    var meas = $("s-3dmeas").checked;
+    var meas = o.meas != null ? o.meas : $("s-3dmeas").checked;
     var k = Math.min(CW * (meas ? 0.5 : 0.62) / (maxx - minx), CH * (meas ? 0.62 : 0.72) / (maxy - miny)) * (o.zoom || 1) * (o.caption ? 0.85 : 1);
     var ox = CW / 2 - (minx + maxx) / 2 * k, oy = CH * (o.caption ? 0.585 : 0.52) - (miny + maxy) / 2 * k;
     function scr(p) { var q = cam(p); return [ox + q[0] * k, oy + q[1] * k, q[2]]; }
 
     // mesa
-    var tb = $("s-3dtable").value;
+    var tb = o.table || $("s-3dtable").value;
     var g = c.createLinearGradient(0, 0, 0, CH);
     if (tb === "light") { g.addColorStop(0, "#d9d6d0"); g.addColorStop(1, "#f4f2ee"); }
     else if (tb === "wood") { g.addColorStop(0, "#7a5230"); g.addColorStop(1, "#b07a48"); }
@@ -4282,7 +4535,7 @@
   // ---- Guardar en el navegador (imágenes incluidas si caben) ----
   function saveSup() {
     function pack(withImg) {
-      return JSON.stringify({ w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal, tplId: sup.tplId, material: sup.material, texture: sup.texture, shape: sup.shape || null,
+      return JSON.stringify({ link: sup.link || "", w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal, tplId: sup.tplId, material: sup.material, texture: sup.texture, shape: sup.shape || null,
         logo: withImg && supLogo ? { src0: supLogo.src0, pal: supLogo.pal, ink: supLogo.ink, tintable: supLogo.tintable } : null,
         els: sup.els.filter(function (e) { return withImg || e.type !== "img"; }).map(function (e) {
           var o = {}; SUP_EL_KEYS.forEach(function (k) { if (e[k] !== undefined) o[k] = e[k]; }); return o;
@@ -4301,7 +4554,7 @@
       ];
       return;
     }
-    ["w", "h", "preset", "bg", "rounded", "baseBg", "logoPal", "tplId", "material", "texture", "shape"].forEach(function (k) { if (k in o) sup[k] = o[k]; });
+    ["w", "h", "preset", "bg", "rounded", "baseBg", "logoPal", "tplId", "material", "texture", "shape", "link"].forEach(function (k) { if (k in o) sup[k] = o[k]; });
     if (o.logo && o.logo.src0) supLoadImg(o.logo.src0, function (img) {
       if (!img) return;
       supLogo = { img: img, src0: o.logo.src0, pal: o.logo.pal || [], ink: o.logo.ink, tintable: o.logo.tintable };
@@ -4606,6 +4859,7 @@
   // ---- Init ----
   loadTpl();
   loadSup();
+  $("s-link").value = sup.link || "";
   buildSupTplGrid();
   syncSupPal();
   syncTplUI();
