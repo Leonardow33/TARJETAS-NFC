@@ -98,7 +98,10 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - `supTemplateDesign(t,W,H)` arma el modelo con material, logo y tema. Lo usan las miniaturas (`buildSupTplGrid`) y la aplicación del modelo.
 - **Logo** ("Cambiar logo", `s-logo` → `supPutImage` → `supLogoProcess`):
   - `logoAnalyze` detecta el color del borde si es un fondo liso y saca hasta 4 colores saturados.
-  - `logoCutBg` quita el fondo por inundación desde el borde, si "Quitar el fondo liso" está marcado.
+  - Si "Quitar el fondo liso" está marcado:
+    - logo de un solo tono (sin `pal`): `logoKeyMono` saca la transparencia de la distancia al color del fondo. Así se van también los huecos de las letras (D, R, O) y los bordes no engordan al teñir;
+    - logo con colores: `logoCutBg` rellena desde el borde y, si el fondo no es blanco, quita también los huecos cerrados de ese color (con fondo blanco se dejan: suelen ser textos blancos dentro de una figura);
+    - los dos pasan por `logoTrim`, que recorta los márgenes transparentes (deja 2 %).
   - `supLogo` guarda el logo sin teñir (img/canvas, src0, pal, ink, tintable).
   - `logoFor(d)` tiñe con `logoTint` un logo sin color que no contrasta con el fondo de ese diseño.
 - **Tema del logo** (`supApplyTheme(pal)`; con `null` restaura):
