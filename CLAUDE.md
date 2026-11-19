@@ -7,7 +7,8 @@ App web de un solo archivo (`index.html`) para crear:
 - stickers de tarjetas NFC CR80 (85.6 × 54 mm);
 - etiquetas térmicas;
 - stickers para soportes NFC de acrílico en L (7.6 × 12.75 cm);
-- un brochure PDF para enviar a clientes (usos de los soportes NFC y link de reseñas de Google).
+- un brochure PDF para enviar a clientes (usos de los soportes NFC y link de reseñas de Google);
+- un panel del negocio (pestaña Negocio): ventas, compras, costos, stock y recuperación del equipo.
 
 Enlaces:
 - En línea: https://leonardow33.github.io/TARJETAS-NFC/ (tras cada push: Ctrl+F5)
@@ -26,7 +27,8 @@ Enlaces:
 ## Código (`index.html`, ~4900 líneas)
 - JS ES5 dentro de una IIFE (`var`, `function`, sin flechas). CSS con tokens y modo oscuro.
 - Librerías por cdnjs: jsPDF 2.5.1 (`window.jspdf.jsPDF`) y qrcode-generator 1.4.4.
-- Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes) y `#view-print` (Hoja A4). `showView(v)` las cambia.
+- Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes), `#view-print` (Hoja A4) y `#view-biz` (Negocio). `showView(v)` las cambia.
+- **Calidad de impresión** (`.q-dpi`: `#q-dpi1` en Hoja A4 y `#q-dpi2` en Soportes → Imprimir, localStorage `nfc-dpi`): `PRINT_DPI` 300 o 600 y `EXPORT_PPMM = PRINT_DPI / 25.4`. Afecta A4, PDF y PNG a tamaño real; la térmica usa sus 203 DPI y no cambia.
 - Utilidades de color, junto al código de Soportes: `hex2rgb`, `rgb2hex`, `lum`, `sat`, `mix`, `contrastOn`, `vivid` e `inkFor`. Para medir imagen o canvas: `iw` e `ih`.
 - Madera compartida: `WOOD_BG`, `WOOD_INK` y `drawWood(c, x, y, w, h, S)`, con veta en mm y semilla fija para que salga igual a cualquier resolución.
 
@@ -96,13 +98,17 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Uno con el id de un predeterminado lo reemplaza (`edited`, ✎ en la miniatura) y se puede restaurar; los nuevos se pueden borrar.
   - Imágenes de modelos guardados: `cachedImg(src)`.
   - `supTemplateDesign(t,W,H)` arma el modelo con material, logo y tema. Lo usan las miniaturas (`buildSupTplGrid`) y la aplicación del modelo.
-- **Logo** ("Cambiar logo", `s-logo` → `supPutImage` → `supLogoProcess`):
-  - `logoAnalyze` detecta el color del borde si es un fondo liso y saca hasta 4 colores saturados.
-  - Si "Quitar el fondo liso" está marcado:
-    - logo de un solo tono (sin `pal`): `logoKeyMono` saca la transparencia de la distancia al color del fondo. Así se van también los huecos de las letras (D, R, O) y los bordes no engordan al teñir;
-    - logo con colores: `logoCutBg` rellena desde el borde y, si el fondo no es blanco, quita también los huecos cerrados de ese color (con fondo blanco se dejan: suelen ser textos blancos dentro de una figura);
-    - los dos pasan por `logoTrim`, que recorta los márgenes transparentes (deja 2 %).
-  - `supLogo` guarda el logo sin teñir (img/canvas, src0, pal, ink, tintable).
+- **Editor de imagen** (modal `#ie`, `openImgEditor(img, ed0, cb, title)`): se abre al subir el logo ("Cambiar logo"), al subir **una** imagen con "Imagen" o "Reemplazar", y con "Editar logo" (`s-logoedit`) o "Editar imagen" (`s-imgedit`, pestaña Elemento).
+  - `ed` = { cut, sens (10–100, 50 normal), crop {x,y,w,h} en fracción, mode "orig" | "one" | "map", one, map [{from,to}] }.
+  - Vista previa a 900 px (`ieBase` → `IE.base`, `ieView` → `IE.view`); al aplicar, `edRender` a `IMG_MAX` = 2400 px, `recolor` y `edCrop`.
+  - Recorte arrastrando esquinas, bordes o el centro (`ieHit`, `IE_CURSOR`); un toque suelto no recorta. "Ajustar al contenido" = `autoCrop` (`alphaBox` + 2 %).
+  - Fondo (si `logoAnalyze` detecta uno liso): logo de un tono (sin `pal`) → `cutMono` (transparencia por distancia al fondo: se van los huecos de las letras y los bordes quedan suaves); con colores → `cutFlood` (relleno desde el borde; si el fondo no es blanco, también los huecos cerrados; con fondo blanco se dejan porque suelen ser textos blancos dentro de una figura) y separa el contorno para que no quede halo del fondo viejo. Así no hay dos negros distintos.
+  - Colores: "Un color" pinta todo lo visible y conserva la transparencia; "Cambiar" (`imgColors` saca hasta 6 colores) mueve cada píxel con un promedio ponderado por distancia (los bordes suaves se conservan).
+  - Fondo de la vista previa (`ieBgv`): el del soporte, cuadros, blanco o negro. Si el logo de un tono se va a teñir (`logoFor`), la vista previa ya lo muestra teñido (`IE.tinted`).
+  - En memoria se guardan `orig` y `ed` (logo: `supLogo.orig`/`.ed`; imagen: `e.orig`/`e.ed`, fuera de `SUP_EL_KEYS`) para volver a editar desde la original. Tras recargar se edita la versión guardada.
+  - `storeURL` guarda en localStorage una copia de hasta 1600 px; la de memoria (hasta 2400 px) es la que se imprime.
+- **Logo:** `supLogoProcess(img, done, ed0)` abre el editor y, al aplicar, arma `supLogo` (img, src0, pal, ink, tintable = colores originales y sin fondo, orig, ed), aplica el tema y llama `done`. `supPlace(img, src, idx, extra)` lo pone en los elementos `idx` (o lo agrega).
+  - `logoAnalyze` (acepta img o canvas) detecta el color del borde si es un fondo liso y saca hasta 4 colores saturados.
   - `logoFor(d)` tiñe con `logoTint` un logo sin color que no contrasta con el fondo de ese diseño.
 - **Tema del logo** (`supApplyTheme(pal)`; con `null` restaura):
   - Fondo sin material: si el modelo era oscuro, pasa a un tono muy oscuro del color principal (80 %); si era blanco, sigue blanco; si era de color, pasa al principal oscurecido al 45 %.
@@ -140,7 +146,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
 - **Guardado:** localStorage `nfc-soporte`, con imágenes y logo en dataURL; si no caben, sin ellas.
 - **Exportar:**
   - `A4Fit()` calcula cuántos entran por A4, normal o girado (margen 6 mm, separación elegible). 12.75 × 7.6 da 4 por hoja.
-  - PDF A4 con líneas de corte, PDF a tamaño real y PNG de 300 DPI. Sangrado opcional de 2 mm.
+  - PDF A4 con líneas de corte, PDF a tamaño real y PNG a 300 o 600 DPI (calidad de impresión). Sangrado opcional de 2 mm.
   - El diseño cubre toda la cara. Con sangrado, la línea de corte sigue en el tamaño exacto.
 
 ### Hoja A4 y PDF
@@ -149,6 +155,17 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
 - `paginate(o)` → `[{slots, items}]`: las hojas llenas usan esa distribución; lo que sobra de cada medida se acomoda en franjas y comparte hoja con las demás.
 - `needsRotate` nunca gira cuadrados ni redondos. "Completar hoja" completa la última hoja de cada medida.
 - `labelPDF(pages, w, h, copies, name)`: una página por etiqueta, y los canvas repetidos se guardan una sola vez.
+
+### Negocio (`#view-biz`, ids `b-*`, localStorage `nfc-negocio`)
+Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porque es público y tiene costos).
+- `biz` = { cfg, mats, plans, ventas, invs }. `bizDefaults()` trae los valores de la guía y el equipo inicial: impresora + lectora/grabadora NFC (S/ 350) y selladora USB (S/ 7.78).
+  - cfg: hora, minStand, minTarjeta, stkStand (4), stkTarjeta (11), impresion, impuesto (%), tiempo (bool), umbral.
+  - El chip NFC va como un pack de 21 piezas a S/ 18.05 (6 + 15 comprados) → S/ 0.86.
+- `bizRecipe("stand"|"tarjeta")`: materiales por producto (la hoja A4 en fracción). `bizProdCost`, `bizTimeCost`, `bizCalc(v)` → mat, time, cost, util, utilMat, margin. Usa siempre el catálogo actual: si cambia un precio, cambian todos los márgenes.
+- Venta: fecha, cliente, plan (nombre), cant, total, stands, tarjetas (totales) y notas. El plan llena stands, tarjetas y precio (editables). "Otro (manual)".
+- Panel (`renderBiz`): filtro por mes (`b-month`), KPI (vendido, invertido, ganancia, caja neta), barra de recuperación del equipo (utilidad solo materiales ÷ inversión en equipo, todo el historial), ventas, por plan, por mes, compras y stock (comprado − usado; aviso si queda menos que el umbral).
+- Editores en `details.bizcfg` (`buildBizEditors`, `bizEditorNums`): parámetros, catálogo y planes.
+- CSV (`bizCSV`, con BOM, separador coma) de ventas, inversiones, catálogo y planes; respaldo y restauración en JSON.
 
 ## Pruebas
 - Sintaxis: `node -e` con `new Function(script)`.
@@ -212,6 +229,7 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - el brochure con un negocio real: los nombres de los botones de Google ("Pedir reseñas") pueden cambiar;
   - impresión real de un soporte (medidas, corte y sangrado);
   - foto en vertical con la mejora automática, Density 8 y márgenes en Ninguno.
+- **Negocio:** el precio del laminado sigue sin confirmar (S/ 0.50 por stand); la "Promo 4 stands" (S/ 180) cuesta más que "4 stands + 2 tarjetas" (S/ 159), avisado al usuario sin respuesta.
 - **Posible:** ajuste de desplazamiento si la impresión sale corrida, y tamaño 50 × 25 para fotos.
 - **Sistema de marcaciones NFC:** solo está planificado, falta que el usuario decida:
   1. lector (tablet Android, PC con lector USB o celular);

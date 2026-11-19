@@ -362,6 +362,52 @@
   details.howto ol { margin: 8px 0 4px 18px; padding: 0; font-size: 12.5px; line-height: 1.5; }
   details.howto li { margin-bottom: 4px; }
   details.howto code { font-size: 11.5px; word-break: break-all; }
+
+  /* ---- Editor de imagen ---- */
+  .imged { position: fixed; inset: 0; z-index: 50; background: rgba(10,12,16,.62); display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .ie-box { background: var(--panel); color: var(--ink); border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 1060px; max-height: calc(100vh - 24px); overflow-y: auto; padding: 16px; }
+  .ie-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; font-size: 1.05rem; }
+  .ie-body { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 760px) { .ie-body { grid-template-columns: minmax(0, 1fr) 310px; } }
+  .ie-frame { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; justify-content: center; }
+  canvas#ie-cv { display: block; max-width: 100%; max-height: 58vh; touch-action: none; cursor: crosshair; }
+  .ie-side .glabel { font-size: .74rem; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+  #ie-bgv button { font-size: .76rem; }
+  .ie-map .ie-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: .84rem; }
+  .ie-from { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line-strong); flex: none; }
+  .ie-row .colorbtn { flex: none; }
+
+  /* ---- Negocio ---- */
+  .bizbar { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .bizbar .field { margin: 0; min-width: 180px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); }
+  .kpi span { display: block; font-size: .76rem; color: var(--muted); font-weight: 600; }
+  .kpi b { display: block; font-size: 1.35rem; font-weight: 680; letter-spacing: -0.01em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .kpi small { display: block; font-size: .74rem; color: var(--muted); margin-top: 2px; }
+  .neg { color: var(--danger); }
+  .pos { color: var(--ok); }
+  .meter { height: 12px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 999px; transition: width .3s; }
+  .bizcols { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+  @media (min-width: 980px) { .bizcols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); } }
+  .bizcol { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .tscroll { overflow-x: auto; }
+  .btable { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .btable th { text-align: left; font-weight: 600; color: var(--muted); font-size: .74rem; padding: 6px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .btable td { padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .btable td.n, .btable th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .btable tr:last-child td { border-bottom: 0; }
+  .btable tfoot td { font-weight: 650; border-top: 1px solid var(--line-strong); }
+  .btable input { width: 100%; min-width: 64px; padding: 5px 6px; font-size: .82rem; }
+  .btable input.nm { min-width: 150px; }
+  .btable .x { border: 0; background: none; color: var(--danger); cursor: pointer; font: inherit; font-size: 1rem; padding: 0 4px; }
+  .bempty { color: var(--muted); font-size: .84rem; margin: 0; }
+  .bizcfg summary { cursor: pointer; font-weight: 650; }
+  .bizcfg .glabel { margin-top: 16px; }
+  .opts3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .opts3 .field { margin-top: 0; }
+  input[type="date"] { width: 100%; font: inherit; font-size: .88rem; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 7px 9px; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
@@ -379,6 +425,7 @@
     <button data-v="tpl" aria-pressed="false">Plantillas</button>
     <button data-v="sup" aria-pressed="false">Soportes</button>
     <button data-v="print" aria-pressed="false">Hoja A4 <span class="badge zero" id="qbadge">0</span></button>
+    <button data-v="biz" aria-pressed="false">Negocio</button>
   </nav>
 
   <!-- ================= VISTA: PLANTILLAS ================= -->
@@ -728,6 +775,7 @@
           Cambiar logo
         </label>
         <input type="file" id="s-logo" accept="image/*">
+        <button class="btn hidden" id="s-logoedit" style="margin-top:8px">Editar logo (recortar, fondo y colores)</button>
         <label class="check" style="margin-top:12px"><input type="checkbox" id="s-logotheme" checked> Adaptar colores del diseño al logo</label>
         <label class="check" style="margin-top:10px"><input type="checkbox" id="s-logocut" checked> Quitar el fondo liso del logo</label>
         <div class="s-pal hidden" id="s-palrow">
@@ -839,6 +887,7 @@
           <label class="btn" for="s-replace" id="s-freplace" style="margin-top:10px">Reemplazar por imagen</label>
           <input type="file" id="s-replace" accept="image/*">
           <label class="check" style="margin-top:12px" id="s-fqrbg"><input type="checkbox" id="s-elqrbg" checked> Fondo blanco detrás del QR</label>
+          <button class="btn" id="s-imgedit" style="margin-top:10px">Editar imagen (recortar, fondo y colores)</button>
           <div class="btnrow" id="s-fimg">
             <button class="btn" id="s-fill">Llenar fondo</button>
             <button class="btn" id="s-fit">Ajustar</button>
@@ -875,6 +924,10 @@
             </select>
           </div>
         </div>
+        <div class="field">
+          <label for="q-dpi2">Calidad de impresión (A4, PDF y PNG)</label>
+          <select id="q-dpi2" class="q-dpi"><option value="300">Normal · 300 DPI</option><option value="600">HD · 600 DPI (más nítido, PDF más pesado)</option></select>
+        </div>
         <label class="check" style="margin-top:12px"><input type="checkbox" id="s-bleed"> Sangrado de 2 mm (el fondo sobrepasa el corte)</label>
         <label class="check" style="margin-top:10px"><input type="checkbox" id="s-cut" checked> Líneas de corte en la hoja A4</label>
         <div class="stack" style="margin-top:12px">
@@ -887,7 +940,7 @@
             Agregar a hoja A4 (junto con tarjetas y chips)
           </button>
           <button class="btn" id="s-pdf">PDF tamaño real</button>
-          <button class="btn" id="s-png">Imagen PNG 300 DPI</button>
+          <button class="btn" id="s-png">Imagen PNG <span class="q-dpilabel">300</span> DPI</button>
         </div>
         <p class="note hidden" style="margin-top:10px" id="s-addedA4"></p>
         <p class="note" style="margin-top:10px" id="s-a4note"></p>
@@ -1190,6 +1243,10 @@
             </select>
           </div>
           <div class="field">
+            <label for="q-dpi1">Calidad de impresión</label>
+            <select id="q-dpi1" class="q-dpi"><option value="300">Normal · 300 DPI</option><option value="600">HD · 600 DPI (más nítido, PDF más pesado)</option></select>
+          </div>
+          <div class="field">
             <label for="bleed">Sangrado</label>
             <select id="bleed">
               <option value="0" selected>Sin sangrado</option>
@@ -1219,7 +1276,163 @@
     </section>
   </div>
 
+  <!-- ================= VISTA: NEGOCIO ================= -->
+  <div class="hidden" id="view-biz">
+    <div class="bizbar">
+      <div class="field">
+        <label for="b-month">Periodo</label>
+        <select id="b-month"></select>
+      </div>
+      <label class="check" style="margin-bottom:8px"><input type="checkbox" id="b-time" checked> Contar mi tiempo como costo</label>
+    </div>
+    <div class="kpis" id="b-kpis"></div>
+    <div class="group" style="margin-top:14px">
+      <div class="glabel">Recuperación del equipo (impresora, lectora NFC y otros)</div>
+      <div class="meter"><i id="b-recbar"></i></div>
+      <p class="note" id="b-rectxt" style="margin-top:8px"></p>
+    </div>
+    <div class="bizcols">
+      <div class="bizcol">
+        <div class="group">
+          <div class="glabel">Registrar venta</div>
+          <div class="opts">
+            <div class="field"><label for="b-vfecha">Fecha</label><input type="date" id="b-vfecha"></div>
+            <div class="field"><label for="b-vcli">Cliente</label><input type="text" id="b-vcli" maxlength="80" placeholder="Nombre del negocio"></div>
+            <div class="field"><label for="b-vplan">Plan</label><select id="b-vplan"></select></div>
+            <div class="field"><label for="b-vcant">Cantidad</label><input type="number" id="b-vcant" min="1" step="1" value="1" inputmode="numeric"></div>
+            <div class="field"><label for="b-vstands">Stands (total)</label><input type="number" id="b-vstands" min="0" step="1" inputmode="numeric"></div>
+            <div class="field"><label for="b-vtarj">Tarjetas (total)</label><input type="number" id="b-vtarj" min="0" step="1" inputmode="numeric"></div>
+            <div class="field"><label for="b-vtotal">Precio cobrado (S/)</label><input type="number" id="b-vtotal" min="0" step="0.01" inputmode="decimal"></div>
+            <div class="field"><label for="b-vnotas">Notas</label><input type="text" id="b-vnotas" maxlength="140"></div>
+          </div>
+          <p class="note" id="b-vprev" style="margin-top:10px"></p>
+          <button class="btn primary" id="b-vadd" style="margin-top:10px">Registrar venta</button>
+        </div>
+        <div class="group">
+          <div class="glabel">Registrar compra o inversión</div>
+          <div class="opts">
+            <div class="field"><label for="b-ifecha">Fecha</label><input type="date" id="b-ifecha"></div>
+            <div class="field"><label for="b-itipo">Tipo</label>
+              <select id="b-itipo"><option value="stock">Material (stock)</option><option value="equipo">Equipo (una sola vez)</option></select>
+            </div>
+            <div class="field" id="b-imatf"><label for="b-imat">Material</label><select id="b-imat"></select></div>
+            <div class="field hidden" id="b-idescf"><label for="b-idesc">Equipo</label><input type="text" id="b-idesc" maxlength="80" placeholder="Ej.: Impresora"></div>
+            <div class="field"><label for="b-ipz">Piezas</label><input type="number" id="b-ipz" min="0" step="1" value="1" inputmode="numeric"></div>
+            <div class="field"><label for="b-icost">Costo total (S/)</label><input type="number" id="b-icost" min="0" step="0.01" inputmode="decimal"></div>
+          </div>
+          <button class="btn primary" id="b-iadd" style="margin-top:12px">Registrar compra</button>
+          <p class="note" style="margin-top:8px">Un material comprado suma al stock; cada venta descuenta lo que usa (stand, chip, caja, sticker…).</p>
+        </div>
+        <div class="group">
+          <div class="glabel">Stock de materiales</div>
+          <div class="tscroll"><table class="btable" id="b-stock"></table></div>
+        </div>
+      </div>
+      <div class="bizcol">
+        <div class="group">
+          <div class="glabel">Ventas del periodo</div>
+          <div class="tscroll"><table class="btable" id="b-ventas"></table></div>
+        </div>
+        <div class="group">
+          <div class="glabel">Ventas por plan</div>
+          <div class="tscroll"><table class="btable" id="b-plans"></table></div>
+        </div>
+        <div class="group">
+          <div class="glabel">Resumen por mes</div>
+          <div class="tscroll"><table class="btable" id="b-months"></table></div>
+        </div>
+        <div class="group">
+          <div class="glabel">Compras e inversiones del periodo</div>
+          <div class="tscroll"><table class="btable" id="b-invs"></table></div>
+        </div>
+      </div>
+    </div>
+    <details class="group bizcfg" style="margin-top:14px">
+      <summary>Costos, precios y tiempos (editables)</summary>
+      <p class="note" id="b-costline" style="margin-top:10px"></p>
+      <div class="glabel">Parámetros</div>
+      <div class="opts3" id="b-cfg"></div>
+      <div class="glabel">Catálogo de materiales (costo unitario = precio del pack ÷ piezas)</div>
+      <div class="tscroll"><table class="btable" id="b-mats"></table></div>
+      <div class="glabel">Planes de venta</div>
+      <div class="tscroll"><table class="btable" id="b-plantbl"></table></div>
+      <button class="btn" id="b-padd" style="margin-top:10px;width:auto">Agregar plan</button>
+    </details>
+    <div class="group" style="margin-top:14px">
+      <div class="glabel">Exportar y respaldo</div>
+      <div class="s-tools">
+        <button class="btn" data-csv="ventas">CSV ventas</button>
+        <button class="btn" data-csv="inversiones">CSV inversiones</button>
+        <button class="btn" data-csv="catalogo">CSV catálogo</button>
+        <button class="btn" data-csv="planes">CSV planes</button>
+        <button class="btn" id="b-backup">Respaldo</button>
+        <label class="btn" for="b-restore">Restaurar</label>
+      </div>
+      <input type="file" id="b-restore" accept=".json,application/json">
+      <p class="note" style="margin-top:10px">Los datos se guardan solo en este navegador: no se suben a internet. Descarga un <b>respaldo</b> de vez en cuando; si borras los datos del navegador o cambias de equipo, lo recuperas con <b>Restaurar</b>. Los CSV se abren en Excel o Power BI.</p>
+    </div>
+  </div>
+
   <p class="foot">Las imágenes se procesan en tu dispositivo. Nada se sube a internet.</p>
+</div>
+
+<div class="imged hidden" id="ie" role="dialog" aria-modal="true" aria-labelledby="ie-title">
+  <div class="ie-box">
+    <div class="ie-head">
+      <b id="ie-title">Editar imagen</b>
+      <button class="linkbtn" id="ie-x" aria-label="Cerrar">Cerrar ✕</button>
+    </div>
+    <div class="ie-body">
+      <div class="ie-stage">
+        <div class="ie-frame"><canvas id="ie-cv" width="10" height="10" role="img" aria-label="Imagen a recortar"></canvas></div>
+        <p class="note" style="margin-top:8px">Arrastra las esquinas o los bordes para recortar, y dentro del recuadro para moverlo. <b id="ie-size"></b></p>
+        <div class="seg" id="ie-bgv" style="margin-top:10px">
+          <button data-b="sup" aria-pressed="true">Fondo del soporte</button>
+          <button data-b="check" aria-pressed="false">Transparente</button>
+          <button data-b="white" aria-pressed="false">Blanco</button>
+          <button data-b="black" aria-pressed="false">Negro</button>
+        </div>
+      </div>
+      <div class="ie-side">
+        <div class="glabel">Recorte</div>
+        <div class="btnrow" style="margin-top:0">
+          <button class="btn" id="ie-fit">Ajustar al contenido</button>
+          <button class="btn" id="ie-full">Imagen completa</button>
+        </div>
+        <div class="glabel" style="margin-top:16px">Fondo</div>
+        <label class="check"><input type="checkbox" id="ie-cut"> Quitar el fondo liso</label>
+        <p class="note" id="ie-cutnote" style="margin-top:6px"></p>
+        <div class="field" id="ie-sensrow">
+          <label for="ie-sens">Sensibilidad: súbela si quedan restos del fondo; bájala si se borran partes del logo</label>
+          <input type="range" id="ie-sens" min="10" max="100" step="1" value="50">
+        </div>
+        <div class="glabel" style="margin-top:16px">Colores</div>
+        <div class="seg" id="ie-mode">
+          <button data-m="orig" aria-pressed="true">Originales</button>
+          <button data-m="one" aria-pressed="false">Un color</button>
+          <button data-m="map" aria-pressed="false">Cambiar</button>
+        </div>
+        <div id="ie-one" class="hidden" style="margin-top:10px">
+          <div class="swatches" id="ie-onesw">
+            <button class="swatch" data-c="#ffffff" style="background:#ffffff" title="Blanco"></button>
+            <button class="swatch" data-c="#111318" style="background:#111318" title="Negro (el mismo de los soportes)"></button>
+            <button class="swatch" data-c="#000000" style="background:#000000" title="Negro puro"></button>
+            <button class="swatch" data-c="#c9a34e" style="background:#c9a34e" title="Dorado"></button>
+            <button class="swatch" data-c="#2f5bd7" style="background:#2f5bd7" title="Azul"></button>
+            <button class="swatch" data-c="#b23b3b" style="background:#b23b3b" title="Rojo"></button>
+            <button class="swatch" data-c="#157f4a" style="background:#157f4a" title="Verde"></button>
+            <span class="colorbtn" title="Color personalizado"><input type="color" id="ie-onecolor" value="#ffffff"></span>
+          </div>
+        </div>
+        <div id="ie-map" class="hidden ie-map" style="margin-top:6px"></div>
+        <p class="note" style="margin-top:10px">Los colores cambian sin tocar la forma de las letras: los bordes suaves se conservan. La imagen se guarda en alta resolución (PNG, sin pérdida).</p>
+        <div class="btnrow" style="margin-top:16px">
+          <button class="btn" id="ie-cancel">Cancelar</button>
+          <button class="btn primary" id="ie-ok">Aplicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1230,7 +1443,10 @@
   var CARD = { w: 85.6, h: 54 };        // mm, horizontal base
   var CORNER_MM = 3.18;                  // radio estándar
   var PREVIEW_PPMM = 8;                  // resolución interna de la vista previa
-  var EXPORT_PPMM = 300 / 25.4;          // 300 DPI
+  // Resolución de A4, PDF y PNG a tamaño real (300 o 600 DPI). La térmica usa la suya (203 DPI).
+  var PRINT_DPI = 300;
+  try { PRINT_DPI = localStorage.getItem("nfc-dpi") === "600" ? 600 : 300; } catch (err) {}
+  var EXPORT_PPMM = PRINT_DPI / 25.4;
   var A4 = { w: 210, h: 297 };
 
   // ---- Estado del editor ----
@@ -1711,11 +1927,13 @@
     $("view-print").classList.toggle("hidden", v !== "print");
     $("view-tpl").classList.toggle("hidden", v !== "tpl");
     $("view-sup").classList.toggle("hidden", v !== "sup");
+    $("view-biz").classList.toggle("hidden", v !== "biz");
     document.querySelector(".sizepill").classList.toggle("hidden", v !== "design");
     setSeg("tabs", document.querySelector('#tabs button[data-v="' + v + '"]'));
     if (v === "print") renderSheet();
     else if (v === "tpl") renderTpl();
     else if (v === "sup") { syncSupSize(); syncSupEl(); renderSup(); }
+    else if (v === "biz") renderBiz();
     else render();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -3373,6 +3591,7 @@
 
   // Flechas mueven 0.5 mm (Shift: 5 mm), Supr borra
   document.addEventListener("keydown", function (ev) {
+    if (IE) { if (ev.key === "Escape") ieClose(); return; }
     if ($("view-sup").classList.contains("hidden")) return;
     var t = ev.target.tagName;
     if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
@@ -3406,6 +3625,21 @@
   }
   $("s-file").addEventListener("change", function (ev) {
     var files = Array.prototype.slice.call(ev.target.files || []);
+    if (files.length === 1) {
+      var rd1 = new FileReader();
+      rd1.onload = function () {
+        supLoadImg(rd1.result, function (img) {
+          if (!img) { alert("No se pudo abrir " + files[0].name + "."); return; }
+          openImgEditor(img, null, function (cv, ed) {
+            var ar = ih(cv) / iw(cv);
+            supAdd({ type: "img", img: cv, src: storeURL(cv), orig: img, ed: ed, w: Math.min(sup.w * 0.6, sup.h * 0.6 / ar) });
+          });
+        });
+      };
+      rd1.readAsDataURL(files[0]);
+      ev.target.value = "";
+      return;
+    }
     files.forEach(function (f, n) {
       var rd = new FileReader();
       rd.onload = function () {
@@ -3471,6 +3705,7 @@
     $("s-fcolor").classList.toggle("hidden", isI);
     $("s-fqrbg").classList.toggle("hidden", !isQ);
     $("s-fimg").classList.toggle("hidden", !isI);
+    $("s-imgedit").classList.toggle("hidden", !isI);
     if (isT) {
       setSeg("s-elfont", document.querySelector('#s-elfont button[data-f="' + (e.font || "sans") + '"]'));
       setSeg("s-elalign", document.querySelector('#s-elalign button[data-a="' + (e.align || "center") + '"]'));
@@ -3521,32 +3756,33 @@
     supPutImage(f, idx, true);
   });
 
-  // Pone una imagen en lugar de los elementos indicados (encaja en su caja); si no hay ninguno, la agrega
+  // Abre una imagen (archivo) en el editor y la pone en lugar de los elementos indicados
   function supPutImage(f, idx, isLogo) {
     var rd = new FileReader();
     rd.onload = function () {
       supLoadImg(rd.result, function (img0) {
         if (!img0) { alert("No se pudo abrir esa imagen."); return; }
-        if (isLogo) supLogoProcess(img0, place); else place(img0, rd.result);
+        if (isLogo) supLogoProcess(img0, function (img, src) { supPlace(img, src, idx); });
+        else openImgEditor(img0, null, function (cv, ed) { supPlace(cv, storeURL(cv), idx, { orig: img0, ed: ed }); });
       });
     };
     rd.readAsDataURL(f);
-
-    function place(img, src) {
-        var ar = ih(img) / iw(img);
-        if (!idx.length) {
-          supAdd({ type: "img", img: img, src: src, slot: "logo", w: Math.min(sup.w * 0.5, sup.h * 0.3 / ar) });
-          return;
-        }
-        idx.forEach(function (i) {
-          var o = sup.els[i], b = supElBox(o);
-          // un texto-logo deja algo más de alto para logos cuadrados
-          var bw = Math.max(b.w, 10), bh = Math.max(b.h, 10) * (o.type === "text" ? 1.35 : 1);
-          sup.els[i] = { type: "img", img: img, src: src, slot: o.slot, x: o.x, y: o.y, rot: 0, w: Math.min(bw, bh / ar) };
-        });
-        supSel = idx[0];
-        syncSupEl(); renderSup(); saveSup();
+  }
+  // Pone una imagen en lugar de los elementos indicados (encaja en su caja); si no hay ninguno, la agrega como logo
+  function supPlace(img, src, idx, extra) {
+    var ar = ih(img) / iw(img);
+    if (!idx.length) {
+      supAdd(Object.assign({ type: "img", img: img, src: src, slot: "logo", w: Math.min(sup.w * 0.5, sup.h * 0.3 / ar) }, extra || {}));
+      return;
     }
+    idx.forEach(function (i) {
+      var o = sup.els[i], b = supElBox(o);
+      // un texto-logo deja algo más de alto para logos cuadrados
+      var bw = Math.max(b.w, 10), bh = Math.max(b.h, 10) * (o.type === "text" ? 1.35 : 1);
+      sup.els[i] = Object.assign({ type: "img", img: img, src: src, slot: o.slot, x: o.x, y: o.y, rot: o.type === "img" ? o.rot || 0 : 0, w: Math.min(bw, bh / ar) }, extra || {});
+    });
+    supSel = idx[0];
+    syncSupEl(); renderSup(); saveSup();
   }
 
   // ---- Colores a partir del logo ----
@@ -3572,9 +3808,9 @@
 
   // Analiza el logo: color del borde (si es un fondo liso) y colores principales
   function logoAnalyze(img) {
-    var k = Math.min(1, 96 / Math.max(img.naturalWidth, img.naturalHeight));
+    var k = Math.min(1, 96 / Math.max(iw(img), ih(img)));
     var cv = document.createElement("canvas");
-    cv.width = Math.max(1, Math.round(img.naturalWidth * k)); cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+    cv.width = Math.max(1, Math.round(iw(img) * k)); cv.height = Math.max(1, Math.round(ih(img) * k));
     var c = cv.getContext("2d"); c.drawImage(img, 0, 0, cv.width, cv.height);
     var d = c.getImageData(0, 0, cv.width, cv.height).data, W = cv.width, H = cv.height;
     function px(x, y) { var i = (y * W + x) * 4; return [d[i], d[i + 1], d[i + 2], d[i + 3]]; }
@@ -3610,84 +3846,159 @@
     return { bg: bg, pal: pal.map(rgb2hex), ink: inkN ? rgb2hex(ink.map(function (v) { return v / inkN; })) : null };
   }
 
-  // Quita el fondo liso conectado al borde (relleno por inundación con tolerancia)
-  function logoCutBg(img, bg) {
-    var k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+  // ---- Procesado de imágenes y logos: fondo, recorte y colores ----
+  var IMG_MAX = 2400;     // lado máximo en memoria (alcanza para A4 a 600 DPI)
+  var IMG_STORE = 1600;   // lado máximo de la copia que se guarda en el navegador
+  function workCanvas(img, max) {
+    var W0 = iw(img), H0 = ih(img), k = Math.min(1, max / Math.max(W0, H0));
     var cv = document.createElement("canvas");
-    cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
-    var c = cv.getContext("2d"); c.drawImage(img, 0, 0, cv.width, cv.height);
-    var id = c.getImageData(0, 0, cv.width, cv.height), d = id.data, W = cv.width, H = cv.height;
-    var seen = new Uint8Array(W * H), stack = [], tol = 48;
-    function test(i) {
-      if (seen[i]) return; seen[i] = 1;
-      var o = i * 4;
-      if (d[o + 3] < 20 || Math.abs(d[o] - bg[0]) + Math.abs(d[o + 1] - bg[1]) + Math.abs(d[o + 2] - bg[2]) < tol * 1.7) stack.push(i);
-    }
+    cv.width = Math.max(1, Math.round(W0 * k)); cv.height = Math.max(1, Math.round(H0 * k));
+    var c = cv.getContext("2d"); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+    c.drawImage(img, 0, 0, cv.width, cv.height);
+    return cv;
+  }
+  // Copia más liviana para localStorage (la de memoria, más grande, es la que se imprime)
+  function storeURL(im) { return workCanvas(im, IMG_STORE).toDataURL("image/png"); }
+
+  // Fondo liso conectado al borde (relleno por inundación). s = sensibilidad (1 = normal)
+  function cutFlood(cv, bg, s) {
+    var c = cv.getContext("2d"), W = cv.width, H = cv.height, id = c.getImageData(0, 0, W, H), d = id.data;
+    var seen = new Uint8Array(W * H), stack = new Int32Array(W * H), sp = 0, tol = 48 * s, i, o;
+    function far(o) { return Math.abs(d[o] - bg[0]) + Math.abs(d[o + 1] - bg[1]) + Math.abs(d[o + 2] - bg[2]); }
+    function test(i) { if (seen[i]) return; seen[i] = 1; if (d[i * 4 + 3] < 20 || far(i * 4) < tol * 1.7) stack[sp++] = i; }
     for (var x = 0; x < W; x++) { test(x); test((H - 1) * W + x); }
     for (var y = 0; y < H; y++) { test(y * W); test(y * W + W - 1); }
-    while (stack.length) {
-      var i = stack.pop(), px = i % W, py = (i - px) / W;
+    while (sp) {
+      i = stack[--sp]; var px = i % W, py = (i - px) / W;
       d[i * 4 + 3] = 0;
       if (px > 0) test(i - 1); if (px < W - 1) test(i + 1);
       if (py > 0) test(i - W); if (py < H - 1) test(i + W);
     }
     // Huecos cerrados del color del fondo (dentro de la D, la O…). Con fondo blanco se dejan:
     // suelen ser textos blancos dentro de una figura de color.
-    if (lum(bg) < 0.9) {
-      for (var j = 0; j < W * H; j++) {
-        var o = j * 4;
-        if (!seen[j] && Math.abs(d[o] - bg[0]) + Math.abs(d[o + 1] - bg[1]) + Math.abs(d[o + 2] - bg[2]) < tol * 1.2) d[o + 3] = 0;
+    if (lum(bg) < 0.9) for (i = 0; i < W * H; i++) if (!seen[i] && far(i * 4) < tol * 1.2) d[i * 4 + 3] = 0;
+    // Borde suave: los píxeles del contorno mezclan logo y fondo; se separan para que no
+    // quede un halo del color del fondo viejo (así no se nota otro negro u otro blanco).
+    var a0 = new Uint8Array(W * H), d0 = new Uint8ClampedArray(d);
+    for (i = 0; i < W * H; i++) a0[i] = d[i * 4 + 3];
+    // contorno = píxeles con algo transparente a 2 px o menos (dos pasadas: horizontal y vertical)
+    var hz = new Uint8Array(W * H), nearT = new Uint8Array(W * H);
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      if (a0[y * W + x]) continue;
+      for (var q = Math.max(0, x - 2); q <= Math.min(W - 1, x + 2); q++) hz[y * W + q] = 1;
+    }
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      if (!hz[y * W + x]) continue;
+      for (var r = Math.max(0, y - 2); r <= Math.min(H - 1, y + 2); r++) nearT[r * W + x] = 1;
+    }
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      i = y * W + x; if (!a0[i] || !nearT[i]) continue;
+      var edge = true, best = -1, bd = -1, dx, dy;
+      for (dy = -2; dy <= 2; dy++) for (dx = -2; dx <= 2; dx++) {
+        var xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        var j = yy * W + xx;
+        if (!a0[j]) continue;
+        o = j * 4; var e = (d0[o] - bg[0]) * (d0[o] - bg[0]) + (d0[o + 1] - bg[1]) * (d0[o + 1] - bg[1]) + (d0[o + 2] - bg[2]) * (d0[o + 2] - bg[2]);
+        if (e > bd) { bd = e; best = o; }
       }
+      if (!edge || best < 0 || bd < tol * tol) continue;
+      o = i * 4;
+      var fr = d0[best] - bg[0], fg = d0[best + 1] - bg[1], fb = d0[best + 2] - bg[2];
+      var t = ((d0[o] - bg[0]) * fr + (d0[o + 1] - bg[1]) * fg + (d0[o + 2] - bg[2]) * fb) / bd;
+      if (t >= 0.97) continue;
+      t = Math.max(0, t);
+      d[o] = d0[best]; d[o + 1] = d0[best + 1]; d[o + 2] = d0[best + 2];
+      d[o + 3] = Math.round(a0[i] * t);
     }
     c.putImageData(id, 0, 0);
-    return logoTrim(cv);
+    return cv;
   }
 
   // Logo de un solo tono (negro, gris o blanco sobre un fondo liso): la transparencia sale de
   // la distancia al color del fondo. Así se van también los huecos de las letras y los bordes
   // quedan suaves (no se engordan al teñir).
-  function logoKeyMono(img, bg) {
-    var k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
-    var cv = document.createElement("canvas");
-    cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
-    var c = cv.getContext("2d"); c.drawImage(img, 0, 0, cv.width, cv.height);
-    var id = c.getImageData(0, 0, cv.width, cv.height), d = id.data, n = cv.width * cv.height;
+  function cutMono(cv, bg, s) {
+    var c = cv.getContext("2d"), id = c.getImageData(0, 0, cv.width, cv.height), d = id.data, n = cv.width * cv.height;
     var dist = new Float32Array(n), hist = new Uint32Array(450), cnt = 0, i, o;
     for (i = 0; i < n; i++) {
       o = i * 4;
-      dist[i] = cdist([d[o], d[o + 1], d[o + 2]], bg);
+      dist[i] = Math.sqrt((d[o] - bg[0]) * (d[o] - bg[0]) + (d[o + 1] - bg[1]) * (d[o + 1] - bg[1]) + (d[o + 2] - bg[2]) * (d[o + 2] - bg[2]));
       if (d[o + 3] > 128 && dist[i] > 40) { hist[Math.round(dist[i])]++; cnt++; }
     }
-    if (cnt < 20) return logoCutBg(img, bg);
+    if (cnt < 20) return cutFlood(cv, bg, s);
     // distancia de la tinta "llena": percentil 60 de los píxeles que no son fondo
     var acc = 0, D = 449;
     for (i = 0; i < 450; i++) { acc += hist[i]; if (acc >= cnt * 0.6) { D = i; break; } }
-    var n0 = 14, span = Math.max(20, D - n0);
+    var n0 = 14 * s, span = Math.max(20, D - n0);
     for (i = 0; i < n; i++) {
       o = i * 4;
       var a = Math.max(0, Math.min(1, (dist[i] - n0) / span));
-      if (a > 0) for (var ch = 0; ch < 3; ch++) d[o + ch] = Math.max(0, Math.min(255, Math.round(bg[ch] + (d[o + ch] - bg[ch]) / a)));
+      if (a > 0) for (var ch = 0; ch < 3; ch++) d[o + ch] = Math.round(bg[ch] + (d[o + ch] - bg[ch]) / a);
       d[o + 3] = Math.round(d[o + 3] * a);
     }
     c.putImageData(id, 0, 0);
-    return logoTrim(cv);
+    return cv;
   }
 
-  // Recorta los márgenes transparentes (deja 2 % de aire)
-  function logoTrim(cv) {
+  // Caja de los píxeles visibles
+  function alphaBox(cv) {
     var W = cv.width, H = cv.height, d = cv.getContext("2d").getImageData(0, 0, W, H).data;
     var x0 = W, y0 = H, x1 = -1, y1 = -1;
     for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
       if (d[(y * W + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     }
-    if (x1 < 0) return cv;
-    var p = Math.round(Math.max(x1 - x0, y1 - y0) * 0.02);
-    x0 = Math.max(0, x0 - p); y0 = Math.max(0, y0 - p); x1 = Math.min(W - 1, x1 + p); y1 = Math.min(H - 1, y1 + p);
-    if (x0 === 0 && y0 === 0 && x1 === W - 1 && y1 === H - 1) return cv;
-    var out = document.createElement("canvas");
-    out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
-    out.getContext("2d").drawImage(cv, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
-    return out;
+    return x1 < 0 ? null : { x0: x0, y0: y0, x1: x1, y1: y1 };
+  }
+
+  // Colores principales de los píxeles visibles (para "Cambiar colores")
+  function imgColors(cv) {
+    var W = cv.width, H = cv.height, d = cv.getContext("2d").getImageData(0, 0, W, H).data;
+    var step = Math.max(1, Math.floor(W * H / 90000)), bins = {}, total = 0;
+    for (var i = 0; i < W * H; i += step) {
+      var o = i * 4; if (d[o + 3] < 220) continue;
+      var key = (d[o] >> 5) + "," + (d[o + 1] >> 5) + "," + (d[o + 2] >> 5);
+      var b = bins[key] || (bins[key] = { n: 0, r: 0, g: 0, b: 0 });
+      b.n++; b.r += d[o]; b.g += d[o + 1]; b.b += d[o + 2]; total++;
+    }
+    var list = Object.keys(bins).map(function (k) { var b = bins[k]; return { n: b.n, c: [b.r / b.n, b.g / b.n, b.b / b.n] }; })
+      .sort(function (a, b) { return b.n - a.n; });
+    var pal = [];
+    list.forEach(function (it) {
+      if (pal.length >= 6 || it.n < total * 0.015) return;
+      if (pal.every(function (q) { return cdist(q, it.c) > 60; })) pal.push(it.c);
+    });
+    return pal.map(rgb2hex);
+  }
+
+  // Cambia los colores sin tocar la transparencia (las letras y sus bordes suaves quedan igual)
+  function recolor(cv, ed) {
+    if (!ed || ed.mode === "orig") return cv;
+    var c = cv.getContext("2d"), id = c.getImageData(0, 0, cv.width, cv.height), d = id.data, n = d.length, i;
+    if (ed.mode === "one") {
+      var rgb = hex2rgb(ed.one);
+      for (i = 0; i < n; i += 4) if (d[i + 3]) { d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2]; }
+    } else {
+      var F = [], D = [], any = false;
+      (ed.map || []).forEach(function (m) {
+        var a = hex2rgb(m.from), b = hex2rgb(m.to);
+        F.push(a); D.push([b[0] - a[0], b[1] - a[1], b[2] - a[2]]);
+        if (b[0] !== a[0] || b[1] !== a[1] || b[2] !== a[2]) any = true;
+      });
+      if (!any) return cv;
+      for (i = 0; i < n; i += 4) {
+        if (!d[i + 3]) continue;
+        var sw = 0, dr = 0, dg = 0, db = 0, hit = -1;
+        for (var k = 0; k < F.length; k++) {
+          var er = d[i] - F[k][0], eg = d[i + 1] - F[k][1], eb = d[i + 2] - F[k][2], e = er * er + eg * eg + eb * eb;
+          if (e < 9) { hit = k; break; }
+          var w = 1 / (e * e); sw += w; dr += w * D[k][0]; dg += w * D[k][1]; db += w * D[k][2];
+        }
+        if (hit >= 0) { dr = D[hit][0]; dg = D[hit][1]; db = D[hit][2]; } else { dr /= sw; dg /= sw; db /= sw; }
+        d[i] += dr; d[i + 1] += dg; d[i + 2] += db;
+      }
+    }
+    c.putImageData(id, 0, 0);
+    return cv;
   }
 
   // Pinta todos los píxeles visibles de un color (logos de un solo tono sin contraste)
@@ -3698,18 +4009,242 @@
     return cv;
   }
 
-  // Logo actual: img (sin teñir, ya sin fondo), src0, pal (colores), ink (tono medio), tintable
+  // ---- Editor de imagen (se abre al subir un logo o una imagen) ----
+  var IE = null, ieBgv = "sup";
+  function edRender(img, info, ed, max) {
+    var cv = workCanvas(img, max);
+    if (ed.cut && info.bg) { if (info.pal.length) cutFlood(cv, info.bg, ed.sens / 50); else cutMono(cv, info.bg, ed.sens / 50); }
+    return cv;
+  }
+  function edCrop(cv, r) {
+    var x = Math.round(r.x * cv.width), y = Math.round(r.y * cv.height);
+    var w = Math.max(1, Math.min(cv.width - x, Math.round(r.w * cv.width))), h = Math.max(1, Math.min(cv.height - y, Math.round(r.h * cv.height)));
+    if (!x && !y && w === cv.width && h === cv.height) return cv;
+    var out = document.createElement("canvas"); out.width = w; out.height = h;
+    out.getContext("2d").drawImage(cv, x, y, w, h, 0, 0, w, h);
+    return out;
+  }
+  function autoCrop(cv) {
+    var b = alphaBox(cv); if (!b) return { x: 0, y: 0, w: 1, h: 1 };
+    var W = cv.width, H = cv.height, p = Math.max(b.x1 - b.x0, b.y1 - b.y0) * 0.02;
+    var x0 = Math.max(0, b.x0 - p), y0 = Math.max(0, b.y0 - p), x1 = Math.min(W, b.x1 + 1 + p), y1 = Math.min(H, b.y1 + 1 + p);
+    return { x: x0 / W, y: y0 / H, w: (x1 - x0) / W, h: (y1 - y0) / H };
+  }
+  function openImgEditor(img, ed0, cb, title) {
+    var info = logoAnalyze(img);
+    var ed = ed0 ? JSON.parse(JSON.stringify(ed0)) :
+      { cut: !!(info.bg && $("s-logocut").checked), sens: 50, crop: null, mode: "orig", one: "#ffffff", map: [] };
+    if (!info.bg) ed.cut = false;
+    IE = { img: img, info: info, ed: ed, cb: cb, drag: null, s: 1, P: 0 };
+    $("ie-title").textContent = title || "Editar imagen";
+    $("ie").classList.remove("hidden"); document.body.style.overflow = "hidden";
+    ieBase(!ed0);
+    ieSync(); ieDraw();
+    requestAnimationFrame(ieDraw);
+  }
+  function ieClose() { IE = null; $("ie").classList.add("hidden"); document.body.style.overflow = ""; }
+  function ieBase(resetMap) {
+    var ed = IE.ed;
+    IE.base = edRender(IE.img, IE.info, ed, 900);
+    var pal = imgColors(IE.base);
+    if (resetMap || ed.map.length !== pal.length) ed.map = pal.map(function (c) { return { from: c, to: c }; });
+    if (!ed.crop) ed.crop = ed.cut ? autoCrop(IE.base) : { x: 0, y: 0, w: 1, h: 1 };
+    IE.ink = ed.cut ? logoAnalyze(IE.base).ink : null;
+    ieView();
+  }
+  function ieView() {
+    var b = IE.base, v = document.createElement("canvas"); v.width = b.width; v.height = b.height;
+    v.getContext("2d").drawImage(b, 0, 0);
+    IE.view = recolor(v, IE.ed);
+    // Logo de un tono sin fondo que no resalta sobre el soporte: se verá teñido (como en logoFor)
+    var ed = IE.ed, bgc = ieBgv === "sup" ? (sup.texture === "wood" ? WOOD_BG : sup.bg) : ieBgv === "black" ? "#000000" : ieBgv === "white" ? "#ffffff" : null;
+    IE.tinted = !!(bgc && IE.ink && ed.mode === "orig" && ed.cut && !IE.info.pal.length && Math.abs(lum(IE.ink) - lum(bgc)) < 0.3);
+    if (IE.tinted) logoTint(IE.view, ieBgv === "sup" ? inkFor(sup) : lum(bgc) < 0.5 ? "#ffffff" : "#111318");
+  }
+  function ieSync() {
+    var ed = IE.ed, info = IE.info;
+    $("ie-cut").checked = ed.cut; $("ie-cut").disabled = !info.bg;
+    $("ie-cutnote").textContent = info.bg
+      ? "Se detectó un fondo liso. Al quitarlo, el logo queda sobre el color del soporte: sin recuadro y sin dos negros (o blancos) distintos."
+      : "No se detectó un fondo liso: la imagen ya es transparente o es una foto.";
+    if (IE.tinted) $("ie-cutnote").textContent += " Es un logo de un solo tono: sobre este fondo se verá en " + (lum(inkFor(sup)) > 0.5 ? "blanco" : "oscuro") + " para que resalte (con \"Un color\" eliges otro).";
+    $("ie-sensrow").classList.toggle("hidden", !ed.cut);
+    $("ie-sens").value = ed.sens;
+    setSeg("ie-mode", document.querySelector('#ie-mode button[data-m="' + ed.mode + '"]'));
+    $("ie-one").classList.toggle("hidden", ed.mode !== "one");
+    $("ie-map").classList.toggle("hidden", ed.mode !== "map");
+    $("ie-onecolor").value = ed.one;
+    Array.prototype.forEach.call(document.querySelectorAll("#ie-onesw .swatch"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.c === ed.one));
+    });
+    $("ie-map").innerHTML = ed.map.length ? ed.map.map(function (m, i) {
+      return '<div class="ie-row"><span class="ie-from" style="background:' + m.from + '" title="Color original"></span>→' +
+        '<span class="colorbtn" style="background:' + m.to + '" title="Nuevo color"><input type="color" data-i="' + i + '" value="' + m.to + '"></span>' +
+        (m.to !== m.from ? '<button class="linkbtn" data-r="' + i + '">Original</button>' : '<span class="note">Toca el cuadro para cambiarlo</span>') + '</div>';
+    }).join("") : '<p class="note">No se encontraron colores (¿la imagen está vacía?).</p>';
+    setSeg("ie-bgv", document.querySelector('#ie-bgv button[data-b="' + ieBgv + '"]'));
+  }
+  function ieDraw() {
+    if (!IE) return;
+    var v = IE.view, cv = $("ie-cv"), P = Math.round(Math.max(v.width, v.height) * 0.04) + 6;
+    cv.width = v.width + 2 * P; cv.height = v.height + 2 * P; IE.P = P;
+    var r = cv.getBoundingClientRect(), s = r.width ? cv.width / r.width : 1; IE.s = s;
+    var c = cv.getContext("2d");
+    if (ieBgv === "check") {
+      var q = Math.max(4, Math.round(9 * s));
+      for (var yy = 0; yy < v.height; yy += q) for (var xx = 0; xx < v.width; xx += q) {
+        c.fillStyle = ((xx / q + yy / q) & 1) ? "#d9d9d9" : "#ffffff";
+        c.fillRect(P + xx, P + yy, Math.min(q, v.width - xx), Math.min(q, v.height - yy));
+      }
+    } else {
+      c.fillStyle = ieBgv === "sup" ? (sup.texture === "wood" ? WOOD_BG : sup.bg) : ieBgv === "black" ? "#000000" : "#ffffff";
+      c.fillRect(P, P, v.width, v.height);
+    }
+    c.drawImage(v, P, P);
+    var k = IE.ed.crop, x = P + k.x * v.width, y = P + k.y * v.height, w = k.w * v.width, h = k.h * v.height;
+    c.fillStyle = "rgba(0,0,0,.55)";
+    c.fillRect(P, P, v.width, y - P);
+    c.fillRect(P, y + h, v.width, P + v.height - y - h);
+    c.fillRect(P, y, x - P, h);
+    c.fillRect(x + w, y, P + v.width - x - w, h);
+    c.lineWidth = 2 * s; c.strokeStyle = "#ffffff"; c.strokeRect(x, y, w, h);
+    c.setLineDash([5 * s, 4 * s]); c.strokeStyle = "#2f5bd7"; c.strokeRect(x, y, w, h); c.setLineDash([]);
+    var hs = 10 * s; c.lineWidth = 1.5 * s;
+    [[x, y], [x + w / 2, y], [x + w, y], [x, y + h / 2], [x + w, y + h / 2], [x, y + h], [x + w / 2, y + h], [x + w, y + h]].forEach(function (p) {
+      c.fillStyle = "#ffffff"; c.fillRect(p[0] - hs / 2, p[1] - hs / 2, hs, hs); c.strokeRect(p[0] - hs / 2, p[1] - hs / 2, hs, hs);
+    });
+    var km = Math.min(1, IMG_MAX / Math.max(iw(IE.img), ih(IE.img)));
+    var pw = Math.round(k.w * iw(IE.img) * km), ph = Math.round(k.h * ih(IE.img) * km);
+    $("ie-size").textContent = "Resultado: " + pw + " × " + ph + " px (nítido hasta " + Math.floor(pw / (600 / 25.4)) + " mm de ancho a 600 DPI).";
+  }
+  function iePt(ev) {
+    var cv = $("ie-cv"), r = cv.getBoundingClientRect(), s = cv.width / r.width, v = IE.view;
+    return { x: ((ev.clientX - r.left) * s - IE.P) / v.width, y: ((ev.clientY - r.top) * s - IE.P) / v.height };
+  }
+  function ieHit(p) {
+    var k = IE.ed.crop, v = IE.view, s = IE.s || 1, tx = 14 * s / v.width, ty = 14 * s / v.height;
+    if (!(p.x > k.x - tx && p.x < k.x + k.w + tx && p.y > k.y - ty && p.y < k.y + k.h + ty)) return "new";
+    var m = (Math.abs(p.y - k.y) < ty ? "n" : Math.abs(p.y - k.y - k.h) < ty ? "s" : "") +
+      (Math.abs(p.x - k.x) < tx ? "w" : Math.abs(p.x - k.x - k.w) < tx ? "e" : "");
+    return m || "move";
+  }
+  var IE_CURSOR = { n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize", ne: "nesw-resize", sw: "nesw-resize", nw: "nwse-resize", se: "nwse-resize", move: "move", "new": "crosshair" };
+  $("ie-cv").addEventListener("pointerdown", function (ev) {
+    if (!IE) return;
+    var p = iePt(ev), m = ieHit(p), k = IE.ed.crop, prev = { x: k.x, y: k.y, w: k.w, h: k.h };
+    if (m === "new") { p.x = clamp(p.x, 0, 1); p.y = clamp(p.y, 0, 1); k = { x: p.x, y: p.y, w: 0, h: 0 }; m = "se"; }
+    IE.drag = { m: m, p0: p, x0: k.x, y0: k.y, x1: k.x + k.w, y1: k.y + k.h, prev: prev };
+    $("ie-cv").setPointerCapture(ev.pointerId); ev.preventDefault();
+  });
+  $("ie-cv").addEventListener("pointermove", function (ev) {
+    if (!IE) return;
+    var p = iePt(ev), g = IE.drag;
+    if (!g) { $("ie-cv").style.cursor = IE_CURSOR[ieHit(p)]; return; }
+    var dx = p.x - g.p0.x, dy = p.y - g.p0.y, x0 = g.x0, y0 = g.y0, x1 = g.x1, y1 = g.y1, t;
+    if (g.m === "move") {
+      var w = x1 - x0, h = y1 - y0;
+      x0 = clamp(x0 + dx, 0, 1 - w); y0 = clamp(y0 + dy, 0, 1 - h); x1 = x0 + w; y1 = y0 + h;
+    } else {
+      if (g.m.indexOf("w") >= 0) x0 += dx; if (g.m.indexOf("e") >= 0) x1 += dx;
+      if (g.m.indexOf("n") >= 0) y0 += dy; if (g.m.indexOf("s") >= 0) y1 += dy;
+      x0 = clamp(x0, 0, 1); x1 = clamp(x1, 0, 1); y0 = clamp(y0, 0, 1); y1 = clamp(y1, 0, 1);
+      if (x1 < x0) { t = x0; x0 = x1; x1 = t; }
+      if (y1 < y0) { t = y0; y0 = y1; y1 = t; }
+    }
+    IE.ed.crop = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    ieDraw();
+  });
+  function ieUp() {
+    if (!IE || !IE.drag) return;
+    var k = IE.ed.crop;
+    if (k.w < 0.02 || k.h < 0.02) IE.ed.crop = IE.drag.prev;   // un toque suelto no recorta
+    IE.drag = null; ieDraw();
+  }
+  $("ie-cv").addEventListener("pointerup", ieUp);
+  $("ie-cv").addEventListener("pointercancel", ieUp);
+  $("ie-fit").addEventListener("click", function () { IE.ed.crop = autoCrop(IE.base); ieDraw(); });
+  $("ie-full").addEventListener("click", function () { IE.ed.crop = { x: 0, y: 0, w: 1, h: 1 }; ieDraw(); });
+  $("ie-cut").addEventListener("change", function (ev) {
+    IE.ed.cut = ev.target.checked; IE.ed.crop = null;
+    ieBase(true); ieSync(); ieDraw();
+  });
+  var ieSensT = 0;
+  $("ie-sens").addEventListener("input", function (ev) {
+    IE.ed.sens = parseFloat(ev.target.value) || 50;
+    if (ieSensT) return;
+    ieSensT = requestAnimationFrame(function () { ieSensT = 0; if (!IE) return; ieBase(false); ieSync(); ieDraw(); });
+  });
+  $("ie-mode").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    IE.ed.mode = b.dataset.m; ieView(); ieSync(); ieDraw();
+  });
+  $("ie-onesw").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".swatch"); if (!b) return;
+    IE.ed.one = b.dataset.c; ieView(); ieSync(); ieDraw();
+  });
+  $("ie-onecolor").addEventListener("input", function (ev) { IE.ed.one = ev.target.value; ieView(); ieSync(); ieDraw(); });
+  $("ie-map").addEventListener("input", function (ev) {
+    var i = ev.target.dataset.i; if (i == null) return;
+    IE.ed.map[+i].to = ev.target.value; ev.target.parentNode.style.background = ev.target.value;
+    ieView(); ieDraw();
+  });
+  $("ie-map").addEventListener("change", function () { if (IE) ieSync(); });
+  $("ie-map").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-r]"); if (!b) return;
+    var m = IE.ed.map[+b.dataset.r]; m.to = m.from; ieView(); ieSync(); ieDraw();
+  });
+  $("ie-bgv").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    ieBgv = b.dataset.b; ieView(); ieSync(); ieDraw();
+  });
+  $("ie-cancel").addEventListener("click", ieClose);
+  $("ie-x").addEventListener("click", ieClose);
+  $("ie").addEventListener("click", function (ev) { if (ev.target === $("ie")) ieClose(); });
+  $("ie-ok").addEventListener("click", function () {
+    if (!IE) return;
+    var btn = $("ie-ok"); btn.disabled = true; btn.textContent = "Procesando…";
+    setTimeout(function () {
+      try {
+        var full = edRender(IE.img, IE.info, IE.ed, IMG_MAX);
+        recolor(full, IE.ed);
+        var out = edCrop(full, IE.ed.crop), cb = IE.cb, ed = IE.ed;
+        ieClose(); cb(out, ed);
+      } catch (err) { alert("No se pudo procesar la imagen: " + err.message); }
+      finally { btn.disabled = false; btn.textContent = "Aplicar"; }
+    }, 30);
+  });
+  window.addEventListener("resize", function () { if (IE) ieDraw(); });
+
+  // Logo actual: img (sin teñir, ya sin fondo), src0, pal (colores), ink (tono medio), tintable;
+  // orig y ed (en memoria) permiten volver a editarlo desde la imagen original
   var supLogo = null;
 
-  function supLogoProcess(img, done) {
-    var info = logoAnalyze(img), cut = !!($("s-logocut").checked && info.bg);
-    var base = !cut ? img : info.pal.length ? logoCutBg(img, info.bg) : logoKeyMono(img, info.bg);
-    supLogo = { img: base, src0: cut ? base.toDataURL("image/png") : img.src, pal: info.pal, ink: info.ink, tintable: cut || !info.bg };
-    if ($("s-logotheme").checked) supApplyTheme(info.pal);
-    var L = logoFor(sup, true);
-    done(L.img, L.src);
-    syncSupPal(); buildSupTplGrid(); saveSup();
+  // Abre el editor con el logo; al aplicar, queda como logo del soporte
+  function supLogoProcess(img, done, ed0) {
+    openImgEditor(img, ed0, function (cv, ed) {
+      var info = logoAnalyze(cv);
+      supLogo = { img: cv, src0: storeURL(cv), pal: info.pal, ink: info.ink, tintable: ed.mode === "orig" && !info.bg, orig: img, ed: ed };
+      if ($("s-logotheme").checked) supApplyTheme(info.pal);
+      var L = logoFor(sup, true);
+      done(L.img, L.src);
+      syncSupPal(); buildSupTplGrid(); saveSup(); syncLogoEdit();
+    }, "Editar logo");
   }
+  function syncLogoEdit() { $("s-logoedit").classList.toggle("hidden", !supLogo); }
+  function supLogoSlots() { var idx = []; sup.els.forEach(function (e, i) { if (e.slot === "logo") idx.push(i); }); return idx; }
+  $("s-logoedit").addEventListener("click", function () {
+    if (!supLogo) return;
+    var idx = supLogoSlots();
+    supLogoProcess(supLogo.orig || supLogo.img, function (img, src) { supPlace(img, src, idx); }, supLogo.orig ? supLogo.ed : null);
+  });
+  $("s-imgedit").addEventListener("click", function () {
+    var e = supSel_(); if (!e || e.type !== "img" || !e.img) return;
+    if (e.slot === "logo" && supLogo) { $("s-logoedit").click(); return; }
+    var src = e.orig || e.img, n = supSel;
+    openImgEditor(src, e.orig ? e.ed : null, function (cv, ed) {
+      supPlace(cv, storeURL(cv), [n], { orig: src, ed: ed });
+    });
+  });
 
   // El logo listo para un fondo: si es negro/gris y no se distingue, se tiñe de blanco o negro
   // Color de tinta que resalta sobre un fondo (en madera, café oscuro)
@@ -3723,7 +4258,7 @@
     cv.width = iw(lg.img); cv.height = ih(lg.img);
     cv.getContext("2d").drawImage(lg.img, 0, 0);
     logoTint(cv, inkFor(d));
-    return { img: cv, src: needSrc ? cv.toDataURL("image/png") : null };
+    return { img: cv, src: needSrc ? storeURL(cv) : null };
   }
 
   // Pone el logo en los espacios "logo" de un diseño (textos o imágenes), encajado en su caja
@@ -4731,7 +5266,7 @@
     if (o.logo && o.logo.src0) supLoadImg(o.logo.src0, function (img) {
       if (!img) return;
       supLogo = { img: img, src0: o.logo.src0, pal: o.logo.pal || [], ink: o.logo.ink, tintable: o.logo.tintable };
-      buildSupTplGrid();
+      buildSupTplGrid(); syncLogoEdit();
     });
     sup.els = (o.els || []).map(function (e) { return Object.assign({}, e); });
     sup.els.forEach(function (e) {
@@ -5053,6 +5588,364 @@
     renderSupport(EXPORT_PPMM, supBleed()).toBlob(function (blob) { downloadBlob(blob, "soporte-" + supName() + ".png"); }, "image/png");
   });
 
+  // ======== Negocio: ventas, inversiones, costos y stock (localStorage "nfc-negocio") ========
+  var BIZ_KEY = "nfc-negocio", biz = null;
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function todayISO() { var d = new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+  function bizId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function bizEsc(v) { return String(v == null ? "" : v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function money(n) { return (n < -0.004 ? "−S/ " : "S/ ") + Math.abs(n).toFixed(2); }
+  function num(v) { var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  var MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+  function mesLabel(ym) { return MESES[+ym.slice(5, 7) - 1] + " " + ym.slice(0, 4); }
+
+  // Valores de la guía de costos (todos editables desde la pestaña)
+  function bizDefaults() {
+    var hoy = todayISO();
+    return {
+      cfg: { hora: 20, minStand: 6, minTarjeta: 4, stkStand: 4, stkTarjeta: 11, impresion: 0, impuesto: 0, tiempo: true, umbral: 5 },
+      mats: [
+        { id: "stand", name: "Stand acrílico grande (mostrador)", pack: 5, price: 28.19 },
+        { id: "soporte", name: "Soporte pequeño acrílico", pack: 40, price: 8.26 },
+        { id: "nfc", name: "Chip NFC (NTAG215)", pack: 21, price: 18.05 },
+        { id: "caja", name: "Cajita de cartón (empaque)", pack: 25, price: 17.28 },
+        { id: "funda", name: "Funda protectora 61 × 88 mm", pack: 600, price: 16.98 },
+        { id: "hoja", name: "Hoja A4 de sticker", pack: 1, price: 2 },
+        { id: "laminado", name: "Laminado por stand (precio por confirmar)", pack: 1, price: 0.5 }
+      ],
+      plans: [
+        { id: "p1", name: "1 stand", price: 54, stands: 1, tarjetas: 0 },
+        { id: "p2", name: "2 stands", price: 95, stands: 2, tarjetas: 0 },
+        { id: "p3", name: "3 stands", price: 129, stands: 3, tarjetas: 0 },
+        { id: "p4", name: "4 stands + 2 tarjetas (regalo)", price: 159, stands: 4, tarjetas: 2 },
+        { id: "p5", name: "Combo stand + 2 tarjetas", price: 84, stands: 1, tarjetas: 2 },
+        { id: "p6", name: "Tarjeta adicional", price: 20, stands: 0, tarjetas: 1 },
+        { id: "p7", name: "Promo 4 stands", price: 180, stands: 4, tarjetas: 0 }
+      ],
+      ventas: [],
+      invs: [
+        { id: bizId(), fecha: hoy, item: "Impresora + lectora/grabadora NFC", mat: "", piezas: 1, costo: 350, tipo: "equipo" },
+        { id: bizId(), fecha: hoy, item: "Selladora USB", mat: "", piezas: 1, costo: 7.78, tipo: "equipo" }
+      ]
+    };
+  }
+  function loadBiz() {
+    var o = null;
+    try { o = JSON.parse(localStorage.getItem(BIZ_KEY) || "null"); } catch (err) {}
+    var def = bizDefaults();
+    if (!o || typeof o !== "object") { biz = def; saveBiz(); return; }
+    o.cfg = Object.assign({}, def.cfg, o.cfg || {});
+    ["mats", "plans", "ventas", "invs"].forEach(function (k) { if (!Array.isArray(o[k])) o[k] = def[k]; });
+    biz = o;
+  }
+  function saveBiz() {
+    try { localStorage.setItem(BIZ_KEY, JSON.stringify(biz)); }
+    catch (err) { alert("No se pudieron guardar los datos del negocio en este navegador."); }
+  }
+
+  // Materiales que usa cada producto armado
+  function bizRecipe(kind) {
+    var c = biz.cfg;
+    return kind === "stand"
+      ? { stand: 1, nfc: 1, hoja: 1 / Math.max(1, c.stkStand), laminado: 1, caja: 1 }
+      : { nfc: 1, soporte: 1, hoja: 1 / Math.max(1, c.stkTarjeta), funda: 1 };
+  }
+  function bizMat(id) { for (var i = 0; i < biz.mats.length; i++) if (biz.mats[i].id === id) return biz.mats[i]; return null; }
+  function bizUnit(m) { return m && m.pack > 0 ? num(m.price) / num(m.pack) : 0; }
+  function bizProdCost(kind) {
+    var r = bizRecipe(kind), t = num(biz.cfg.impresion);
+    Object.keys(r).forEach(function (id) { t += r[id] * bizUnit(bizMat(id)); });
+    return t;
+  }
+  function bizTimeCost(kind) { return num(kind === "stand" ? biz.cfg.minStand : biz.cfg.minTarjeta) / 60 * num(biz.cfg.hora); }
+  // Costo y utilidad de una venta (con el catálogo actual: si cambia un precio, se recalcula todo)
+  function bizCalc(v) {
+    var st = num(v.stands), tj = num(v.tarjetas);
+    var mat = st * bizProdCost("stand") + tj * bizProdCost("tarjeta");
+    var time = st * bizTimeCost("stand") + tj * bizTimeCost("tarjeta");
+    var net = num(v.total) * (1 - num(biz.cfg.impuesto) / 100);
+    var cost = mat + (biz.cfg.tiempo ? time : 0), util = net - cost;
+    return { mat: mat, time: time, cost: cost, util: util, utilMat: net - mat, margin: num(v.total) ? util / num(v.total) : 0 };
+  }
+  function bizPlan(id) { for (var i = 0; i < biz.plans.length; i++) if (biz.plans[i].id === id) return biz.plans[i]; return null; }
+  function bizPeriod() { return $("b-month").value || ""; }
+  function inPeriod(f) { var p = bizPeriod(); return !p || String(f).slice(0, 7) === p; }
+
+  // ---- Formularios ----
+  function bizPlanOptions() {
+    var sel = $("b-vplan"), cur = sel.value;
+    sel.innerHTML = biz.plans.map(function (p) { return '<option value="' + bizEsc(p.id) + '">' + bizEsc(p.name) + " · S/ " + num(p.price).toFixed(2) + "</option>"; }).join("") +
+      '<option value="otro">Otro (manual)</option>';
+    if (cur && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
+  }
+  function bizMatOptions() {
+    var sel = $("b-imat"), cur = sel.value;
+    sel.innerHTML = biz.mats.map(function (m) { return '<option value="' + bizEsc(m.id) + '">' + bizEsc(m.name) + "</option>"; }).join("");
+    if (cur) sel.value = cur;
+  }
+  function bizFillSale() {
+    var p = bizPlan($("b-vplan").value), q = Math.max(1, parseInt($("b-vcant").value, 10) || 1);
+    if (p) { $("b-vstands").value = p.stands * q; $("b-vtarj").value = p.tarjetas * q; $("b-vtotal").value = (num(p.price) * q).toFixed(2); }
+    bizSalePreview();
+  }
+  function bizSaleDraft() {
+    return { stands: num($("b-vstands").value), tarjetas: num($("b-vtarj").value), total: num($("b-vtotal").value) };
+  }
+  function bizSalePreview() {
+    var r = bizCalc(bizSaleDraft());
+    $("b-vprev").innerHTML = "Costo <b>" + money(r.cost) + "</b> (materiales " + money(r.mat) + (biz.cfg.tiempo ? " + tiempo " + money(r.time) : "") + ") · Utilidad <b class=\"" + (r.util < 0 ? "neg" : "pos") + "\">" + money(r.util) + "</b> (" + Math.round(r.margin * 100) + " %)";
+  }
+  ["b-vplan", "b-vcant"].forEach(function (id) { $(id).addEventListener("input", bizFillSale); $(id).addEventListener("change", bizFillSale); });
+  ["b-vstands", "b-vtarj", "b-vtotal"].forEach(function (id) { $(id).addEventListener("input", bizSalePreview); });
+  $("b-vadd").addEventListener("click", function () {
+    var d = bizSaleDraft(), planId = $("b-vplan").value, p = bizPlan(planId);
+    if (!(d.total > 0) && !(d.stands + d.tarjetas > 0)) { alert("Pon el precio cobrado o la cantidad de stands y tarjetas."); return; }
+    biz.ventas.push({ id: bizId(), fecha: $("b-vfecha").value || todayISO(), cliente: $("b-vcli").value.trim(), plan: p ? p.name : "Otro",
+      cant: Math.max(1, parseInt($("b-vcant").value, 10) || 1), total: d.total, stands: d.stands, tarjetas: d.tarjetas, notas: $("b-vnotas").value.trim() });
+    saveBiz();
+    $("b-vcli").value = ""; $("b-vnotas").value = ""; $("b-vcant").value = 1; bizFillSale();
+    renderBiz();
+  });
+  function bizSyncInvType() {
+    var eq = $("b-itipo").value === "equipo";
+    $("b-imatf").classList.toggle("hidden", eq); $("b-idescf").classList.toggle("hidden", !eq);
+  }
+  $("b-itipo").addEventListener("change", bizSyncInvType);
+  $("b-iadd").addEventListener("click", function () {
+    var eq = $("b-itipo").value === "equipo", cost = num($("b-icost").value), m = bizMat($("b-imat").value);
+    var item = eq ? $("b-idesc").value.trim() : (m ? m.name : "");
+    if (!item) { alert(eq ? "Escribe qué equipo compraste." : "Elige el material."); return; }
+    if (!(cost > 0)) { alert("Pon el costo total de la compra."); return; }
+    biz.invs.push({ id: bizId(), fecha: $("b-ifecha").value || todayISO(), item: item, mat: eq ? "" : m.id,
+      piezas: Math.max(0, parseInt($("b-ipz").value, 10) || 0), costo: cost, tipo: eq ? "equipo" : "stock" });
+    saveBiz();
+    $("b-idesc").value = ""; $("b-icost").value = ""; $("b-ipz").value = 1;
+    renderBiz();
+  });
+  $("b-month").addEventListener("change", renderBiz);
+  $("b-time").addEventListener("change", function (ev) { biz.cfg.tiempo = ev.target.checked; saveBiz(); bizSalePreview(); renderBiz(); });
+
+  // ---- Editores: parámetros, catálogo y planes ----
+  var BIZ_CFG = [
+    ["hora", "Valor de mi hora (S/)", 0.5], ["minStand", "Minutos por stand", 0.5], ["minTarjeta", "Minutos por tarjeta", 0.5],
+    ["stkStand", "Stickers de stand por A4", 1], ["stkTarjeta", "Stickers de tarjeta por A4", 1],
+    ["impresion", "Impresión por sticker (S/)", 0.01], ["impuesto", "Impuesto sobre la venta (%)", 0.5], ["umbral", "Aviso de stock bajo (piezas)", 1]
+  ];
+  function buildBizEditors() {
+    $("b-cfg").innerHTML = BIZ_CFG.map(function (f) {
+      return '<div class="field"><label for="b-c-' + f[0] + '">' + f[1] + '</label><input type="number" id="b-c-' + f[0] + '" data-k="' + f[0] + '" min="0" step="' + f[2] + '" value="' + num(biz.cfg[f[0]]) + '"></div>';
+    }).join("");
+    $("b-mats").innerHTML = "<thead><tr><th>Material</th><th class=\"n\">Piezas del pack</th><th class=\"n\">Precio del pack (S/)</th><th class=\"n\">Costo unitario</th></tr></thead><tbody>" +
+      biz.mats.map(function (m, i) {
+        return '<tr><td><input type="text" class="nm" data-i="' + i + '" data-k="name" value="' + bizEsc(m.name) + '"></td>' +
+          '<td class="n"><input type="number" min="0" step="1" data-i="' + i + '" data-k="pack" value="' + num(m.pack) + '"></td>' +
+          '<td class="n"><input type="number" min="0" step="0.01" data-i="' + i + '" data-k="price" value="' + num(m.price) + '"></td>' +
+          '<td class="n" id="b-mu-' + i + '">' + money(bizUnit(m)) + "</td></tr>";
+      }).join("") + "</tbody>";
+    $("b-plantbl").innerHTML = "<thead><tr><th>Plan</th><th class=\"n\">Precio (S/)</th><th class=\"n\">Stands</th><th class=\"n\">Tarjetas</th><th class=\"n\">Costo</th><th class=\"n\">Utilidad</th><th></th></tr></thead><tbody>" +
+      biz.plans.map(function (p, i) {
+        return '<tr><td><input type="text" class="nm" data-i="' + i + '" data-k="name" value="' + bizEsc(p.name) + '"></td>' +
+          '<td class="n"><input type="number" min="0" step="0.5" data-i="' + i + '" data-k="price" value="' + num(p.price) + '"></td>' +
+          '<td class="n"><input type="number" min="0" step="1" data-i="' + i + '" data-k="stands" value="' + num(p.stands) + '"></td>' +
+          '<td class="n"><input type="number" min="0" step="1" data-i="' + i + '" data-k="tarjetas" value="' + num(p.tarjetas) + '"></td>' +
+          '<td class="n" id="b-pc-' + i + '"></td><td class="n" id="b-pu-' + i + '"></td>' +
+          '<td><button class="x" data-del="' + i + '" title="Quitar plan">×</button></td></tr>';
+      }).join("") + "</tbody>";
+    bizPlanOptions(); bizMatOptions(); bizEditorNums();
+  }
+  // Números que dependen de los costos (sin rehacer los campos, para no perder el foco)
+  function bizEditorNums() {
+    biz.mats.forEach(function (m, i) { var c = $("b-mu-" + i); if (c) c.textContent = money(bizUnit(m)); });
+    biz.plans.forEach(function (p, i) {
+      var r = bizCalc({ stands: p.stands, tarjetas: p.tarjetas, total: p.price }), c = $("b-pc-" + i), u = $("b-pu-" + i);
+      if (c) c.textContent = money(r.cost);
+      if (u) { u.textContent = money(r.util); u.className = "n " + (r.util < 0 ? "neg" : ""); }
+    });
+    $("b-costline").innerHTML = "Hoy cada <b>stand</b> cuesta " + money(bizProdCost("stand")) + " en materiales + " + money(bizTimeCost("stand")) + " de tiempo, y cada <b>tarjeta con soporte</b> " +
+      money(bizProdCost("tarjeta")) + " + " + money(bizTimeCost("tarjeta")) + ". Cambia cualquier valor y todos los márgenes se recalculan.";
+  }
+  $("b-cfg").addEventListener("input", function (ev) {
+    var k = ev.target.dataset.k; if (!k) return;
+    biz.cfg[k] = num(ev.target.value); saveBiz(); bizEditorNums(); bizSalePreview(); renderBiz();
+  });
+  $("b-mats").addEventListener("input", function (ev) {
+    var i = ev.target.dataset.i, k = ev.target.dataset.k; if (i == null) return;
+    biz.mats[+i][k] = k === "name" ? ev.target.value : num(ev.target.value);
+    saveBiz(); if (k === "name") bizMatOptions(); bizEditorNums(); bizSalePreview(); renderBiz();
+  });
+  $("b-plantbl").addEventListener("input", function (ev) {
+    var i = ev.target.dataset.i, k = ev.target.dataset.k; if (i == null) return;
+    biz.plans[+i][k] = k === "name" ? ev.target.value : num(ev.target.value);
+    saveBiz(); bizPlanOptions(); bizEditorNums();
+  });
+  $("b-plantbl").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-del]"); if (!b) return;
+    var p = biz.plans[+b.dataset.del];
+    if (!confirm("¿Quitar el plan \"" + p.name + "\"? Las ventas ya registradas no cambian.")) return;
+    biz.plans.splice(+b.dataset.del, 1); saveBiz(); buildBizEditors();
+  });
+  $("b-padd").addEventListener("click", function () {
+    biz.plans.push({ id: bizId(), name: "Nuevo plan", price: 0, stands: 1, tarjetas: 0 });
+    saveBiz(); buildBizEditors();
+  });
+
+  // ---- Panel ----
+  function renderBiz() {
+    if (!biz) return;
+    // periodos con datos
+    var sel = $("b-month"), cur = sel.value, months = {};
+    biz.ventas.concat(biz.invs).forEach(function (r) { if (r.fecha) months[String(r.fecha).slice(0, 7)] = 1; });
+    months[todayISO().slice(0, 7)] = 1;
+    sel.innerHTML = '<option value="">Todo</option>' + Object.keys(months).sort().reverse().map(function (m) { return '<option value="' + m + '">' + mesLabel(m) + "</option>"; }).join("");
+    sel.value = cur && months[cur] ? cur : "";
+    $("b-time").checked = !!biz.cfg.tiempo;
+
+    var V = biz.ventas.filter(function (v) { return inPeriod(v.fecha); }), I = biz.invs.filter(function (r) { return inPeriod(r.fecha); });
+    var sold = 0, gain = 0, inv = 0;
+    V.forEach(function (v) { sold += num(v.total); gain += bizCalc(v).util; });
+    I.forEach(function (r) { inv += num(r.costo); });
+    var cash = sold - inv;
+    function tile(label, val, sub, cls) { return '<div class="kpi"><span>' + label + '</span><b class="' + (cls || "") + '">' + val + "</b><small>" + sub + "</small></div>"; }
+    $("b-kpis").innerHTML =
+      tile("Vendido", money(sold), V.length + (V.length === 1 ? " venta" : " ventas")) +
+      tile("Invertido", money(inv), "materiales y equipo") +
+      tile("Ganancia", money(gain), (sold ? Math.round(gain / sold * 100) : 0) + " % de margen" + (biz.cfg.tiempo ? " (con tu tiempo)" : " (solo materiales)"), gain < 0 ? "neg" : "pos") +
+      tile("Caja neta", money(cash), "vendido − invertido", cash < 0 ? "neg" : "pos");
+
+    // recuperación del equipo (siempre con todo el historial)
+    var eq = 0, gm = 0;
+    biz.invs.forEach(function (r) { if (r.tipo === "equipo") eq += num(r.costo); });
+    biz.ventas.forEach(function (v) { gm += bizCalc(v).utilMat; });
+    var pct = eq ? Math.max(0, Math.min(100, gm / eq * 100)) : 100;
+    $("b-recbar").style.width = pct + "%";
+    var p1 = biz.plans[0], txt;
+    if (!eq) txt = "No hay equipo registrado.";
+    else if (gm >= eq) txt = "¡Equipo pagado! Ganaste " + money(gm) + " (solo materiales) frente a " + money(eq) + " invertidos en equipo.";
+    else {
+      txt = "Llevas " + money(gm) + " de ganancia (solo materiales) de " + money(eq) + " invertidos en equipo: " + Math.floor(pct) + " %. Faltan " + money(eq - gm);
+      if (p1) { var u1 = bizCalc({ stands: p1.stands, tarjetas: p1.tarjetas, total: p1.price }).utilMat; if (u1 > 0) { var nv = Math.ceil((eq - gm) / u1); txt += nv === 1 ? ", más o menos 1 venta de \"" + p1.name + "\"" : ", unas " + nv + " ventas de \"" + p1.name + "\""; } }
+      txt += ".";
+    }
+    $("b-rectxt").textContent = txt;
+
+    // ventas del periodo
+    var vs = V.slice().sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); });
+    $("b-ventas").innerHTML = vs.length ? "<thead><tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th class=\"n\">Unid.</th><th class=\"n\">Cobrado</th><th class=\"n\">Costo</th><th class=\"n\">Utilidad</th><th class=\"n\">Margen</th><th></th></tr></thead><tbody>" +
+      vs.map(function (v) {
+        var r = bizCalc(v), u = [];
+        if (num(v.stands)) u.push(num(v.stands) + " st"); if (num(v.tarjetas)) u.push(num(v.tarjetas) + " tj");
+        return "<tr><td>" + bizEsc(v.fecha) + "</td><td>" + bizEsc(v.cliente || "—") + (v.notas ? '<br><small class="note">' + bizEsc(v.notas) + "</small>" : "") + "</td><td>" + bizEsc(v.plan) + (num(v.cant) > 1 ? " × " + num(v.cant) : "") + "</td>" +
+          '<td class="n">' + (u.join(" + ") || "—") + '</td><td class="n">' + money(num(v.total)) + '</td><td class="n">' + money(r.cost) + '</td><td class="n ' + (r.util < 0 ? "neg" : "") + '">' + money(r.util) + '</td><td class="n">' + Math.round(r.margin * 100) + " %</td>" +
+          '<td><button class="x" data-dv="' + bizEsc(v.id) + '" title="Borrar venta">×</button></td></tr>';
+      }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Aún no hay ventas en este periodo.</td></tr></tbody>';
+
+    // ventas por plan
+    var byPlan = {};
+    V.forEach(function (v) { var b = byPlan[v.plan] || (byPlan[v.plan] = { n: 0, m: 0, g: 0 }); b.n++; b.m += num(v.total); b.g += bizCalc(v).util; });
+    var pk = Object.keys(byPlan).sort(function (a, b) { return byPlan[b].m - byPlan[a].m; });
+    $("b-plans").innerHTML = pk.length ? "<thead><tr><th>Plan</th><th class=\"n\">Ventas</th><th class=\"n\">Monto</th><th class=\"n\">Ganancia</th></tr></thead><tbody>" +
+      pk.map(function (k) { var b = byPlan[k]; return "<tr><td>" + bizEsc(k) + '</td><td class="n">' + b.n + '</td><td class="n">' + money(b.m) + '</td><td class="n">' + money(b.g) + "</td></tr>"; }).join("") + "</tbody>"
+      : '<tbody><tr><td class="bempty">Sin ventas en este periodo.</td></tr></tbody>';
+
+    // resumen por mes (todo el historial)
+    var bm = {};
+    function mrow(m) { return bm[m] || (bm[m] = { n: 0, st: 0, tj: 0, v: 0, i: 0, g: 0 }); }
+    biz.ventas.forEach(function (v) { var r = mrow(String(v.fecha).slice(0, 7)); r.n++; r.st += num(v.stands); r.tj += num(v.tarjetas); r.v += num(v.total); r.g += bizCalc(v).util; });
+    biz.invs.forEach(function (x) { mrow(String(x.fecha).slice(0, 7)).i += num(x.costo); });
+    var mk = Object.keys(bm).sort().reverse();
+    $("b-months").innerHTML = mk.length ? "<thead><tr><th>Mes</th><th class=\"n\">Ventas</th><th class=\"n\">Stands</th><th class=\"n\">Tarjetas</th><th class=\"n\">Vendido</th><th class=\"n\">Invertido</th><th class=\"n\">Ganancia</th></tr></thead><tbody>" +
+      mk.map(function (m) { var r = bm[m]; return "<tr><td>" + mesLabel(m) + '</td><td class="n">' + r.n + '</td><td class="n">' + r.st + '</td><td class="n">' + r.tj + '</td><td class="n">' + money(r.v) + '</td><td class="n">' + money(r.i) + '</td><td class="n ' + (r.g < 0 ? "neg" : "") + '">' + money(r.g) + "</td></tr>"; }).join("") + "</tbody>"
+      : '<tbody><tr><td class="bempty">Sin datos todavía.</td></tr></tbody>';
+
+    // compras e inversiones del periodo
+    var is = I.slice().sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); });
+    $("b-invs").innerHTML = is.length ? "<thead><tr><th>Fecha</th><th>Compra</th><th>Tipo</th><th class=\"n\">Piezas</th><th class=\"n\">Costo</th><th></th></tr></thead><tbody>" +
+      is.map(function (r) {
+        return "<tr><td>" + bizEsc(r.fecha) + "</td><td>" + bizEsc(r.item) + "</td><td>" + (r.tipo === "equipo" ? "Equipo" : "Stock") + '</td><td class="n">' + num(r.piezas) + '</td><td class="n">' + money(num(r.costo)) + "</td>" +
+          '<td><button class="x" data-di="' + bizEsc(r.id) + '" title="Borrar">×</button></td></tr>';
+      }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Sin compras en este periodo.</td></tr></tbody>';
+
+    // stock (todo el historial): comprado − usado en las ventas
+    var bought = {}, used = {};
+    biz.invs.forEach(function (r) { if (r.tipo === "stock" && r.mat) bought[r.mat] = (bought[r.mat] || 0) + num(r.piezas); });
+    var rs = bizRecipe("stand"), rt = bizRecipe("tarjeta");
+    biz.ventas.forEach(function (v) {
+      Object.keys(rs).forEach(function (k) { used[k] = (used[k] || 0) + rs[k] * num(v.stands); });
+      Object.keys(rt).forEach(function (k) { used[k] = (used[k] || 0) + rt[k] * num(v.tarjetas); });
+    });
+    var rows = biz.mats.filter(function (m) { return bought[m.id] || used[m.id]; });
+    function f1(n) { return Math.round(n * 10) / 10; }
+    $("b-stock").innerHTML = rows.length ? "<thead><tr><th>Material</th><th class=\"n\">Comprado</th><th class=\"n\">Usado</th><th class=\"n\">Queda</th></tr></thead><tbody>" +
+      rows.map(function (m) {
+        var b = bought[m.id] || 0, u = used[m.id] || 0, q = b - u, low = b > 0 && q < num(biz.cfg.umbral);
+        return "<tr><td>" + bizEsc(m.name) + '</td><td class="n">' + (b ? f1(b) : "—") + '</td><td class="n">' + f1(u) + '</td><td class="n ' + (low ? "neg" : "") + '">' +
+          (b ? f1(q) + (low ? " ⚠ comprar" : "") : '<span class="note">sin compras registradas</span>') + "</td></tr>";
+      }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Registra tus compras de material (tipo "Material") para ver el stock.</td></tr></tbody>';
+    bizEditorNums();
+  }
+  $("b-ventas").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-dv]"); if (!b || !confirm("¿Borrar esta venta?")) return;
+    biz.ventas = biz.ventas.filter(function (v) { return v.id !== b.dataset.dv; }); saveBiz(); renderBiz();
+  });
+  $("b-invs").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-di]"); if (!b || !confirm("¿Borrar esta compra?")) return;
+    biz.invs = biz.invs.filter(function (r) { return r.id !== b.dataset.di; }); saveBiz(); renderBiz();
+  });
+
+  // ---- Exportar (CSV para Excel / Power BI) y respaldo ----
+  function csvCell(v) { if (typeof v === "number") return String(Math.round(v * 100) / 100); v = String(v == null ? "" : v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function bizCSV(name, rows) {
+    var txt = "\ufeff" + rows.map(function (r) { return r.map(csvCell).join(","); }).join("\r\n");
+    downloadBlob(new Blob([txt], { type: "text/csv;charset=utf-8" }), name);
+  }
+  document.querySelector("#view-biz .s-tools").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-csv]"); if (!b) return;
+    var k = b.dataset.csv;
+    if (k === "ventas") bizCSV("ventas.csv", [["fecha", "cliente", "plan", "cantidad", "precio_unitario", "precio_total", "stands", "tarjetas", "costo_materiales", "costo_tiempo", "utilidad", "notas"]].concat(
+      biz.ventas.map(function (v) { var r = bizCalc(v); return [v.fecha, v.cliente, v.plan, num(v.cant), num(v.total) / Math.max(1, num(v.cant)), num(v.total), num(v.stands), num(v.tarjetas), r.mat, r.time, r.util, v.notas]; })));
+    else if (k === "inversiones") bizCSV("inversiones.csv", [["fecha", "material", "piezas", "costo_total", "tipo"]].concat(
+      biz.invs.map(function (r) { return [r.fecha, r.item, num(r.piezas), num(r.costo), r.tipo]; })));
+    else if (k === "catalogo") bizCSV("catalogo.csv", [["item", "pack_piezas", "precio_pack", "costo_unitario"]].concat(
+      biz.mats.map(function (m) { return [m.name, num(m.pack), num(m.price), bizUnit(m)]; })));
+    else if (k === "planes") bizCSV("planes.csv", [["plan", "precio", "stands", "tarjetas"]].concat(
+      biz.plans.map(function (p) { return [p.name, num(p.price), num(p.stands), num(p.tarjetas)]; })));
+  });
+  $("b-backup").addEventListener("click", function () {
+    downloadBlob(new Blob([JSON.stringify(biz, null, 2)], { type: "application/json" }), "negocio-nfc-respaldo-" + todayISO() + ".json");
+  });
+  $("b-restore").addEventListener("change", function (ev) {
+    var f = ev.target.files && ev.target.files[0]; ev.target.value = "";
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      var o = null;
+      try { o = JSON.parse(rd.result); } catch (err) {}
+      if (!o || !Array.isArray(o.ventas) || !Array.isArray(o.invs)) { alert("Ese archivo no es un respaldo del negocio."); return; }
+      if (!confirm("Se reemplazarán los datos actuales por los del respaldo (" + o.ventas.length + " ventas, " + o.invs.length + " compras). ¿Continuar?")) return;
+      try { localStorage.setItem(BIZ_KEY, JSON.stringify(o)); } catch (err) { alert("No se pudo guardar."); return; }
+      loadBiz(); buildBizEditors(); renderBiz();
+    };
+    rd.readAsText(f);
+  });
+  function initBiz() {
+    loadBiz();
+    $("b-vfecha").value = todayISO(); $("b-ifecha").value = todayISO();
+    buildBizEditors(); bizSyncInvType(); bizFillSale();
+  }
+
+  // ---- Calidad de impresión (A4, PDF y PNG a tamaño real) ----
+  function syncDpi() {
+    Array.prototype.forEach.call(document.querySelectorAll(".q-dpi"), function (sl) { sl.value = String(PRINT_DPI); });
+    Array.prototype.forEach.call(document.querySelectorAll(".q-dpilabel"), function (el) { el.textContent = PRINT_DPI; });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".q-dpi"), function (sl) {
+    sl.addEventListener("change", function () {
+      PRINT_DPI = sl.value === "600" ? 600 : 300; EXPORT_PPMM = PRINT_DPI / 25.4;
+      try { localStorage.setItem("nfc-dpi", String(PRINT_DPI)); } catch (err) {}
+      syncDpi();
+    });
+  });
+
   // ---- Init ----
   loadTpl();
   loadSup();
@@ -5065,6 +5958,8 @@
   render();
   updateQueue();
   updateLabelQueue();
+  initBiz();
+  syncDpi();
   window.addEventListener("resize", function () { render(); renderTpl(); renderSup(); });
 })();
 </script>
