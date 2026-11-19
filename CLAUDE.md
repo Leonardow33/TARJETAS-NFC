@@ -23,8 +23,9 @@ Enlaces:
 - Push por https a `origin main`. No hay `gh` CLI.
 - Commits en español, con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - El usuario espera push tras cada cambio terminado y probado.
+- No subir `guia-costos-nfc.md` (costos y márgenes del negocio): el repo es público.
 
-## Código (`index.html`, ~4900 líneas)
+## Código (`index.html`, ~6000 líneas)
 - JS ES5 dentro de una IIFE (`var`, `function`, sin flechas). CSS con tokens y modo oscuro.
 - Librerías por cdnjs: jsPDF 2.5.1 (`window.jspdf.jsPDF`) y qrcode-generator 1.4.4.
 - Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes), `#view-print` (Hoja A4) y `#view-biz` (Negocio). `showView(v)` las cambia.
@@ -179,6 +180,9 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
   - El PDF va embebido en base64 (fetch de file:// falla) y `pdf.worker.min.js` se carga como `<script>` (worker falso); `--virtual-time-budget=30000`.
   - Scripts en el scratchpad: `mkbro.py` (página de prueba), `expdf.py`, `mkpv.py` y `eximg.py`.
 - Para varias líneas de Python desde PowerShell, usa un `.py`: `python -c` con comillas y `<` se rompe.
+- Capturas de la página completa: `--screenshot=archivo.png --window-size=1300,1700 --hide-scrollbars` en vez de `--dump-dom`.
+- Usa un `--user-data-dir` nuevo por prueba: si no, el localStorage de la corrida anterior se mezcla (p. ej. ventas duplicadas en Negocio).
+- Scripts del editor y de Negocio en el scratchpad: `mkt.py` (página de prueba con modos gray, wob, map, biz, dpi, shotbiz, shotie), `run.ps1 <modo>` (dump-dom + `showres.py`) y `shot.ps1 <modo>` (captura).
 - Las cargas de archivos (FileReader, toBlob) a veces no terminan dentro del tiempo virtual: dales 1.5–2.5 s y repite antes de suponer un error.
 - Los parches grandes van en un `.py` del scratchpad (Write + `python archivo.py`). Los heredoc largos en Bash fallan con las comillas.
 
@@ -228,8 +232,11 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - escanear con el celular el QR impreso de los chips NFC (no se pudo verificar sin OpenCV);
   - el brochure con un negocio real: los nombres de los botones de Google ("Pedir reseñas") pueden cambiar;
   - impresión real de un soporte (medidas, corte y sangrado);
-  - foto en vertical con la mejora automática, Density 8 y márgenes en Ninguno.
-- **Negocio:** el precio del laminado sigue sin confirmar (S/ 0.50 por stand); la "Promo 4 stands" (S/ 180) cuesta más que "4 stands + 2 tarjetas" (S/ 159), avisado al usuario sin respuesta.
+  - foto en vertical con la mejora automática, Density 8 y márgenes en Ninguno;
+  - el editor de imagen en el celular (recortar con el dedo) y volver a subir su logo "Industry Secrets" (el guardado se procesó con el método anterior);
+  - imprimir un A4 a 600 DPI y comparar con 300.
+- **Calidad:** el usuario quiere la mejor calidad (HD) en A4, PDF y PNG; en la térmica, solo si se puede mejorar sin romper nada.
+- **Negocio:** el usuario aún no registra sus compras de material (solo está el equipo de S/ 357.78), así que el stock sale incompleto. El precio del laminado sigue sin confirmar (S/ 0.50 por stand); la "Promo 4 stands" (S/ 180) cuesta más que "4 stands + 2 tarjetas" (S/ 159), avisado al usuario sin respuesta.
 - **Posible:** ajuste de desplazamiento si la impresión sale corrida, y tamaño 50 × 25 para fotos.
 - **Sistema de marcaciones NFC:** solo está planificado, falta que el usuario decida:
   1. lector (tablet Android, PC con lector USB o celular);
