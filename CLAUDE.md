@@ -192,6 +192,10 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
 - Capturas de la página completa: `--screenshot=archivo.png --window-size=1300,1700 --hide-scrollbars` en vez de `--dump-dom`.
 - Usa un `--user-data-dir` nuevo por prueba: si no, el localStorage de la corrida anterior se mezcla (p. ej. ventas duplicadas en Negocio).
 - Scripts del editor y de Negocio en el scratchpad: `mkt.py` (página de prueba con modos gray, wob, map, biz, dpi, shotbiz, shotie), `run.ps1 <modo>` (dump-dom + `showres.py`) y `shot.ps1 <modo>` (captura).
+- El scratchpad cambia en cada sesión: si no están los scripts, hay que rehacerlos. Los de la sesión del acabado laminado:
+  - `mktest.py <index.html>`: copia la página con una prueba por pasos (`?n=N` corre los N primeros) que escribe en `#res` los logs y las imágenes `IMG<nombre>`.
+  - `cdp.js <url> <salida> [s]`: Edge por CDP que acepta los `confirm()` y espera DONE.
+  - `ex.py <salida> <carpeta>`: extrae las imágenes en PNG.
 - **Ojo:** aplicar un modelo de Soportes abre un `confirm()` que deja colgado el Edge headless (con `--dump-dom` nunca termina). Para pruebas que hagan clic en modelos, usa `cdp.js` (scratchpad): lanza Edge con `--remote-debugging-port`, acepta los diálogos (`Page.handleJavaScriptDialog`) y espera a que `#res` diga DONE. `--timeout` no sirve: vuelca el DOM al cargar.
 - Las cargas de archivos (FileReader, toBlob) a veces no terminan dentro del tiempo virtual: dales 1.5–2.5 s y repite antes de suponer un error.
 - Los parches grandes van en un `.py` del scratchpad (Write + `python archivo.py`). Los heredoc largos en Bash fallan con las comillas.
@@ -244,7 +248,9 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - impresión real de un soporte (medidas, corte y sangrado);
   - foto en vertical con la mejora automática, Density 8 y márgenes en Ninguno;
   - el editor de imagen en el celular (recortar con el dedo) y volver a subir su logo "Industry Secrets" (el guardado se procesó con el método anterior);
-  - imprimir un A4 a 600 DPI y comparar con 300.
+  - imprimir un A4 a 600 DPI y comparar con 300;
+  - el relieve y el brillo del sticker en pantalla (maqueta, video y vistas previas): ajustar si lo quiere más fino o con menos brillo (`tS`, `ins` y la franja `bp` en `render3D`; `stickerGloss`).
+- **Posible:** maqueta 3D de la "tarjeta con soporte pequeño" (hoy `render3D` solo dibuja el soporte en L).
 - **Calidad:** el usuario quiere la mejor calidad (HD) en A4, PDF y PNG; en la térmica, solo si se puede mejorar sin romper nada.
 - **Negocio:** el usuario aún no registra sus compras de material (solo está el equipo de S/ 357.78), así que el stock sale incompleto. El precio del laminado sigue sin confirmar (S/ 0.50 por stand).
   - Planes actualizados a la propuesta comercial (49/88/120/148/78/18) y se quitó "Promo 4 stands". `loadBiz` migra una sola vez (`plansV: 2`) solo los planes que seguían con el precio anterior; si el usuario los había editado, se respetan.
