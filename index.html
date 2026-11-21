@@ -316,6 +316,7 @@
     box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 8px 22px rgba(20,22,28,.18);
   }
   canvas#tplpreview.thermal { image-rendering: pixelated; border-radius: 2px; }
+  canvas#tplpreview.mock, .tplbtn canvas.mock { background: transparent; box-shadow: none; border-radius: 0; }
   canvas#preview.thermal { image-rendering: pixelated; }
   canvas#t-labelpv {
     display: block; width: 110px; height: auto; background: #ffffff; image-rendering: pixelated;
@@ -442,6 +443,9 @@
       <label class="check hidden" id="t-dotswrap" style="justify-content:center;margin-top:6px">
         <input type="checkbox" id="t-dots"> Ver puntos reales de la impresora (ampliado)
       </label>
+      <label class="check" id="t-mockwrap" style="justify-content:center;margin-top:6px" title="Solo en pantalla: el sticker laminado pegado sobre la tarjeta o el chip, con su relieve">
+        <input type="checkbox" id="t-mock" checked> Ver acabado real (sticker laminado con relieve)
+      </label>
       <div class="tplgrid" id="tplgrid"></div>
       <div class="added hidden" id="tpladded">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -453,13 +457,19 @@
     <section class="controls">
       <div class="group">
         <div class="glabel">Tamaño</div>
-        <div class="seg" id="tplsize" style="flex-wrap:wrap">
-          <button data-s="card" aria-pressed="true">Tarjeta</button>
-          <button data-s="l70x40" aria-pressed="false">70 × 40</button>
-          <button data-s="l50x25" aria-pressed="false">50 × 25</button>
-          <button data-s="chip25" aria-pressed="false" style="flex-basis:40%">Chip NFC Ø 2.5 cm</button>
-          <button data-s="chip30" aria-pressed="false" style="flex-basis:40%">Chip NFC 3 × 2.08 cm</button>
-        </div>
+        <select id="tplsize" aria-label="Tamaño">
+          <optgroup label="Tarjeta">
+            <option value="card">Tarjeta NFC · 8.56 × 5.4 cm</option>
+          </optgroup>
+          <optgroup label="Etiqueta térmica">
+            <option value="l70x40">Etiqueta 70 × 40 mm</option>
+            <option value="l50x25">Etiqueta 50 × 25 mm</option>
+          </optgroup>
+          <optgroup label="Chip NFC">
+            <option value="chip25">Chip NFC redondo · Ø 2.5 cm</option>
+            <option value="chip30">Chip NFC rectangular · 3 × 2.08 cm</option>
+          </optgroup>
+        </select>
         <p class="note" style="margin-top:8px" id="tplsizenote"></p>
       </div>
 
@@ -715,7 +725,7 @@
         </div>
         <button class="btn primary" id="s-3dvid" style="margin-top:6px">Grabar y descargar video</button>
         <p class="note" id="s-3dvnote" style="margin-top:8px">El soporte gira suavemente con el diseño actual, la mesa y las medidas elegidas. Mantén esta pestaña abierta mientras graba.</p>
-        <p class="note" style="margin-top:8px">Vista aproximada para mostrar al cliente: soporte en L de acrílico (bordes y base del color del material), con el diseño impreso al frente.</p>
+        <p class="note" style="margin-top:8px">Vista aproximada para mostrar al cliente: soporte en L de acrílico (bordes y base del color del material) con el sticker de vinil laminado pegado al frente, en relieve (el grosor está un poco exagerado para que se note).</p>
       </div>
     </section>
 
@@ -788,13 +798,17 @@
 
       <div class="group" data-tab="size">
         <div class="glabel">Medida del soporte</div>
-        <div class="seg" id="s-preset" style="flex-wrap:wrap">
-          <button data-p="127.5x76" aria-pressed="true">12.75 × 7.6 cm</button>
-          <button data-p="85.6x54" aria-pressed="false">Tarjeta</button>
-          <button data-p="custom" aria-pressed="false">Otra</button>
-          <button data-p="25x25c" aria-pressed="false" style="flex-basis:40%">Chip NFC Ø 2.5 cm</button>
-          <button data-p="30x20.8" aria-pressed="false" style="flex-basis:40%">Chip NFC 3 × 2.08 cm</button>
-        </div>
+        <select id="s-preset" aria-label="Medida del soporte">
+          <optgroup label="Soporte de acrílico">
+            <option value="127.5x76">Stand de mostrador · 12.75 × 7.6 cm</option>
+            <option value="85.6x54">Tarjeta · 8.56 × 5.4 cm</option>
+          </optgroup>
+          <optgroup label="Chip NFC">
+            <option value="25x25c">Chip NFC redondo · Ø 2.5 cm</option>
+            <option value="30x20.8">Chip NFC rectangular · 3 × 2.08 cm</option>
+          </optgroup>
+          <option value="custom">Otra medida…</option>
+        </select>
         <div class="opts" style="margin-top:12px">
           <div class="field">
             <label for="s-w">Largo (cm)</label>
@@ -815,6 +829,7 @@
           <label class="check"><input type="checkbox" id="s-rounded"> Esquinas redondeadas</label>
           <label class="check"><input type="checkbox" id="s-circle"> Redonda</label>
           <label class="check"><input type="checkbox" id="s-guides" checked> Guías</label>
+          <label class="check" title="Solo en pantalla: muestra el sticker de vinil laminado pegado sobre el soporte"><input type="checkbox" id="s-fx" checked> Relieve y laminado</label>
         </div>
       </div>
 
@@ -2972,11 +2987,15 @@
       } else {
         out = renderTemplate(cur, sharpPPMM, 0, !card);
       }
+      var mock = !dots && $("t-mock").checked;
+      if (mock) out = tplMock(out, cur);
       pv.width = out.width; pv.height = out.height;
       pv.getContext("2d").drawImage(out, 0, 0);
       $("t-dotswrap").classList.toggle("hidden", card);
+      $("t-mockwrap").classList.toggle("hidden", dots);
       pv.classList.toggle("thermal", dots);
-      pv.style.borderRadius = TPL_SIZES[tpl.size].circle ? "50%" : card && tpl.rounded ? (CORNER_MM / CARD.w * 100) + "% / " + (CORNER_MM / CARD.h * 100) + "%" : "";
+      pv.classList.toggle("mock", mock);
+      pv.style.borderRadius = mock ? "" : TPL_SIZES[tpl.size].circle ? "50%" : card && tpl.rounded ? (CORNER_MM / CARD.w * 100) + "% / " + (CORNER_MM / CARD.h * 100) + "%" : "";
       if (TPL_SIZES[tpl.size].chip) updateTplTicket();
       var sideName = back ? "Reverso" : "Frente";
       $("tplhint").textContent = !sideTpl(tpl, tpl.side)
@@ -3011,7 +3030,9 @@
         btn.setAttribute("aria-pressed", btn.dataset.t === selected ? "true" : "false");
         var cv = btn.querySelector("canvas");
         if (!cv) return;
-        var th = renderTemplate(Object.assign({}, tpl, { template: btn.dataset.t }), tp, 0, !card);
+        var tt = Object.assign({}, tpl, { template: btn.dataset.t }), th = renderTemplate(tt, tp, 0, !card);
+        if ($("t-mock").checked) th = tplMock(th, tt);
+        cv.classList.toggle("mock", $("t-mock").checked);
         cv.width = th.width; cv.height = th.height;
         cv.getContext("2d").drawImage(th, 0, 0);
       });
@@ -3072,7 +3093,7 @@
 
   function syncTplUI() {
     TPL_FIELDS.forEach(function (k) { $("t-" + k).value = tpl[k]; });
-    setSeg("tplsize", document.querySelector('#tplsize button[data-s="' + tpl.size + '"]'));
+    $("tplsize").value = tpl.size;
     setSeg("tplside", document.querySelector('#tplside button[data-side="' + tpl.side + '"]'));
     setSeg("tplfont", document.querySelector('#tplfont button[data-f="' + tpl.font + '"]'));
     setSeg("tpllogomode", document.querySelector('#tpllogomode button[data-m="' + tpl.logoMode + '"]'));
@@ -3154,14 +3175,19 @@
   [["t-qr", "qr"], ["t-rounded", "rounded"], ["t-logoinv", "logoInv"]].forEach(function (p) {
     $(p[0]).addEventListener("change", function (e) { tpl[p[1]] = e.target.checked; tplChanged(); });
   });
-  [["tplsize", "size", "s"], ["tplside", "side", "side"], ["tplfont", "font", "f"], ["tpllogomode", "logoMode", "m"]].forEach(function (p) {
+  $("tplsize").addEventListener("change", function (e) {
+    if (!TPL_SIZES[e.target.value]) return;
+    tpl.size = e.target.value;
+    if (TPL_SIZES[tpl.size].chip) {
+      if (["grande", "nfc", "logo", "qrsolo", "qrpal"].indexOf(tpl.template) < 0) tpl.template = "grande";
+      if (["qrsolo", "qrpal", "grande", "nfc", "logo", "none"].indexOf(tpl.backTemplate) < 0) tpl.backTemplate = TPL_SIZES[tpl.size].circle ? "qrsolo" : "qrpal";
+    }
+    saveTpl(); syncTplUI();
+  });
+  [["tplside", "side", "side"], ["tplfont", "font", "f"], ["tpllogomode", "logoMode", "m"]].forEach(function (p) {
     $(p[0]).addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       tpl[p[1]] = b.dataset[p[2]];
-      if (p[1] === "size" && TPL_SIZES[tpl.size].chip) {
-        if (["grande", "nfc", "logo", "qrsolo", "qrpal"].indexOf(tpl.template) < 0) tpl.template = "grande";
-        if (["qrsolo", "qrpal", "grande", "nfc", "logo", "none"].indexOf(tpl.backTemplate) < 0) tpl.backTemplate = TPL_SIZES[tpl.size].circle ? "qrsolo" : "qrpal";
-      }
       saveTpl(); syncTplUI();
     });
   });
@@ -3175,7 +3201,7 @@
     if (tpl.side === "back") tpl.backTemplate = b.dataset.t; else tpl.template = b.dataset.t;
     tplChanged();
   });
-  ["t-dpi", "t-shrink", "t-tcut", "t-dots"].forEach(function (id) { $(id).addEventListener("change", renderTpl); });
+  ["t-dpi", "t-shrink", "t-tcut", "t-dots", "t-mock"].forEach(function (id) { $(id).addEventListener("change", function () { $("tplgrid").dataset.side = ""; renderTpl(); }); });
   ["t-lw", "t-lh"].forEach(function (id) { $(id).addEventListener("input", renderTpl); });
 
   $("t-logo").addEventListener("change", function (e) {
@@ -3492,8 +3518,10 @@
     var c = sCanvas.getContext("2d");
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, cw, ch);
+    var fx = $("s-fx").checked, outl = supOutline();
     c.save();
     c.translate(pad, pad);
+    if (fx) stickerEdge(c, outl, S, 0.45);   // grosor del vinil laminado (solo en pantalla)
     c.shadowColor = "rgba(20,22,28,.22)"; c.shadowBlur = 14; c.shadowOffsetY = 4;
     c.fillStyle = sup.bg;
     if (sup.shape === "circle") { c.beginPath(); c.arc(sup.w * S / 2, sup.h * S / 2, Math.min(sup.w, sup.h) * S / 2, 0, 2 * Math.PI); c.fill(); }
@@ -3502,6 +3530,7 @@
     c.restore();
     c.save(); c.translate(pad, pad);
     drawSupport(c, S, 0);
+    if (fx) stickerGloss(c, outl, S, sup.w, sup.h);
     var W = sup.w * S, H = sup.h * S;
     if ($("s-guides").checked) {
       c.setLineDash([4, 4]); c.lineWidth = 1; c.strokeStyle = "rgba(47,91,215,.45)";
@@ -4409,7 +4438,7 @@
     if (document.activeElement !== $("s-w")) $("s-w").value = +(L / 10).toFixed(2);
     if (document.activeElement !== $("s-h")) $("s-h").value = +(A / 10).toFixed(2);
     setSeg("s-orient", document.querySelector('#s-orient button[data-o="' + (land ? "landscape" : "portrait") + '"]'));
-    setSeg("s-preset", document.querySelector('#s-preset button[data-p="' + sup.preset + '"]'));
+    $("s-preset").value = sup.preset || "custom";
     $("s-rounded").checked = sup.rounded;
     $("s-circle").checked = sup.shape === "circle";
     $("s-rounded").disabled = sup.shape === "circle";
@@ -4421,9 +4450,8 @@
     var big = Math.max(L, A), small = Math.min(L, A);
     if (portrait) supSetSize(small, big, true); else supSetSize(big, small, true);
   }
-  $("s-preset").addEventListener("click", function (ev) {
-    var b = ev.target.closest("button"); if (!b) return;
-    sup.preset = b.dataset.p;
+  $("s-preset").addEventListener("change", function (ev) {
+    sup.preset = ev.target.value;
     if (sup.preset !== "custom") {
       var p = sup.preset.split("x");
       sup.shape = /c$/.test(sup.preset) ? "circle" : null;
@@ -4458,6 +4486,7 @@
     buildSupTplGrid();
   });
   $("s-guides").addEventListener("change", renderSup);
+  $("s-fx").addEventListener("change", function () { renderSup(); buildSupTplGrid(); });
   $("s-bgsw").addEventListener("click", function (ev) {
     var b = ev.target.closest(".swatch"); if (!b) return;
     sup.bg = b.dataset.c; sup.texture = null; sup.material = "free"; syncSupSize(); renderSup(); buildSupTplGrid(); saveSup();
@@ -4709,6 +4738,7 @@
       cv.width = Math.round(tw * TS); cv.height = Math.round(th * TS);
       if (t.fit && t.fit.shape === "circle") { cv.style.background = "transparent"; cv.style.boxShadow = "none"; }
       drawSupport(cv.getContext("2d"), TS, 0, supTemplateDesign(t, tw, th, false));
+      if ($("s-fx").checked) stickerGloss(cv.getContext("2d"), stickerOutline(tw, th, 0, t.fit && t.fit.shape === "circle"), TS, tw, th);
       var sp = document.createElement("span"); sp.textContent = t.name + (t.edited ? " ✎" : "");
       if (t.edited) b.title = "Modelo editado (puedes restaurar el original)";
       b.appendChild(cv); b.appendChild(sp);
@@ -4857,7 +4887,7 @@
     var cards = [
       ["Más reseñas en Google", "El cliente califica en el momento, cuando la experiencia está fresca. Más reseñas dan más confianza y mejor posición en Google Maps."],
       ["Cero esfuerzo para el cliente", "No descarga nada ni escribe nada: acerca el celular o escanea el QR y se abre el enlace."],
-      ["Imagen profesional", "Diseño con tu logo y tus colores, en acrílico negro, blanco o madera, para mostrador, mesa o caja."],
+      ["Imagen profesional", "Sticker laminado premium con tu logo y tus colores, sobre acrílico negro, blanco o madera, para mostrador, mesa o caja."],
       ["Se actualiza sin reimprimir", "El chip se vuelve a programar: si cambias de link, promoción o red social, el mismo soporte sigue sirviendo."]
     ];
     var cw = (PW - 2 * M - 6) / 2, ch = 33;
@@ -5000,6 +5030,71 @@
     if ($("s-3d").classList.contains("hidden") || r3dRaf) return;
     r3dRaf = requestAnimationFrame(function () { r3dRaf = 0; render3D(); });
   }
+  // ---- Acabado: sticker de vinil laminado pegado encima (no es impresión directa) ----
+  // Contorno del sticker en mm (x a la derecha, y hacia abajo): rectángulo con esquinas de radio r, o círculo
+  function stickerOutline(w, h, r, circle) {
+    var pts = [], i, a;
+    if (circle) { for (i = 0; i < 72; i++) { a = i / 72 * 2 * Math.PI; pts.push([w / 2 + Math.cos(a) * w / 2, h / 2 + Math.sin(a) * h / 2]); } return pts; }
+    r = Math.min(r || 0, w / 2, h / 2);
+    if (r <= 0) return [[0, 0], [w, 0], [w, h], [0, h]];
+    [[w - r, r, -90], [w - r, h - r, 0], [r, h - r, 90], [r, r, 180]].forEach(function (k) {
+      for (i = 0; i <= 8; i++) { a = (k[2] + i * 90 / 8) * Math.PI / 180; pts.push([k[0] + Math.cos(a) * r, k[1] + Math.sin(a) * r]); }
+    });
+    return pts;
+  }
+  function supOutline() { var circ = sup.shape === "circle"; return stickerOutline(sup.w, sup.h, circ ? 0 : sup.rounded ? CORNER_MM : 0, circ); }
+  function stickerPath(c, pts, s) {
+    c.beginPath();
+    pts.forEach(function (p, i) { c[i ? "lineTo" : "moveTo"](p[0] * s, p[1] * s); });
+    c.closePath();
+  }
+  // Canto del sticker (hacia abajo) con su sombra: se dibuja ANTES del diseño
+  function stickerEdge(c, pts, s, mm, col) {
+    c.save();
+    c.shadowColor = "rgba(0,0,0,.30)"; c.shadowBlur = Math.max(4, 1.2 * s); c.shadowOffsetY = Math.max(2, 0.6 * s);
+    c.translate(0, Math.max(1.5, mm * s));
+    stickerPath(c, pts, s); c.fillStyle = col || "#c9ccd1"; c.fill();
+    c.restore();
+  }
+  // Brillo del laminado y bisel del borde: se dibuja DESPUÉS del diseño
+  function stickerGloss(c, pts, s, w, h) {
+    var W = w * s, H = h * s;
+    c.save();
+    stickerPath(c, pts, s); c.clip();
+    var g = c.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, "rgba(255,255,255,.26)"); g.addColorStop(0.28, "rgba(255,255,255,.07)"); g.addColorStop(0.3, "rgba(255,255,255,0)");
+    g.addColorStop(0.68, "rgba(255,255,255,0)"); g.addColorStop(0.8, "rgba(255,255,255,.07)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    var b = c.createLinearGradient(0, 0, 0, H);
+    b.addColorStop(0, "rgba(255,255,255,.75)"); b.addColorStop(0.5, "rgba(255,255,255,.12)"); b.addColorStop(1, "rgba(0,0,0,.28)");
+    c.strokeStyle = b; c.lineWidth = Math.max(1.5, 0.5 * s);
+    stickerPath(c, pts, s); c.stroke();
+    c.restore();
+  }
+  // Vista previa de Plantillas: el sticker pegado sobre la tarjeta o el chip de PVC (solo en pantalla)
+  function tplMock(img, t) {
+    var d = TPL_SIZES[t.size], sd = tplDims(t), card = t.size === "card", s = img.width / sd.w;
+    var bw = d.chip ? d.w : sd.w, bh = d.chip ? d.h : sd.h, m = Math.max(1.6, Math.min(bw, bh) * 0.07);
+    var out = document.createElement("canvas");
+    out.width = Math.round((bw + 2 * m) * s); out.height = Math.round((bh + 2 * m) * s);
+    var c = out.getContext("2d");
+    c.translate(m * s, m * s);
+    if (card || d.chip) {   // tarjeta o chip blanco de PVC debajo, con su grosor
+      var base = stickerOutline(bw, bh, d.circle ? 0 : card ? (t.rounded ? CORNER_MM : 0) : 1.5, d.circle);
+      stickerEdge(c, base, s, 0.76, "#bfc4cb");
+      stickerPath(c, base, s);
+      var bg = c.createLinearGradient(0, 0, 0, bh * s); bg.addColorStop(0, "#fbfbfc"); bg.addColorStop(1, "#e6e8ec");
+      c.fillStyle = bg; c.fill();
+    }
+    c.translate((bw - sd.w) / 2 * s, (bh - sd.h) / 2 * s);
+    var pts = stickerOutline(sd.w, sd.h, d.circle ? 0 : card ? (t.rounded ? CORNER_MM : 0) : 1, d.circle);
+    stickerEdge(c, pts, s, 0.3, "#f1f1ef");
+    c.save(); stickerPath(c, pts, s); c.clip(); c.drawImage(img, 0, 0, sd.w * s, sd.h * s); c.restore();
+    if (card || d.chip) stickerGloss(c, pts, s, sd.w, sd.h);   // las etiquetas térmicas no van laminadas
+    else { c.save(); stickerPath(c, pts, s); c.strokeStyle = "rgba(0,0,0,.12)"; c.lineWidth = 1; c.stroke(); c.restore(); }
+    return out;
+  }
+
   // Dibuja la imagen en el triángulo de destino (mapeo afín por triángulo)
   function texTri(c, img, p0, p1, p2, t0, t1, t2) {
     var cx = (p0[0] + p1[0] + p2[0]) / 3, cy = (p0[1] + p1[1] + p2[1]) / 3;
@@ -5094,9 +5189,42 @@
     faces.sort(function (a, b) { return depth(a.p) - depth(b.p); });
     faces.forEach(function (f) { poly(f.p, f.c); });
 
-    // frente con el diseño (malla para que la perspectiva sea real)
+    // cara del acrílico (se ve como un marco alrededor del sticker) y su brillo
+    poly([FL, FR, TR, TL], shade(edge, mat === "black" ? 0.05 : -0.03));
+    var q = [FL, FR, TR, TL].map(scr);
+    c.save();
+    c.beginPath(); q.forEach(function (p, i2) { c[i2 ? "lineTo" : "moveTo"](p[0], p[1]); }); c.closePath(); c.clip();
+    var gl = c.createLinearGradient(q[3][0], q[3][1], q[1][0], q[1][1]);
+    gl.addColorStop(0, "rgba(255,255,255,.22)"); gl.addColorStop(0.35, "rgba(255,255,255,.04)"); gl.addColorStop(0.36, "rgba(255,255,255,0)"); gl.addColorStop(1, "rgba(255,255,255,.08)");
+    c.fillStyle = gl; c.fill();
+    c.restore();
+
+    // sticker de vinil laminado pegado encima: algo más chico que la cara y con grosor (relieve, un poco exagerado para que se note)
+    var circ = o.w ? false : sup.shape === "circle", rnd = o.w ? true : sup.rounded;
+    var ins = Math.min(1.5, Math.min(W, H) * 0.04), tS = Math.max(0.35, Math.min(W, H) * 0.011);
+    var sw = W - 2 * ins, sh = H - 2 * ins;
+    var outl = stickerOutline(sw, sh, circ ? 0 : rnd ? CORNER_MM : 0.8, circ);
+    function F3(x, y, lift) { var u = (ins + x) / W, v = 1 - (ins + y) / H; return add(add(add(FL, [W, 0, 0], u), [0, H * ct, -H * st], v), n, lift); }
+    function path3(lift, dy) { c.beginPath(); outl.forEach(function (p, i2) { var s2 = scr(F3(p[0], p[1] + (dy || 0), lift)); c[i2 ? "lineTo" : "moveTo"](s2[0], s2[1]); }); c.closePath(); }
+    // sombra del sticker sobre el acrílico
+    c.save();
+    c.filter = "blur(" + Math.max(1, Math.round(k * 0.9)) + "px)";
+    path3(0, tS * 0.9); c.fillStyle = "rgba(0,0,0,.45)"; c.fill();
+    c.restore();
+    // canto del sticker (el corte deja ver el vinil blanco)
+    outl.forEach(function (p, i2) {
+      var p2 = outl[(i2 + 1) % outl.length], ex = p2[0] - p[0], ey = p2[1] - p[1], el = Math.sqrt(ex * ex + ey * ey) || 1;
+      var nx = ey / el, ny = -ex / el;   // normal hacia afuera
+      var col = shade("#efefec", 0.04 - 0.24 * Math.max(0, ny) - 0.1 * Math.abs(nx) + 0.08 * Math.max(0, -ny));
+      var w4 = [F3(p[0], p[1], 0), F3(p2[0], p2[1], 0), F3(p2[0], p2[1], tS), F3(p[0], p[1], tS)].map(scr);
+      c.beginPath(); w4.forEach(function (s2, i3) { c[i3 ? "lineTo" : "moveTo"](s2[0], s2[1]); }); c.closePath();
+      c.fillStyle = col; c.fill(); c.strokeStyle = col; c.lineWidth = 0.6; c.stroke();
+    });
+    // cara del sticker con el diseño (malla para que la perspectiva sea real)
     var tex = o.tex || renderSupport(Math.min(6, 900 / Math.max(W, H)), 0), TW = tex.width, TH = tex.height, N = 14;
-    function pt(u, v) { return scr(add(add(FL, [FR[0] - FL[0], FR[1] - FL[1], FR[2] - FL[2]], u), [TL[0] - FL[0], TL[1] - FL[1], TL[2] - FL[2]], v)); }
+    function pt(u, v) { return scr(F3(u * sw, (1 - v) * sh, tS)); }
+    c.save();
+    path3(tS); c.clip();
     for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) {
       var u0 = i / N, u1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
       var a = pt(u0, v0), b = pt(u1, v0), d2 = pt(u1, v1), e2 = pt(u0, v1);
@@ -5104,13 +5232,17 @@
       texTri(c, tex, a, b, d2, ta, tb2, td);
       texTri(c, tex, a, d2, e2, ta, td, te);
     }
-    // brillo del acrílico
-    var q = [FL, FR, TR, TL].map(scr);
-    c.save();
-    c.beginPath(); q.forEach(function (p, i2) { c[i2 ? "lineTo" : "moveTo"](p[0], p[1]); }); c.closePath(); c.clip();
-    var gl = c.createLinearGradient(q[3][0], q[3][1], q[1][0], q[1][1]);
-    gl.addColorStop(0, "rgba(255,255,255,.22)"); gl.addColorStop(0.35, "rgba(255,255,255,.04)"); gl.addColorStop(0.36, "rgba(255,255,255,0)"); gl.addColorStop(1, "rgba(255,255,255,.08)");
-    c.fillStyle = gl; c.fill();
+    // brillo del laminado: una franja que se mueve al girar (en el video recorre el sticker)
+    var qa = scr(F3(0, 0, tS)), qb = scr(F3(sw, sh, tS));
+    var bp = clamp(0.42 - yaw / (Math.PI / 3) * 0.3, 0.14, 0.86);
+    var lg = c.createLinearGradient(qa[0], qa[1], qb[0], qb[1]);
+    lg.addColorStop(0, "rgba(255,255,255,.14)"); lg.addColorStop(bp - 0.13, "rgba(255,255,255,.03)");
+    lg.addColorStop(bp, "rgba(255,255,255,.24)"); lg.addColorStop(bp + 0.06, "rgba(255,255,255,.03)"); lg.addColorStop(1, "rgba(255,255,255,.07)");
+    c.fillStyle = lg; c.fillRect(0, 0, CW, CH);
+    // bisel: luz en el borde de arriba, sombra en el de abajo
+    var qt = scr(F3(0, 0, tS)), qd = scr(F3(0, sh, tS)), bv = c.createLinearGradient(qt[0], qt[1], qd[0], qd[1]);
+    bv.addColorStop(0, "rgba(255,255,255,.8)"); bv.addColorStop(0.5, "rgba(255,255,255,.1)"); bv.addColorStop(1, "rgba(0,0,0,.3)");
+    path3(tS); c.strokeStyle = bv; c.lineWidth = Math.max(1.5, 0.45 * k); c.stroke();
     c.restore();
 
     var lineCol = tb === "light" ? "#2b2d33" : "#f2f2f2", pillBg = tb === "light" ? "rgba(255,255,255,.92)" : "rgba(20,21,25,.85)";
@@ -5614,14 +5746,14 @@
         { id: "laminado", name: "Laminado por stand (precio por confirmar)", pack: 1, price: 0.5 }
       ],
       plans: [
-        { id: "p1", name: "1 stand", price: 54, stands: 1, tarjetas: 0 },
-        { id: "p2", name: "2 stands", price: 95, stands: 2, tarjetas: 0 },
-        { id: "p3", name: "3 stands", price: 129, stands: 3, tarjetas: 0 },
-        { id: "p4", name: "4 stands + 2 tarjetas (regalo)", price: 159, stands: 4, tarjetas: 2 },
-        { id: "p5", name: "Combo stand + 2 tarjetas", price: 84, stands: 1, tarjetas: 2 },
-        { id: "p6", name: "Tarjeta adicional", price: 20, stands: 0, tarjetas: 1 },
-        { id: "p7", name: "Promo 4 stands", price: 180, stands: 4, tarjetas: 0 }
+        { id: "p1", name: "1 stand", price: 49, stands: 1, tarjetas: 0 },
+        { id: "p2", name: "2 stands", price: 88, stands: 2, tarjetas: 0 },
+        { id: "p3", name: "3 stands", price: 120, stands: 3, tarjetas: 0 },
+        { id: "p4", name: "4 stands + 2 tarjetas (regalo)", price: 148, stands: 4, tarjetas: 2 },
+        { id: "p5", name: "Combo stand + 2 tarjetas", price: 78, stands: 1, tarjetas: 2 },
+        { id: "p6", name: "Tarjeta adicional", price: 18, stands: 0, tarjetas: 1 }
       ],
+      plansV: 2,
       ventas: [],
       invs: [
         { id: bizId(), fecha: hoy, item: "Impresora + lectora/grabadora NFC", mat: "", piezas: 1, costo: 350, tipo: "equipo" },
@@ -5636,6 +5768,14 @@
     if (!o || typeof o !== "object") { biz = def; saveBiz(); return; }
     o.cfg = Object.assign({}, def.cfg, o.cfg || {});
     ["mats", "plans", "ventas", "invs"].forEach(function (k) { if (!Array.isArray(o[k])) o[k] = def[k]; });
+    if (!o.plansV) {   // precios de la propuesta comercial: solo cambia los planes que seguían con el precio anterior
+      var OLD = { p1: 54, p2: 95, p3: 129, p4: 159, p5: 84, p6: 20, p7: 180 };
+      o.plans = o.plans.filter(function (p) { return !(p.id === "p7" && num(p.price) === 180); }).map(function (p) {
+        var nw = def.plans.filter(function (x) { return x.id === p.id; })[0];
+        return nw && OLD[p.id] === num(p.price) ? Object.assign({}, p, { price: nw.price }) : p;
+      });
+      o.plansV = 2; biz = o; saveBiz();
+    }
     biz = o;
   }
   function saveBiz() {

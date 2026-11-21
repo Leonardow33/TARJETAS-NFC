@@ -10,6 +10,10 @@ App web de un solo archivo (`index.html`) para crear:
 - un brochure PDF para enviar a clientes (usos de los soportes NFC y link de reseñas de Google);
 - un panel del negocio (pestaña Negocio): ventas, compras, costos, stock y recuperación del equipo.
 
+**El producto NO es impresión directa en PVC:** es un sticker de vinil de buena calidad con laminado ("cubridor") que se pega encima de la tarjeta, el chip o el acrílico. Las maquetas y vistas previas lo muestran así (ver "Acabado del sticker").
+
+Planes de la propuesta comercial (soles): 1 stand 49 · 2 stands 88 · 3 stands 120 · 4 stands 148 + 2 tarjetas con soporte pequeño de regalo · combo stand + 2 tarjetas 78 · tarjeta adicional 18.
+
 Enlaces:
 - En línea: https://leonardow33.github.io/TARJETAS-NFC/ (tras cada push: Ctrl+F5)
 - Repo: https://github.com/Leonardow33/TARJETAS-NFC, rama `main`
@@ -30,6 +34,10 @@ Enlaces:
 - Librerías por cdnjs: jsPDF 2.5.1 (`window.jspdf.jsPDF`) y qrcode-generator 1.4.4.
 - Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes), `#view-print` (Hoja A4) y `#view-biz` (Negocio). `showView(v)` las cambia.
 - **Calidad de impresión** (`.q-dpi`: `#q-dpi1` en Hoja A4 y `#q-dpi2` en Soportes → Imprimir, localStorage `nfc-dpi`): `PRINT_DPI` 300 o 600 y `EXPORT_PPMM = PRINT_DPI / 25.4`. Afecta A4, PDF y PNG a tamaño real; la térmica usa sus 203 DPI y no cambia.
+- **Acabado del sticker** (solo en pantalla; no cambia A4, PDF, PNG ni térmica), junto a `texTri`:
+  - `stickerOutline(w,h,r,circle)` da el contorno en mm; `supOutline()` el del soporte; `stickerPath`, `stickerEdge` (canto y sombra, antes del diseño) y `stickerGloss` (brillo del laminado y bisel, después).
+  - `tplMock(img, t)`: vista previa y miniaturas de Plantillas con el sticker sobre la tarjeta o el chip de PVC blanco (con su grosor); las etiquetas térmicas van sin laminado. Casilla `#t-mock`.
+  - Soportes: vista previa y miniaturas de modelos con canto y brillo. Casilla `#s-fx` ("Relieve y laminado").
 - Utilidades de color, junto al código de Soportes: `hex2rgb`, `rgb2hex`, `lum`, `sat`, `mix`, `contrastOn`, `vivid` e `inkFor`. Para medir imagen o canvas: `iw` e `ih`.
 - Madera compartida: `WOOD_BG`, `WOOD_INK` y `drawWood(c, x, y, w, h, S)`, con veta en mm y semilla fija para que salga igual a cualquier resolución.
 
@@ -43,7 +51,7 @@ Enlaces:
   - vive en memoria y se pierde al recargar.
 
 ### Plantillas (tarjeta y etiquetas)
-- `tpl` usa `TPL_SIZES` (card / l70x40 / l50x25) y tiene frente y reverso.
+- `tpl` usa `TPL_SIZES` (card / l70x40 / l50x25 / chip25 / chip30) y tiene frente y reverso. El tamaño se elige en la lista desplegable `#tplsize` (select con grupos Tarjeta, Etiqueta térmica y Chip NFC).
 - `drawTemplate` incluye los helpers `stack`, `qr`, `logo` y `nfc`.
 - En etiquetas (`FILL`) el contenido crece hasta 1.6×, y el nombre manda: las demás líneas quedan en ≤ 72 % de su tamaño.
 - En modo mono (`BOLDEN`) el texto lleva un trazo extra de 0.12 mm.
@@ -81,7 +89,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Al tocar un elemento se abre la pestaña Elemento (en `syncSupEl`), y un punto verde indica que hay uno seleccionado.
   - Celular: la vista previa queda fija arriba (`.stage.stick`, `syncSupStick`, `--stage-h`), salvo con la maqueta 3D abierta.
 - `sup`: w, h (mm), preset, bg, rounded, els, material, texture, baseBg, logoPal, tplId, shape y link.
-  - preset: `127.5x76` = 12.75 × 7.6 cm, `85.6x54` o `custom`. Los campos van en cm.
+  - preset: `127.5x76` = 12.75 × 7.6 cm, `85.6x54`, `25x25c`, `30x20.8` o `custom`, en la lista desplegable `#s-preset` (select). Los campos van en cm.
 - Elementos en `sup.els`: x, y (centro en mm), rot (×90°), w o size (mm) y color.
   - Tipos: img, text, qr, ring (aro), bar, stars y nfc (ícono).
   - ring, bar y text pueden llevar `colors` (multicolor, por segmento o letra). `palette` guarda los colores para "Volver a multicolor". `thick` es el grosor.
@@ -124,7 +132,8 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Elegir un color de fondo a mano vuelve a "free".
 - **Maqueta 3D** (`render3D`, `#s-3d`):
   - Soporte en L de acrílico con inclinación de 10° y pie detrás de 5 cm. Bordes y pie del color del material.
-  - El frente lleva el diseño en perspectiva real, con una malla de triángulos afines (`texTri`).
+  - El frente es un sticker laminado pegado sobre el acrílico: 1.5 mm más chico por lado (se ve el marco del acrílico), con grosor de ~0.8 mm (exagerado para que se note), canto blanco, sombra, bisel y una franja de brillo que se mueve con el giro (en el video recorre el sticker).
+  - El diseño va en perspectiva real, con una malla de triángulos afines (`texTri`) recortada al contorno del sticker.
   - Se gira con el deslizador o arrastrando (yaw de ±60°). Mesa oscura, clara o de madera, y descarga en PNG.
   - "Mostrar medidas" (`#s-3dmeas`, activo por defecto): cotas de alto, ancho y base (pie) en cm; salen también en el PNG.
   - `render3D(o)` acepta `{ cv, yaw, tex, zoom, side, caption }` para dibujar en otro canvas; textos y líneas escalan con `U`.
@@ -183,6 +192,7 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
 - Capturas de la página completa: `--screenshot=archivo.png --window-size=1300,1700 --hide-scrollbars` en vez de `--dump-dom`.
 - Usa un `--user-data-dir` nuevo por prueba: si no, el localStorage de la corrida anterior se mezcla (p. ej. ventas duplicadas en Negocio).
 - Scripts del editor y de Negocio en el scratchpad: `mkt.py` (página de prueba con modos gray, wob, map, biz, dpi, shotbiz, shotie), `run.ps1 <modo>` (dump-dom + `showres.py`) y `shot.ps1 <modo>` (captura).
+- **Ojo:** aplicar un modelo de Soportes abre un `confirm()` que deja colgado el Edge headless (con `--dump-dom` nunca termina). Para pruebas que hagan clic en modelos, usa `cdp.js` (scratchpad): lanza Edge con `--remote-debugging-port`, acepta los diálogos (`Page.handleJavaScriptDialog`) y espera a que `#res` diga DONE. `--timeout` no sirve: vuelca el DOM al cargar.
 - Las cargas de archivos (FileReader, toBlob) a veces no terminan dentro del tiempo virtual: dales 1.5–2.5 s y repite antes de suponer un error.
 - Los parches grandes van en un `.py` del scratchpad (Write + `python archivo.py`). Los heredoc largos en Bash fallan con las comillas.
 
@@ -236,7 +246,8 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - el editor de imagen en el celular (recortar con el dedo) y volver a subir su logo "Industry Secrets" (el guardado se procesó con el método anterior);
   - imprimir un A4 a 600 DPI y comparar con 300.
 - **Calidad:** el usuario quiere la mejor calidad (HD) en A4, PDF y PNG; en la térmica, solo si se puede mejorar sin romper nada.
-- **Negocio:** el usuario aún no registra sus compras de material (solo está el equipo de S/ 357.78), así que el stock sale incompleto. El precio del laminado sigue sin confirmar (S/ 0.50 por stand); la "Promo 4 stands" (S/ 180) cuesta más que "4 stands + 2 tarjetas" (S/ 159), avisado al usuario sin respuesta.
+- **Negocio:** el usuario aún no registra sus compras de material (solo está el equipo de S/ 357.78), así que el stock sale incompleto. El precio del laminado sigue sin confirmar (S/ 0.50 por stand).
+  - Planes actualizados a la propuesta comercial (49/88/120/148/78/18) y se quitó "Promo 4 stands". `loadBiz` migra una sola vez (`plansV: 2`) solo los planes que seguían con el precio anterior; si el usuario los había editado, se respetan.
 - **Posible:** ajuste de desplazamiento si la impresión sale corrida, y tamaño 50 × 25 para fotos.
 - **Sistema de marcaciones NFC:** solo está planificado, falta que el usuario decida:
   1. lector (tablet Android, PC con lector USB o celular);
