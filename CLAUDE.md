@@ -185,6 +185,9 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
   - Borrar una venta borra sus archivos. El respaldo JSON lleva `adjuntos` en base64 (`data`); al restaurar se reemplaza el IndexedDB.
 - Panel (`renderBiz`): filtro por mes (`b-month`), KPI (vendido, invertido, ganancia, caja neta), barra de recuperación del equipo (utilidad solo materiales ÷ inversión en equipo, todo el historial), ventas, por plan, por mes, compras y stock (comprado − usado; aviso si queda menos que el umbral).
 - Editores en `details.bizcfg` (`buildBizEditors`, `bizEditorNums`): parámetros, catálogo y planes.
+- Compras (`b-iadd`): tipo `stock` (material del catálogo), `equipo` o `gasto` (envío, publicidad, pasajes: suma en Invertido y caja neta, no en stock ni en la recuperación del equipo; sin piezas).
+  - "+ Otro material (nuevo)…" (`__new`, `#b-inew`) lo agrega al catálogo con pack = piezas y precio = costo; si el nombre ya existe (`cliKey`), usa ese.
+  - Catálogo: "Agregar material" (`#b-madd`, `prompt()`) y × solo en los materiales propios (los de `BIZ_BASE_MATS` usan las recetas y no se quitan). Los materiales nuevos no entran en el costo de los productos.
 - CSV (`bizCSV`, con BOM, separador coma) de ventas (con nombres de archivos), inversiones, catálogo, planes y negocios; respaldo y restauración en JSON.
 
 ### Descargas

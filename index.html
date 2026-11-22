@@ -1373,15 +1373,16 @@
           <div class="opts">
             <div class="field"><label for="b-ifecha">Fecha</label><input type="date" id="b-ifecha"></div>
             <div class="field"><label for="b-itipo">Tipo</label>
-              <select id="b-itipo"><option value="stock">Material (stock)</option><option value="equipo">Equipo (una sola vez)</option></select>
+              <select id="b-itipo"><option value="stock">Material (stock)</option><option value="equipo">Equipo (una sola vez)</option><option value="gasto">Otro gasto (envío, publicidad, pasajes…)</option></select>
             </div>
             <div class="field" id="b-imatf"><label for="b-imat">Material</label><select id="b-imat"></select></div>
-            <div class="field hidden" id="b-idescf"><label for="b-idesc">Equipo</label><input type="text" id="b-idesc" maxlength="80" placeholder="Ej.: Impresora"></div>
-            <div class="field"><label for="b-ipz">Piezas</label><input type="number" id="b-ipz" min="0" step="1" value="1" inputmode="numeric"></div>
+            <div class="field hidden" id="b-inewf"><label for="b-inew">Nombre del material nuevo</label><input type="text" id="b-inew" maxlength="80" placeholder="Ej.: Vinil adhesivo A4, cinta doble contacto"></div>
+            <div class="field hidden" id="b-idescf"><label for="b-idesc" id="b-idesclabel">Equipo</label><input type="text" id="b-idesc" maxlength="80" placeholder="Ej.: Impresora"></div>
+            <div class="field" id="b-ipzf"><label for="b-ipz">Piezas</label><input type="number" id="b-ipz" min="0" step="1" value="1" inputmode="numeric"></div>
             <div class="field"><label for="b-icost">Costo total (S/)</label><input type="number" id="b-icost" min="0" step="0.01" inputmode="decimal"></div>
           </div>
           <button class="btn primary" id="b-iadd" style="margin-top:12px">Registrar compra</button>
-          <p class="note" style="margin-top:8px">Un material comprado suma al stock; cada venta descuenta lo que usa (stand, chip, caja, sticker…).</p>
+          <p class="note" style="margin-top:8px">Un material comprado suma al stock; cada venta descuenta lo que usa (stand, chip, caja, sticker…). Si no está en la lista, elige <b>Otro material (nuevo)</b> y se agrega al catálogo. Lo que no es material ni equipo va como <b>Otro gasto</b>: cuenta en lo invertido, pero no en el stock.</p>
         </div>
         <div class="group">
           <div class="glabel">Stock de materiales</div>
@@ -5953,10 +5954,14 @@
       '<option value="otro">Otro (manual)</option>';
     if (cur && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
   }
+  // Materiales que usan las recetas (no se pueden quitar del catálogo)
+  var BIZ_BASE_MATS = ["stand", "soporte", "nfc", "caja", "funda", "hoja", "laminado"];
   function bizMatOptions() {
     var sel = $("b-imat"), cur = sel.value;
-    sel.innerHTML = biz.mats.map(function (m) { return '<option value="' + bizEsc(m.id) + '">' + bizEsc(m.name) + "</option>"; }).join("");
-    if (cur) sel.value = cur;
+    sel.innerHTML = biz.mats.map(function (m) { return '<option value="' + bizEsc(m.id) + '">' + bizEsc(m.name) + "</option>"; }).join("") +
+      '<option value="__new">+ Otro material (nuevo)…</option>';
+    if (cur && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
+    bizSyncInvType();
   }
   function bizFillSale() {
     var p = bizPlan($("b-vplan").value), q = Math.max(1, parseInt($("b-vcant").value, 10) || 1);
@@ -5992,19 +5997,33 @@
     })(0);
   });
   function bizSyncInvType() {
-    var eq = $("b-itipo").value === "equipo";
-    $("b-imatf").classList.toggle("hidden", eq); $("b-idescf").classList.toggle("hidden", !eq);
+    var t = $("b-itipo").value, stock = t === "stock", nw = stock && $("b-imat").value === "__new";
+    $("b-imatf").classList.toggle("hidden", !stock); $("b-inewf").classList.toggle("hidden", !nw);
+    $("b-idescf").classList.toggle("hidden", stock); $("b-ipzf").classList.toggle("hidden", t === "gasto");
+    $("b-idesclabel").textContent = t === "gasto" ? "Descripción del gasto" : "Equipo";
+    $("b-idesc").placeholder = t === "gasto" ? "Ej.: Envío Olva, publicidad en Facebook, pasajes" : "Ej.: Impresora, cortadora, guillotina";
   }
   $("b-itipo").addEventListener("change", bizSyncInvType);
+  $("b-imat").addEventListener("change", function () { bizSyncInvType(); if ($("b-imat").value === "__new") $("b-inew").focus(); });
   $("b-iadd").addEventListener("click", function () {
-    var eq = $("b-itipo").value === "equipo", cost = num($("b-icost").value), m = bizMat($("b-imat").value);
-    var item = eq ? $("b-idesc").value.trim() : (m ? m.name : "");
-    if (!item) { alert(eq ? "Escribe qué equipo compraste." : "Elige el material."); return; }
+    var t = $("b-itipo").value, cost = num($("b-icost").value), pz = Math.max(0, parseInt($("b-ipz").value, 10) || 0), m = null, item;
+    if (t === "stock") {
+      if ($("b-imat").value === "__new") {
+        var n = $("b-inew").value.replace(/\s+/g, " ").trim();
+        if (!n) { alert("Escribe el nombre del material nuevo."); return; }
+        m = biz.mats.filter(function (x) { return cliKey(x.name) === cliKey(n); })[0] || null;
+        if (!m && !(cost > 0)) { alert("Pon el costo total de la compra."); return; }
+        if (!m) { m = { id: "m" + bizId(), name: n, pack: Math.max(1, pz), price: cost }; biz.mats.push(m); }   // nuevo en el catálogo, con su costo unitario
+      } else m = bizMat($("b-imat").value);
+      item = m ? m.name : "";
+    } else item = $("b-idesc").value.replace(/\s+/g, " ").trim();
+    if (!item) { alert(t === "equipo" ? "Escribe qué equipo compraste." : t === "gasto" ? "Escribe en qué fue el gasto." : "Elige el material."); return; }
     if (!(cost > 0)) { alert("Pon el costo total de la compra."); return; }
-    biz.invs.push({ id: bizId(), fecha: $("b-ifecha").value || todayISO(), item: item, mat: eq ? "" : m.id,
-      piezas: Math.max(0, parseInt($("b-ipz").value, 10) || 0), costo: cost, tipo: eq ? "equipo" : "stock" });
+    biz.invs.push({ id: bizId(), fecha: $("b-ifecha").value || todayISO(), item: item, mat: m ? m.id : "",
+      piezas: t === "gasto" ? 0 : pz, costo: cost, tipo: t });
     saveBiz();
-    $("b-idesc").value = ""; $("b-icost").value = ""; $("b-ipz").value = 1;
+    $("b-idesc").value = ""; $("b-inew").value = ""; $("b-icost").value = ""; $("b-ipz").value = 1;
+    if (m && $("b-imat").value === "__new") { buildBizEditors(); $("b-imat").value = m.id; bizSyncInvType(); }
     renderBiz();
   });
   $("b-month").addEventListener("change", renderBiz);
@@ -6020,13 +6039,15 @@
     $("b-cfg").innerHTML = BIZ_CFG.map(function (f) {
       return '<div class="field"><label for="b-c-' + f[0] + '">' + f[1] + '</label><input type="number" id="b-c-' + f[0] + '" data-k="' + f[0] + '" min="0" step="' + f[2] + '" value="' + num(biz.cfg[f[0]]) + '"></div>';
     }).join("");
-    $("b-mats").innerHTML = "<thead><tr><th>Material</th><th class=\"n\">Piezas del pack</th><th class=\"n\">Precio del pack (S/)</th><th class=\"n\">Costo unitario</th></tr></thead><tbody>" +
+    $("b-mats").innerHTML = "<thead><tr><th>Material</th><th class=\"n\">Piezas del pack</th><th class=\"n\">Precio del pack (S/)</th><th class=\"n\">Costo unitario</th><th></th></tr></thead><tbody>" +
       biz.mats.map(function (m, i) {
         return '<tr><td><input type="text" class="nm" data-i="' + i + '" data-k="name" value="' + bizEsc(m.name) + '"></td>' +
           '<td class="n"><input type="number" min="0" step="1" data-i="' + i + '" data-k="pack" value="' + num(m.pack) + '"></td>' +
           '<td class="n"><input type="number" min="0" step="0.01" data-i="' + i + '" data-k="price" value="' + num(m.price) + '"></td>' +
-          '<td class="n" id="b-mu-' + i + '">' + money(bizUnit(m)) + "</td></tr>";
+          '<td class="n" id="b-mu-' + i + '">' + money(bizUnit(m)) + "</td>" +
+          "<td>" + (BIZ_BASE_MATS.indexOf(m.id) < 0 ? '<button class="x" data-mdel="' + i + '" title="Quitar material">×</button>' : "") + "</td></tr>";
       }).join("") + "</tbody>";
+    if (!$("b-madd")) $("b-mats").closest(".tscroll").insertAdjacentHTML("afterend", '<button class="btn" id="b-madd" style="margin-top:10px;width:auto">Agregar material</button>');
     $("b-plantbl").innerHTML = "<thead><tr><th>Plan</th><th class=\"n\">Precio (S/)</th><th class=\"n\">Stands</th><th class=\"n\">Tarjetas</th><th class=\"n\">Costo</th><th class=\"n\">Utilidad</th><th></th></tr></thead><tbody>" +
       biz.plans.map(function (p, i) {
         return '<tr><td><input type="text" class="nm" data-i="' + i + '" data-k="name" value="' + bizEsc(p.name) + '"></td>' +
@@ -6057,6 +6078,20 @@
     var i = ev.target.dataset.i, k = ev.target.dataset.k; if (i == null) return;
     biz.mats[+i][k] = k === "name" ? ev.target.value : num(ev.target.value);
     saveBiz(); if (k === "name") bizMatOptions(); bizEditorNums(); bizSalePreview(); renderBiz();
+  });
+  $("b-mats").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-mdel]"); if (!b) return;
+    var m = biz.mats[+b.dataset.mdel];
+    if (!confirm("¿Quitar \"" + m.name + "\" del catálogo? Las compras ya registradas no cambian.")) return;
+    biz.mats.splice(+b.dataset.mdel, 1); saveBiz(); buildBizEditors(); renderBiz();
+  });
+  document.addEventListener("click", function (ev) {
+    if (!ev.target.closest || !ev.target.closest("#b-madd")) return;
+    var n = prompt("Nombre del material (p. ej. Vinil adhesivo A4):"); if (n == null) return;
+    n = n.replace(/\s+/g, " ").trim(); if (!n) return;
+    biz.mats.push({ id: "m" + bizId(), name: n, pack: 1, price: 0 });
+    saveBiz(); buildBizEditors();
+    var i = biz.mats.length - 1, f = document.querySelector('#b-mats input[data-i="' + i + '"][data-k="pack"]'); if (f) f.focus();
   });
   $("b-plantbl").addEventListener("input", function (ev) {
     var i = ev.target.dataset.i, k = ev.target.dataset.k; if (i == null) return;
@@ -6093,7 +6128,7 @@
     function tile(label, val, sub, cls) { return '<div class="kpi"><span>' + label + '</span><b class="' + (cls || "") + '">' + val + "</b><small>" + sub + "</small></div>"; }
     $("b-kpis").innerHTML =
       tile("Vendido", money(sold), V.length + (V.length === 1 ? " venta" : " ventas")) +
-      tile("Invertido", money(inv), "materiales y equipo") +
+      tile("Invertido", money(inv), "materiales, equipo y gastos") +
       tile("Ganancia", money(gain), (sold ? Math.round(gain / sold * 100) : 0) + " % de margen" + (biz.cfg.tiempo ? " (con tu tiempo)" : " (solo materiales)"), gain < 0 ? "neg" : "pos") +
       tile("Caja neta", money(cash), "vendido − invertido", cash < 0 ? "neg" : "pos");
 
@@ -6145,7 +6180,7 @@
     var is = I.slice().sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); });
     $("b-invs").innerHTML = is.length ? "<thead><tr><th>Fecha</th><th>Compra</th><th>Tipo</th><th class=\"n\">Piezas</th><th class=\"n\">Costo</th><th></th></tr></thead><tbody>" +
       is.map(function (r) {
-        return "<tr><td>" + bizEsc(r.fecha) + "</td><td>" + bizEsc(r.item) + "</td><td>" + (r.tipo === "equipo" ? "Equipo" : "Stock") + '</td><td class="n">' + num(r.piezas) + '</td><td class="n">' + money(num(r.costo)) + "</td>" +
+        return "<tr><td>" + bizEsc(r.fecha) + "</td><td>" + bizEsc(r.item) + "</td><td>" + (r.tipo === "equipo" ? "Equipo" : r.tipo === "gasto" ? "Gasto" : "Stock") + '</td><td class="n">' + num(r.piezas) + '</td><td class="n">' + money(num(r.costo)) + "</td>" +
           '<td><button class="x" data-di="' + bizEsc(r.id) + '" title="Borrar">×</button></td></tr>';
       }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Sin compras en este periodo.</td></tr></tbody>';
 
