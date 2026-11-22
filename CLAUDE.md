@@ -132,6 +132,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Elegir un color de fondo a mano vuelve a "free".
 - **Maqueta 3D** (`render3D`, `#s-3d`):
   - Soporte en L de acrílico con inclinación de 10° y pie detrás de 5 cm. Bordes y pie del color del material.
+  - "Soporte de acrílico" (`#s-3dacr`, localStorage `nfc-3dacr`): según el material, blanco o negro; vale para la maqueta, el PNG y el video (`o.mat` del brochure manda). El negro lleva un reflejo fino en las aristas para no perderse en la mesa oscura; el sticker conserva su canto blanco, sombra y brillo.
   - El frente es un sticker laminado pegado sobre el acrílico: 1.5 mm más chico por lado (se ve el marco del acrílico), con grosor de ~0.8 mm (exagerado para que se note), canto blanco, sombra, bisel y una franja de brillo que se mueve con el giro (en el video recorre el sticker).
   - El diseño va en perspectiva real, con una malla de triángulos afines (`texTri`) recortada al contorno del sticker.
   - Se gira con el deslizador o arrastrando (yaw de ±60°). Mesa oscura, clara o de madera, y descarga en PNG.

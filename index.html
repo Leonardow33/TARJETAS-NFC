@@ -683,10 +683,18 @@
       </button>
       <div id="s-3d" class="hidden" style="margin-top:12px">
         <canvas id="s-3dcv" width="1000" height="760" role="img" aria-label="Maqueta 3D del soporte"></canvas>
-        <div class="opts" style="margin-top:12px">
+        <div class="field" style="margin-top:12px">
+          <label for="s-3dyaw">Girar</label>
+          <input type="range" id="s-3dyaw" min="-60" max="60" step="1" value="-28">
+        </div>
+        <div class="opts" style="margin-top:10px">
           <div class="field">
-            <label for="s-3dyaw">Girar</label>
-            <input type="range" id="s-3dyaw" min="-60" max="60" step="1" value="-28">
+            <label for="s-3dacr">Soporte de acrílico</label>
+            <select id="s-3dacr" title="Color del soporte en la maqueta y en el video. El sticker se sigue viendo pegado encima, con su canto y su brillo.">
+              <option value="auto">Según el material</option>
+              <option value="white">Blanco</option>
+              <option value="black">Negro</option>
+            </select>
           </div>
           <div class="field">
             <label for="s-3dtable">Mesa</label>
@@ -5122,7 +5130,8 @@
     var U = Math.min(CW, CH) / 760;   // escala de textos y líneas (1 en la vista normal)
     var W = o.w || sup.w, H = o.h || sup.h, th = 3, tilt = 10 * Math.PI / 180, D = Math.min(50, Math.min(W, H) * 0.66);   // pie de 5 cm, como el soporte de 7.6 × 12.75
     var yaw = (o.yaw != null ? o.yaw : parseFloat($("s-3dyaw").value) || 0) * Math.PI / 180, pitch = 20 * Math.PI / 180;
-    var mat = o.mat || sup.material || "free";
+    var acr = $("s-3dacr").value;   // color del soporte elegido para la maqueta y el video
+    var mat = o.mat || (acr === "white" || acr === "black" ? acr : sup.material || "free");
     var edge = mat === "black" ? "#1d1f25" : mat === "wood" ? "#a87443" : "#eef0f2";
     var ct = Math.cos(tilt), st = Math.sin(tilt);
     function P(x, y, z) { return [x, y, z]; }
@@ -5187,10 +5196,15 @@
       { p: [TL, TR, bTR, bTL], c: shade(edge, 0.15) }
     ];
     faces.sort(function (a, b) { return depth(a.p) - depth(b.p); });
-    faces.forEach(function (f) { poly(f.p, f.c); });
+    var dark = mat === "black";   // acrílico negro: reflejo fino en las aristas para que no se pierda en la mesa oscura
+    faces.forEach(function (f) {
+      poly(f.p, f.c);
+      if (dark) { c.strokeStyle = "rgba(255,255,255,.13)"; c.lineWidth = Math.max(1, 0.8 * U); c.lineJoin = "round"; c.stroke(); }
+    });
 
     // cara del acrílico (se ve como un marco alrededor del sticker) y su brillo
-    poly([FL, FR, TR, TL], shade(edge, mat === "black" ? 0.05 : -0.03));
+    poly([FL, FR, TR, TL], shade(edge, dark ? 0.05 : -0.03));
+    if (dark) { c.strokeStyle = "rgba(255,255,255,.22)"; c.lineWidth = Math.max(1, 1.1 * U); c.stroke(); }
     var q = [FL, FR, TR, TL].map(scr);
     c.save();
     c.beginPath(); q.forEach(function (p, i2) { c[i2 ? "lineTo" : "moveTo"](p[0], p[1]); }); c.closePath(); c.clip();
@@ -5307,6 +5321,11 @@
   });
   $("s-3dyaw").addEventListener("input", render3DSoon);
   $("s-3dtable").addEventListener("change", render3DSoon);
+  try { var acr0 = localStorage.getItem("nfc-3dacr"); if (acr0 === "white" || acr0 === "black") $("s-3dacr").value = acr0; } catch (e) {}
+  $("s-3dacr").addEventListener("change", function () {
+    try { localStorage.setItem("nfc-3dacr", $("s-3dacr").value); } catch (e) {}
+    render3DSoon();
+  });
   $("s-3dmeas").addEventListener("change", render3DSoon);
   (function () {
     var cv = $("s-3dcv"), last = null;
