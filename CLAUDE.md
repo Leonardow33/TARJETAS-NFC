@@ -169,14 +169,27 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
 
 ### Negocio (`#view-biz`, ids `b-*`, localStorage `nfc-negocio`)
 Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porque es público y tiene costos).
-- `biz` = { cfg, mats, plans, ventas, invs }. `bizDefaults()` trae los valores de la guía y el equipo inicial: impresora + lectora/grabadora NFC (S/ 350) y selladora USB (S/ 7.78).
+- `biz` = { cfg, mats, plans, clientes, ventas, invs }. `bizDefaults()` trae los valores de la guía y el equipo inicial: impresora + lectora/grabadora NFC (S/ 350) y selladora USB (S/ 7.78).
   - cfg: hora, minStand, minTarjeta, stkStand (4), stkTarjeta (11), impresion, impuesto (%), tiempo (bool), umbral.
   - El chip NFC va como un pack de 21 piezas a S/ 18.05 (6 + 15 comprados) → S/ 0.86.
 - `bizRecipe("stand"|"tarjeta")`: materiales por producto (la hoja A4 en fracción). `bizProdCost`, `bizTimeCost`, `bizCalc(v)` → mat, time, cost, util, utilMat, margin. Usa siempre el catálogo actual: si cambia un precio, cambian todos los márgenes.
-- Venta: fecha, cliente, plan (nombre), cant, total, stands, tarjetas (totales) y notas. El plan llena stands, tarjetas y precio (editables). "Otro (manual)".
+- Venta: fecha, cliente, clienteId, plan (nombre), cant, total, stands, tarjetas (totales), notas y `adj` (metadatos de archivos). El plan llena stands, tarjetas y precio (editables). "Otro (manual)".
+- **Historial de negocios** (`#b-hist`, `renderClients`): `biz.clientes` = { id, nombre, tel, contacto, dir, link, notas, creado }.
+  - Se arma solo con las ventas: `bizCliEnsure` busca por nombre normalizado (`cliKey`: sin tildes, mayúsculas ni espacios de más) y `bizLinkClients` (en `loadBiz`) une las ventas antiguas o restauradas.
+  - El campo Cliente tiene `datalist` (`#b-clist`) y `#b-vcliinfo` avisa si el negocio ya existe. "Nuevo negocio" usa `prompt()`.
+  - Cada negocio (`details.bcli`, `cliOpen` recuerda los abiertos) muestra datos editables, compras con su 📎, "Registrar venta a este negocio", "Usar su link en Soportes" (pone `#s-link`) y WhatsApp (`waLink`, +51 si son 9 dígitos). Solo se borra si no tiene ventas. Al renombrarlo cambia `v.cliente` de sus ventas.
+  - `keepFocus(fn)` vuelve a dibujar sin perder el campo activo.
+- **Archivos por venta** (IndexedDB `nfc-adjuntos`, store `files` { id, venta, name, type, size, fecha, blob, design? }): `adjPut/adjGet/adjAll/adjDel/adjClear`, `adjAdd(v, recs)`.
+  - Al registrar la venta: `#b-vfiles` y `#b-vdesign` (diseño actual de Soportes, Plantillas o los dos). Ventana `#bv` (`bvOpen`, botón 📎 en ventas y en el historial): notas, miniaturas, Ver, Descargar, Borrar y subir más.
+  - `adjDesign(area, v)`: PNG a `EXPORT_PPMM` + JSON editable (`supPack(true)` o las claves `TPL_SAVE`). "Editar en Soportes/Plantillas" (`adjOpenDesign`) escribe `nfc-soporte`/`nfc-plantilla`, deja `sessionStorage nfc-goto` y recarga.
+  - Borrar una venta borra sus archivos. El respaldo JSON lleva `adjuntos` en base64 (`data`); al restaurar se reemplaza el IndexedDB.
 - Panel (`renderBiz`): filtro por mes (`b-month`), KPI (vendido, invertido, ganancia, caja neta), barra de recuperación del equipo (utilidad solo materiales ÷ inversión en equipo, todo el historial), ventas, por plan, por mes, compras y stock (comprado − usado; aviso si queda menos que el umbral).
 - Editores en `details.bizcfg` (`buildBizEditors`, `bizEditorNums`): parámetros, catálogo y planes.
-- CSV (`bizCSV`, con BOM, separador coma) de ventas, inversiones, catálogo y planes; respaldo y restauración en JSON.
+- CSV (`bizCSV`, con BOM, separador coma) de ventas (con nombres de archivos), inversiones, catálogo, planes y negocios; respaldo y restauración en JSON.
+
+### Descargas
+- Todo pasa por `downloadBlob(blob, name, named)`: abre el cuadro `#fn` (`askFileName`) para escribir el nombre; la extensión se conserva y `fnClean` quita caracteres inválidos. Los PDF usan `savePDF(doc, name)` (no `doc.save`). El PNG de Foto (`#resultdl`) también pregunta.
+- El video pide el nombre **antes** de grabar (`recordVideo(mime, ext, fname)`) y al terminar descarga directo.
 
 ## Pruebas
 - Sintaxis: `node -e` con `new Function(script)`.
@@ -185,7 +198,7 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
   - exponla con reemplazos dentro de la IIFE (p. ej. `window.__lg`);
   - escribe en `<pre id="res">` los logs y las imágenes como `IMG<nombre> data:...`;
   - extrae las imágenes con un script de Python y revísalas con Read;
-  - parchea `jspdf.jsPDF.API.save` para contar páginas, o para sacar el PDF con `this.output("datauristring")`.
+  - los PDF ya no usan `doc.save`: para contarlos o sacarlos, parchea `jspdf.jsPDF.API.output` o `HTMLAnchorElement.prototype.click` (captura el `href` del blob tras pulsar `#fn-ok`).
 - Para ver un PDF no hay poppler (Read no lo abre): se renderiza con pdf.js 3.11.174 de cdnjs en Edge headless.
   - El PDF va embebido en base64 (fetch de file:// falla) y `pdf.worker.min.js` se carga como `<script>` (worker falso); `--virtual-time-budget=30000`.
   - Scripts en el scratchpad: `mkbro.py` (página de prueba), `expdf.py`, `mkpv.py` y `eximg.py`.
@@ -240,6 +253,7 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
 - **Nota:** el papel térmico se desvanece con sol, calor y roce. Para tarjetas duraderas: laminar, o usar la hoja A4 con tinta o láser.
 
 ## Pendiente
+- **Links acortados de reseñas (p. ej. `reviewthis.biz/...`):** respondido, sin implementar. Son un 302 a `search.google.com/local/writereview?placeid=…` (verificado con curl). Desde la app (GitHub Pages) no se puede leer la redirección por CORS. Opciones ofrecidas: campo que acepte el link final pegado y saque el `placeid`, o un proxy propio (Google Apps Script o Cloudflare Worker gratis) para resolverlo solo. Recomendado grabar en el chip el link directo de Google, no el acortador.
 - **Ofrecido, sin respuesta del usuario:**
   - "Reducir sticker" (0.5–1 mm por lado) en Soportes, como en tarjetas, para cuando el fondo coincide con el plástico;
   - estrellas doradas brillantes con borde oscuro sobre madera (hoy salen en dorado oscuro).

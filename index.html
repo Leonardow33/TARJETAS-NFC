@@ -214,12 +214,12 @@
   input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid var(--panel); cursor: pointer; }
   input[type="range"][disabled] { opacity: .4; }
 
-  input[type="text"] {
+  input[type="text"], input[type="search"], input[type="tel"], input[type="url"] {
     width: 100%; font: inherit; font-size: .9rem; color: var(--ink);
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px;
     padding: 9px 11px;
   }
-  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  input[type="text"]:focus, input[type="search"]:focus, input[type="tel"]:focus, input[type="url"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 
   .swatches { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .swatch { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line-strong); cursor: pointer; padding: 0; }
@@ -394,6 +394,36 @@
   @media (min-width: 980px) { .bizcols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); } }
   .bizcol { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   .tscroll { overflow-x: auto; }
+  .flabel { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+  .bhbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .bhbar input { flex: 1 1 240px; }
+  .bhbar .btn { width: auto; }
+  details.bcli { border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; background: var(--panel); }
+  details.bcli > summary { cursor: pointer; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 6px 14px; flex-wrap: wrap; list-style: none; }
+  details.bcli > summary::-webkit-details-marker { display: none; }
+  details.bcli > summary > span:first-child::before { content: "\25B8"; color: var(--muted); margin-right: 8px; display: inline-block; }
+  details.bcli[open] > summary > span:first-child::before { transform: rotate(90deg); }
+  details.bcli > summary > span:first-child { flex: 1 1 auto; min-width: 0; }
+  details.bcli .tag { display: inline-block; font-size: .7rem; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); margin-left: 6px; vertical-align: 1px; }
+  .bcli-body { padding: 2px 12px 12px; }
+  .bcli-body .s-tools { margin-top: 10px; }
+  .bcli-body .wide { grid-column: 1 / -1; }
+  .bclip { border: 1px solid var(--line-strong); background: var(--panel-2); color: var(--ink); border-radius: 6px; padding: 2px 8px; cursor: pointer; font: inherit; font-size: .78rem; white-space: nowrap; }
+  .bv-box { max-width: 860px; }
+  #fn { z-index: 60; }   /* encima de la ventana de la venta */
+  .fn-box { max-width: 480px; }
+  .fnrow { display: flex; align-items: center; gap: 6px; }
+  .fnrow input { flex: 1; min-width: 0; }
+  #fn-ext { color: var(--muted); font-weight: 600; }
+  .bvfiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .bvf { border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; font-size: .78rem; min-width: 0; }
+  .bvf .th { height: 116px; border-radius: 6px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .bvf .th img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .bvf .th b { font-size: 1rem; color: var(--muted); letter-spacing: .04em; }
+  .bvf .nm { font-weight: 620; word-break: break-word; }
+  .bvf .acts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
+  .bvf .acts button { font: inherit; font-size: .74rem; padding: 3px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-2); color: var(--ink); cursor: pointer; }
+  .bvf .acts button.del { color: var(--danger); }
   .btable { width: 100%; border-collapse: collapse; font-size: .82rem; }
   .btable th { text-align: left; font-weight: 600; color: var(--muted); font-size: .74rem; padding: 6px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   .btable td { padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
@@ -1320,15 +1350,22 @@
           <div class="glabel">Registrar venta</div>
           <div class="opts">
             <div class="field"><label for="b-vfecha">Fecha</label><input type="date" id="b-vfecha"></div>
-            <div class="field"><label for="b-vcli">Cliente</label><input type="text" id="b-vcli" maxlength="80" placeholder="Nombre del negocio"></div>
+            <div class="field"><label for="b-vcli">Cliente</label><input type="text" id="b-vcli" maxlength="80" placeholder="Nombre del negocio" list="b-clist" autocomplete="off"><datalist id="b-clist"></datalist></div>
             <div class="field"><label for="b-vplan">Plan</label><select id="b-vplan"></select></div>
             <div class="field"><label for="b-vcant">Cantidad</label><input type="number" id="b-vcant" min="1" step="1" value="1" inputmode="numeric"></div>
             <div class="field"><label for="b-vstands">Stands (total)</label><input type="number" id="b-vstands" min="0" step="1" inputmode="numeric"></div>
             <div class="field"><label for="b-vtarj">Tarjetas (total)</label><input type="number" id="b-vtarj" min="0" step="1" inputmode="numeric"></div>
             <div class="field"><label for="b-vtotal">Precio cobrado (S/)</label><input type="number" id="b-vtotal" min="0" step="0.01" inputmode="decimal"></div>
             <div class="field"><label for="b-vnotas">Notas</label><input type="text" id="b-vnotas" maxlength="140"></div>
+            <div class="field"><label for="b-vdesign">Guardar el diseño actual</label>
+              <select id="b-vdesign"><option value="">No</option><option value="sup">De Soportes</option><option value="tpl">De Plantillas</option><option value="both">De los dos</option></select>
+            </div>
+            <div class="field"><span class="flabel">Archivos impresos (opcional)</span>
+              <label class="btn" for="b-vfiles" id="b-vfileslabel">Elegir archivos</label><input type="file" id="b-vfiles" multiple>
+            </div>
           </div>
-          <p class="note" id="b-vprev" style="margin-top:10px"></p>
+          <p class="note" id="b-vcliinfo" style="margin-top:10px"></p>
+          <p class="note" id="b-vprev" style="margin-top:6px"></p>
           <button class="btn primary" id="b-vadd" style="margin-top:10px">Registrar venta</button>
         </div>
         <div class="group">
@@ -1370,6 +1407,15 @@
         </div>
       </div>
     </div>
+    <div class="group" style="margin-top:14px" id="b-hist">
+      <div class="glabel">Historial de negocios</div>
+      <div class="bhbar">
+        <input type="search" id="b-csearch" placeholder="Buscar por negocio, teléfono, distrito o nota" aria-label="Buscar negocio">
+        <button class="btn" id="b-cnew">Nuevo negocio</button>
+      </div>
+      <p class="note" id="b-csum" style="margin-top:8px"></p>
+      <div id="b-clients"></div>
+    </div>
     <details class="group bizcfg" style="margin-top:14px">
       <summary>Costos, precios y tiempos (editables)</summary>
       <p class="note" id="b-costline" style="margin-top:10px"></p>
@@ -1388,11 +1434,12 @@
         <button class="btn" data-csv="inversiones">CSV inversiones</button>
         <button class="btn" data-csv="catalogo">CSV catálogo</button>
         <button class="btn" data-csv="planes">CSV planes</button>
+        <button class="btn" data-csv="clientes">CSV negocios</button>
         <button class="btn" id="b-backup">Respaldo</button>
         <label class="btn" for="b-restore">Restaurar</label>
       </div>
       <input type="file" id="b-restore" accept=".json,application/json">
-      <p class="note" style="margin-top:10px">Los datos se guardan solo en este navegador: no se suben a internet. Descarga un <b>respaldo</b> de vez en cuando; si borras los datos del navegador o cambias de equipo, lo recuperas con <b>Restaurar</b>. Los CSV se abren en Excel o Power BI.</p>
+      <p class="note" style="margin-top:10px">Los datos se guardan solo en este navegador: no se suben a internet. Descarga un <b>respaldo</b> de vez en cuando (incluye los archivos adjuntos de cada venta); si borras los datos del navegador o cambias de equipo, lo recuperas con <b>Restaurar</b>. Los CSV se abren en Excel o Power BI.</p>
     </div>
   </div>
 
@@ -1455,6 +1502,35 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="imged hidden" id="fn" role="dialog" aria-modal="true" aria-labelledby="fn-title">
+  <div class="ie-box fn-box">
+    <div class="ie-head"><b id="fn-title">Nombre del archivo</b></div>
+    <div class="fnrow"><input type="text" id="fn-in" maxlength="120" autocomplete="off" spellcheck="false" aria-label="Nombre del archivo"><span id="fn-ext"></span></div>
+    <p class="note" style="margin-top:8px">Ponle un nombre fácil de encontrar, por ejemplo el cliente, el producto y la fecha.</p>
+    <div class="btnrow" style="margin-top:12px"><button class="btn" id="fn-no">Cancelar</button><button class="btn primary" id="fn-ok">Descargar</button></div>
+  </div>
+</div>
+
+<div class="imged hidden" id="bv" role="dialog" aria-modal="true" aria-labelledby="bv-title">
+  <div class="ie-box bv-box">
+    <div class="ie-head">
+      <b id="bv-title">Venta</b>
+      <button class="linkbtn" id="bv-x" aria-label="Cerrar">Cerrar ✕</button>
+    </div>
+    <p class="note" id="bv-info"></p>
+    <div class="field"><label for="bv-notas">Notas de la venta</label><input type="text" id="bv-notas" maxlength="300" placeholder="Ej.: stand negro, logo dorado, entregado el sábado"></div>
+    <div class="glabel" style="margin-top:14px">Archivos de esta venta</div>
+    <div class="bvfiles" id="bv-files"></div>
+    <div class="s-tools" style="margin-top:12px">
+      <label class="btn" for="bv-up">Subir archivos</label>
+      <button class="btn" id="bv-dsup">Guardar diseño actual de Soportes</button>
+      <button class="btn" id="bv-dtpl">Guardar diseño actual de Plantillas</button>
+    </div>
+    <input type="file" id="bv-up" multiple>
+    <p class="note" style="margin-top:10px">Sube el PDF o la imagen que imprimiste. "Guardar diseño actual" guarda una imagen a tamaño real y el diseño editable: con <b>Editar</b> lo vuelves a abrir en la app para cambiarlo o reimprimirlo. Los archivos quedan en este navegador; el <b>respaldo</b> de Negocio los incluye.</p>
   </div>
 </div>
 
@@ -2007,7 +2083,7 @@
       orientation: cm.w > cm.h ? "landscape" : "portrait", compress: true
     });
     doc.addImage(renderCard(EXPORT_PPMM, 0).toDataURL("image/png"), "PNG", 0, 0, cm.w, cm.h, "card", "FAST");
-    doc.save("tarjeta-nfc-" + String(cm.w).replace(".", ",") + "x" + String(cm.h).replace(".", ",") + "mm.pdf");
+    savePDF(doc, "tarjeta-nfc-" + String(cm.w).replace(".", ",") + "x" + String(cm.h).replace(".", ",") + "mm.pdf");
   });
 
   $("download").addEventListener("click", function () {
@@ -2021,9 +2097,14 @@
       img.src = url;
       a.href = url;
       a.download = "tarjeta-nfc-" + out.width + "x" + out.height + ".png";
+      a._blob = blob;
       $("result").classList.add("show");
       $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, "image/png");
+  });
+  $("resultdl").addEventListener("click", function (e) {   // pide el nombre antes de guardar
+    var a = $("resultdl"); if (!a._blob) return;
+    e.preventDefault(); downloadBlob(a._blob, a.download);
   });
 
   // ---- Foto en etiqueta térmica 70 × 40 ----
@@ -2491,14 +2572,14 @@
 
   $("sheetPdf").addEventListener("click", function () {
     var doc = buildSheetPDF(); if (!doc) return;
-    doc.save("stickers-nfc-a4.pdf");
+    savePDF(doc, "stickers-nfc-a4.pdf");
   });
 
   $("sheetPrint").addEventListener("click", function () {
     var doc = buildSheetPDF(); if (!doc) return;
     doc.autoPrint();
     var w = window.open(doc.output("bloburl"), "_blank");
-    if (!w) doc.save("stickers-nfc-a4.pdf");   // si bloquean la ventana, se descarga
+    if (!w) savePDF(doc, "stickers-nfc-a4.pdf");   // si bloquean la ventana, se descarga
   });
 
   ["margin", "gap", "bleed", "cutlines"].forEach(function (id) {
@@ -3229,12 +3310,39 @@
     tpl.logo = null; $("t-logo").value = ""; syncTplUI();
   });
 
-  function downloadBlob(blob, name) {
+  // ---- Nombre del archivo antes de descargar (para encontrarlo fácil después) ----
+  var fnCb = null;
+  function fnClean(s) { return String(s || "").replace(/[\\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\s+/g, " ").replace(/^[\s.-]+|[\s.]+$/g, ""); }
+  function askFileName(name, cb, title) {
+    var m = /(\.[a-z0-9]{2,5})$/i.exec(name || ""), ext = m ? m[1] : "";
+    $("fn-title").textContent = title || "Nombre del archivo";
+    $("fn-in").value = ext ? name.slice(0, -ext.length) : name;
+    $("fn-ext").textContent = ext;
+    fnCb = function (base) { var b = fnClean(base) || (ext ? name.slice(0, -ext.length) : name); cb(ext && b.toLowerCase().slice(-ext.length) !== ext.toLowerCase() ? b + ext : b); };
+    $("fn").classList.remove("hidden");
+    setTimeout(function () { var i = $("fn-in"); i.focus(); i.select(); }, 30);
+  }
+  function fnClose(ok) {
+    var cb = fnCb; fnCb = null;
+    $("fn").classList.add("hidden");
+    if (ok && cb) cb($("fn-in").value);
+  }
+  $("fn-ok").addEventListener("click", function () { fnClose(true); });
+  $("fn-no").addEventListener("click", function () { fnClose(false); });
+  $("fn-in").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); fnClose(true); }
+    else if (e.key === "Escape") { e.preventDefault(); fnClose(false); }
+  });
+  $("fn").addEventListener("click", function (e) { if (e.target === $("fn")) fnClose(false); });
+  // named = true: el nombre ya se pidió (p. ej. el video, antes de grabar)
+  function downloadBlob(blob, name, named) {
+    if (!named) { askFileName(name, function (n) { downloadBlob(blob, n, true); }); return; }
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
   }
+  function savePDF(doc, name) { downloadBlob(doc.output("blob"), name); }
 
   // Caras con diseño, en orden de impresión
   function tplSides(t) {
@@ -3262,7 +3370,7 @@
       });
     }
     doc.setProperties({ title: "Etiquetas " + w + "x" + h + " mm" });
-    doc.save(name + "-" + w + "x" + h + "mm" + (copies > 1 ? "-x" + copies : "") + ".pdf");
+    savePDF(doc, name + "-" + w + "x" + h + "mm" + (copies > 1 ? "-x" + copies : "") + ".pdf");
   }
 
   // ---- Etiqueta térmica pequeña (70×40, 50×25) ----
@@ -3353,7 +3461,7 @@
       if (i) doc.addPage([m.w, m.h], o);
       doc.addImage(renderTemplate(t, EXPORT_PPMM, 0, false).toDataURL("image/png"), "PNG", 0, 0, m.w, m.h, "tcard" + i, "FAST");
     });
-    doc.save((m.chip ? "chip-nfc-" : "tarjeta-presentacion-") + String(+m.w.toFixed(2)).replace(".", ",") + "x" + String(+m.h.toFixed(2)).replace(".", ",") + "mm.pdf");
+    savePDF(doc, (m.chip ? "chip-nfc-" : "tarjeta-presentacion-") + String(+m.w.toFixed(2)).replace(".", ",") + "x" + String(+m.h.toFixed(2)).replace(".", ",") + "mm.pdf");
   });
 
   // ================= SOPORTES (medida libre, editor de elementos) =================
@@ -5016,7 +5124,7 @@
     footer(3);
 
     doc.setProperties({ title: "Soportes y tarjetas NFC para negocios", author: name });
-    doc.save("brochure-soportes-nfc.pdf");
+    savePDF(doc, "brochure-soportes-nfc.pdf");
   }
   $("s-brochure").addEventListener("click", function () {
     var l = $("s-brochurelabel"), t0 = l.textContent;
@@ -5360,8 +5468,14 @@
   var vidBusy = false;
   $("s-3dvid").addEventListener("click", function () {
     if (vidBusy || !supReady()) return;
-    var mime = videoMime(), btn = $("s-3dvid"), label = btn.textContent;
+    var mime = videoMime();
     if (!mime || !document.createElement("canvas").captureStream) { alert("Este navegador no puede grabar video. Usa Chrome o Edge actualizados."); return; }
+    var ext = mime.indexOf("mp4") >= 0 ? "mp4" : "webm";
+    askFileName("video-soporte-" + supName() + "." + ext, function (fname) { recordVideo(mime, ext, fname); }, "Nombre del video (se descarga al terminar de grabar)");
+  });
+  function recordVideo(mime, ext, fname) {
+    if (vidBusy) return;
+    var btn = $("s-3dvid"), label = btn.textContent;
     var fmt = VID_FORMATS[$("s-3dvfmt").value] || VID_FORMATS.vertical, secs = parseFloat($("s-3dvdur").value) || 8;
     var cv = document.createElement("canvas"); cv.width = fmt[0]; cv.height = fmt[1];
     var tex = renderSupport(Math.min(8, 1400 / Math.max(sup.w, sup.h)), 0);
@@ -5373,8 +5487,7 @@
     rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
     rec.onstop = function () {
       vidBusy = false; btn.disabled = false; btn.textContent = label;
-      var ext = mime.indexOf("mp4") >= 0 ? "mp4" : "webm";
-      downloadBlob(new Blob(chunks, { type: mime.split(";")[0] }), "video-soporte-" + supName() + "." + ext);
+      downloadBlob(new Blob(chunks, { type: mime.split(";")[0] }), fname, true);
       $("s-3dvnote").textContent = ext === "webm"
         ? "Listo. Se descargó en WEBM: CapCut lo abre; si otra app no lo acepta, conviértelo a MP4."
         : "Listo. Se descargó en MP4: agrégale música en CapCut, InShot o al subirlo a Instagram o TikTok.";
@@ -5389,19 +5502,20 @@
       btn.textContent = "Grabando... " + Math.ceil(secs - t) + " s";
       requestAnimationFrame(loop);
     })();
-  });
+  }
 
   // ---- Guardar en el navegador (imágenes incluidas si caben) ----
   function saveSup() {
-    function pack(withImg) {
+    try { localStorage.setItem("nfc-soporte", supPack(true)); }
+    catch (err) { try { localStorage.setItem("nfc-soporte", supPack(false)); } catch (err2) {} }
+  }
+  // Diseño de Soportes en JSON (también se guarda como adjunto de una venta)
+  function supPack(withImg) {
       return JSON.stringify({ link: sup.link || "", w: sup.w, h: sup.h, preset: sup.preset, bg: sup.bg, rounded: sup.rounded, baseBg: sup.baseBg, logoPal: sup.logoPal, tplId: sup.tplId, material: sup.material, texture: sup.texture, shape: sup.shape || null,
         logo: withImg && supLogo ? { src0: supLogo.src0, pal: supLogo.pal, ink: supLogo.ink, tintable: supLogo.tintable } : null,
         els: sup.els.filter(function (e) { return withImg || e.type !== "img"; }).map(function (e) {
           var o = {}; SUP_EL_KEYS.forEach(function (k) { if (e[k] !== undefined) o[k] = e[k]; }); return o;
         }) });
-    }
-    try { localStorage.setItem("nfc-soporte", pack(true)); }
-    catch (err) { try { localStorage.setItem("nfc-soporte", pack(false)); } catch (err2) {} }
   }
   function loadSup() {
     var o = null;
@@ -5471,7 +5585,7 @@
       }
     }
     doc.setProperties({ title: "Soportes " + sup.w / 10 + " x " + sup.h / 10 + " cm - A4" });
-    doc.save("soportes-" + supName() + "-A4-x" + n + ".pdf");
+    savePDF(doc, "soportes-" + supName() + "-A4-x" + n + ".pdf");
   });
 
   // Agrega el soporte actual a la hoja A4 compartida (con tarjetas y chips de Plantillas)
@@ -5732,7 +5846,7 @@
     var b = supBleed(), w = sup.w + 2 * b, h = sup.h + 2 * b;
     var doc = new JsPDF({ unit: "mm", format: [w, h], orientation: w > h ? "landscape" : "portrait", compress: true });
     doc.addImage(renderSupport(EXPORT_PPMM, b).toDataURL("image/png"), "PNG", 0, 0, w, h, "sup", "FAST");
-    doc.save("soporte-" + supName() + ".pdf");
+    savePDF(doc, "soporte-" + supName() + ".pdf");
   });
   $("s-png").addEventListener("click", function () {
     if (!supReady()) return;
@@ -5773,6 +5887,7 @@
         { id: "p6", name: "Tarjeta adicional", price: 18, stands: 0, tarjetas: 1 }
       ],
       plansV: 2,
+      clientes: [],
       ventas: [],
       invs: [
         { id: bizId(), fecha: hoy, item: "Impresora + lectora/grabadora NFC", mat: "", piezas: 1, costo: 350, tipo: "equipo" },
@@ -5786,7 +5901,7 @@
     var def = bizDefaults();
     if (!o || typeof o !== "object") { biz = def; saveBiz(); return; }
     o.cfg = Object.assign({}, def.cfg, o.cfg || {});
-    ["mats", "plans", "ventas", "invs"].forEach(function (k) { if (!Array.isArray(o[k])) o[k] = def[k]; });
+    ["mats", "plans", "ventas", "invs", "clientes"].forEach(function (k) { if (!Array.isArray(o[k])) o[k] = def[k]; });
     if (!o.plansV) {   // precios de la propuesta comercial: solo cambia los planes que seguían con el precio anterior
       var OLD = { p1: 54, p2: 95, p3: 129, p4: 159, p5: 84, p6: 20, p7: 180 };
       o.plans = o.plans.filter(function (p) { return !(p.id === "p7" && num(p.price) === 180); }).map(function (p) {
@@ -5796,6 +5911,7 @@
       o.plansV = 2; biz = o; saveBiz();
     }
     biz = o;
+    if (bizLinkClients()) saveBiz();   // historial de negocios a partir de las ventas
   }
   function saveBiz() {
     try { localStorage.setItem(BIZ_KEY, JSON.stringify(biz)); }
@@ -5859,11 +5975,21 @@
   $("b-vadd").addEventListener("click", function () {
     var d = bizSaleDraft(), planId = $("b-vplan").value, p = bizPlan(planId);
     if (!(d.total > 0) && !(d.stands + d.tarjetas > 0)) { alert("Pon el precio cobrado o la cantidad de stands y tarjetas."); return; }
-    biz.ventas.push({ id: bizId(), fecha: $("b-vfecha").value || todayISO(), cliente: $("b-vcli").value.trim(), plan: p ? p.name : "Otro",
-      cant: Math.max(1, parseInt($("b-vcant").value, 10) || 1), total: d.total, stands: d.stands, tarjetas: d.tarjetas, notas: $("b-vnotas").value.trim() });
+    var c = bizCliEnsure($("b-vcli").value);
+    var v = { id: bizId(), fecha: $("b-vfecha").value || todayISO(), cliente: c ? c.nombre : "", plan: p ? p.name : "Otro",
+      cant: Math.max(1, parseInt($("b-vcant").value, 10) || 1), total: d.total, stands: d.stands, tarjetas: d.tarjetas, notas: $("b-vnotas").value.trim(), adj: [] };
+    if (c) v.clienteId = c.id;
+    biz.ventas.push(v);
     saveBiz();
-    $("b-vcli").value = ""; $("b-vnotas").value = ""; $("b-vcant").value = 1; bizFillSale();
+    // archivos elegidos y diseño actual de la app, guardados con la venta
+    var recs = adjFromFiles($("b-vfiles").files), dz = $("b-vdesign").value, areas = dz === "both" ? ["sup", "tpl"] : dz ? [dz] : [];
+    $("b-vfiles").value = ""; $("b-vfileslabel").textContent = "Elegir archivos"; $("b-vdesign").value = "";
+    $("b-vcli").value = ""; $("b-vnotas").value = ""; $("b-vcant").value = 1; bizFillSale(); bizCliInfo();
     renderBiz();
+    (function next(i) {
+      if (i < areas.length) { adjDesign(areas[i], v, function (r) { if (r) recs.push(r); next(i + 1); }); return; }
+      if (recs.length) adjAdd(v, recs, function () { renderBiz(); });
+    })(0);
   });
   function bizSyncInvType() {
     var eq = $("b-itipo").value === "equipo";
@@ -5989,12 +6115,11 @@
 
     // ventas del periodo
     var vs = V.slice().sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); });
-    $("b-ventas").innerHTML = vs.length ? "<thead><tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th class=\"n\">Unid.</th><th class=\"n\">Cobrado</th><th class=\"n\">Costo</th><th class=\"n\">Utilidad</th><th class=\"n\">Margen</th><th></th></tr></thead><tbody>" +
+    $("b-ventas").innerHTML = vs.length ? "<thead><tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th class=\"n\">Unid.</th><th class=\"n\">Cobrado</th><th class=\"n\">Costo</th><th class=\"n\">Utilidad</th><th class=\"n\">Margen</th><th>Archivos</th><th></th></tr></thead><tbody>" +
       vs.map(function (v) {
-        var r = bizCalc(v), u = [];
-        if (num(v.stands)) u.push(num(v.stands) + " st"); if (num(v.tarjetas)) u.push(num(v.tarjetas) + " tj");
+        var r = bizCalc(v);
         return "<tr><td>" + bizEsc(v.fecha) + "</td><td>" + bizEsc(v.cliente || "—") + (v.notas ? '<br><small class="note">' + bizEsc(v.notas) + "</small>" : "") + "</td><td>" + bizEsc(v.plan) + (num(v.cant) > 1 ? " × " + num(v.cant) : "") + "</td>" +
-          '<td class="n">' + (u.join(" + ") || "—") + '</td><td class="n">' + money(num(v.total)) + '</td><td class="n">' + money(r.cost) + '</td><td class="n ' + (r.util < 0 ? "neg" : "") + '">' + money(r.util) + '</td><td class="n">' + Math.round(r.margin * 100) + " %</td>" +
+          '<td class="n">' + bizUnits(v) + '</td><td class="n">' + money(num(v.total)) + '</td><td class="n">' + money(r.cost) + '</td><td class="n ' + (r.util < 0 ? "neg" : "") + '">' + money(r.util) + '</td><td class="n">' + Math.round(r.margin * 100) + " %</td><td>" + clipBtn(v) + "</td>" +
           '<td><button class="x" data-dv="' + bizEsc(v.id) + '" title="Borrar venta">×</button></td></tr>';
       }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Aún no hay ventas en este periodo.</td></tr></tbody>';
 
@@ -6040,15 +6165,290 @@
         return "<tr><td>" + bizEsc(m.name) + '</td><td class="n">' + (b ? f1(b) : "—") + '</td><td class="n">' + f1(u) + '</td><td class="n ' + (low ? "neg" : "") + '">' +
           (b ? f1(q) + (low ? " ⚠ comprar" : "") : '<span class="note">sin compras registradas</span>') + "</td></tr>";
       }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Registra tus compras de material (tipo "Material") para ver el stock.</td></tr></tbody>';
+    renderClients();
     bizEditorNums();
   }
   $("b-ventas").addEventListener("click", function (ev) {
-    var b = ev.target.closest("[data-dv]"); if (!b || !confirm("¿Borrar esta venta?")) return;
-    biz.ventas = biz.ventas.filter(function (v) { return v.id !== b.dataset.dv; }); saveBiz(); renderBiz();
+    var vo = ev.target.closest("[data-vo]"); if (vo) { bvOpen(vo.dataset.vo); return; }
+    var b = ev.target.closest("[data-dv]"); if (!b) return;
+    var v = bvFind(b.dataset.dv), n = v && v.adj ? v.adj.length : 0;
+    if (!confirm("¿Borrar esta venta" + (n === 1 ? " y su archivo adjunto" : n ? " y sus " + n + " archivos adjuntos" : "") + "?")) return;
+    biz.ventas = biz.ventas.filter(function (x) { return x.id !== b.dataset.dv; }); saveBiz(); renderBiz();
+    if (n) adjDel(v.adj.map(function (a) { return a.id; }));
   });
   $("b-invs").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-di]"); if (!b || !confirm("¿Borrar esta compra?")) return;
     biz.invs = biz.invs.filter(function (r) { return r.id !== b.dataset.di; }); saveBiz(); renderBiz();
+  });
+
+  // ---- Historial de negocios (clientes): se arma solo con las ventas ----
+  function cliKey(t) { t = String(t || ""); if (t.normalize) t = t.normalize("NFD").replace(/[̀-ͯ]/g, ""); return t.toLowerCase().replace(/\s+/g, " ").trim(); }
+  function bizCli(id) { for (var i = 0; i < biz.clientes.length; i++) if (biz.clientes[i].id === id) return biz.clientes[i]; return null; }
+  function bizCliByName(name) { var k = cliKey(name); if (!k) return null; for (var i = 0; i < biz.clientes.length; i++) if (cliKey(biz.clientes[i].nombre) === k) return biz.clientes[i]; return null; }
+  function bizCliEnsure(name) {
+    name = String(name || "").replace(/\s+/g, " ").trim(); if (!name) return null;
+    var c = bizCliByName(name);
+    if (!c) { c = { id: bizId(), nombre: name, tel: "", contacto: "", dir: "", link: "", notas: "", creado: todayISO() }; biz.clientes.push(c); }
+    return c;
+  }
+  // Une cada venta con su negocio (las ventas antiguas o restauradas crean el negocio por su nombre)
+  function bizLinkClients() {
+    var ch = false;
+    biz.ventas.forEach(function (v) {
+      if (v.clienteId && bizCli(v.clienteId)) return;
+      var c = bizCliEnsure(v.cliente);
+      if (c) { v.clienteId = c.id; ch = true; } else if (v.clienteId) { delete v.clienteId; ch = true; }
+    });
+    return ch;
+  }
+  function bvFind(id) { for (var i = 0; i < biz.ventas.length; i++) if (biz.ventas[i].id === id) return biz.ventas[i]; return null; }
+  function cliStats(c) {
+    var vs = biz.ventas.filter(function (v) { return v.clienteId === c.id; }).sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); });
+    var o = { vs: vs, n: vs.length, tot: 0, st: 0, tj: 0, adj: 0, last: vs.length ? vs[0].fecha : "" };
+    vs.forEach(function (v) { o.tot += num(v.total); o.st += num(v.stands); o.tj += num(v.tarjetas); o.adj += (v.adj || []).length; });
+    return o;
+  }
+  function fechaLabel(f) { f = String(f || ""); return /^\d{4}-\d{2}-\d{2}$/.test(f) ? +f.slice(8, 10) + " " + MESES[+f.slice(5, 7) - 1] + " " + f.slice(0, 4) : f; }
+  function waLink(tel) { var d = String(tel || "").replace(/\D/g, ""); if (d.length === 9 && d.charAt(0) === "9") d = "51" + d; return d.length >= 8 ? "https://wa.me/" + d : ""; }
+  function bizUnits(v) { var u = []; if (num(v.stands)) u.push(num(v.stands) + " st"); if (num(v.tarjetas)) u.push(num(v.tarjetas) + " tj"); return u.join(" + ") || "—"; }
+  function clipBtn(v) { var n = (v.adj || []).length; return '<button class="bclip" data-vo="' + bizEsc(v.id) + '" title="Ver y adjuntar los archivos de esta venta">' + (n ? "📎 " + n : "+ 📎") + "</button>"; }
+  // Vuelve a dibujar sin perder el campo donde se estaba escribiendo
+  function keepFocus(fn) { setTimeout(function () { var a = document.activeElement, id = a && a.id; fn(); if (id && $(id) && $(id) !== a) $(id).focus({ preventScroll: true }); }, 0); }
+  var cliOpen = {};
+  var CLI_FIELDS = [["nombre", "Nombre del negocio", "text", ""], ["tel", "Teléfono / WhatsApp", "tel", ""], ["contacto", "Persona de contacto", "text", ""],
+    ["dir", "Dirección o distrito", "text", ""], ["link", "Link de reseñas de Google (para sus QR y chips)", "url", "wide"], ["notas", "Notas del negocio", "text", "wide"]];
+  function renderClients() {
+    $("b-clist").innerHTML = biz.clientes.map(function (c) { return '<option value="' + bizEsc(c.nombre) + '">'; }).join("");
+    var q = cliKey($("b-csearch").value);
+    var all = biz.clientes.map(function (c) { return { c: c, s: cliStats(c) }; });
+    var rec = all.filter(function (x) { return x.s.n > 1; }).length;
+    $("b-csum").textContent = all.length ? all.length + (all.length === 1 ? " negocio" : " negocios") + " · " + rec + " con más de una compra. Toca uno para ver sus compras, sus datos y los archivos impresos." : "";
+    var list = all.filter(function (x) { var c = x.c; return !q || cliKey([c.nombre, c.tel, c.contacto, c.dir, c.notas, c.link].join(" ")).indexOf(q) >= 0; })
+      .sort(function (a, b) { return String(b.s.last || b.c.creado || "").localeCompare(String(a.s.last || a.c.creado || "")) || a.c.nombre.localeCompare(b.c.nombre); });
+    if (!list.length) {
+      $("b-clients").innerHTML = '<p class="bempty" style="margin-top:8px">' + (all.length ? "Ningún negocio coincide con la búsqueda." : "Aún no hay negocios. Se crean solos al registrar una venta con el nombre del cliente, o con \"Nuevo negocio\".") + "</p>";
+      return;
+    }
+    $("b-clients").innerHTML = list.map(function (x) {
+      var c = x.c, st = x.s, wa = waLink(c.tel), cid = bizEsc(c.id);
+      var sub = st.n ? st.n + (st.n === 1 ? " compra" : " compras") + " · " + money(st.tot) + " · última: " + fechaLabel(st.last) + (st.adj ? " · 📎 " + st.adj : "") : "sin compras todavía";
+      var u = []; if (st.st) u.push(st.st + (st.st > 1 ? " stands" : " stand")); if (st.tj) u.push(st.tj + (st.tj > 1 ? " tarjetas" : " tarjeta"));
+      return '<details class="bcli" data-c="' + cid + '"' + (cliOpen[c.id] ? " open" : "") + "><summary><span><b>" + bizEsc(c.nombre) + "</b>" +
+        (st.n > 1 ? '<span class="tag">recurrente</span>' : "") + (c.dir ? ' <small class="note">· ' + bizEsc(c.dir) + "</small>" : "") +
+        '</span><span class="note">' + sub + "</span></summary>" +
+        '<div class="bcli-body"><div class="opts3">' + CLI_FIELDS.map(function (f) {
+          return '<div class="field ' + f[3] + '"><label for="bc-' + f[0] + "-" + cid + '">' + f[1] + '</label><input type="' + f[2] + '" id="bc-' + f[0] + "-" + cid + '" data-cf="' + f[0] +
+            '" maxlength="' + (f[0] === "link" || f[0] === "notas" ? 300 : 100) + '" value="' + bizEsc(c[f[0]] || "") + '"></div>';
+        }).join("") + "</div>" +
+        '<div class="s-tools">' +
+          '<button class="btn" data-ca="sale">Registrar venta a este negocio</button>' +
+          (c.link ? '<button class="btn" data-ca="link">Usar su link en Soportes</button>' : "") +
+          (wa ? '<a class="btn" href="' + wa + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
+          (st.n ? "" : '<button class="btn" data-ca="del">Borrar negocio</button>') +
+        "</div>" +
+        (st.n ? '<div class="tscroll" style="margin-top:10px"><table class="btable"><thead><tr><th>Fecha</th><th>Plan</th><th class="n">Unid.</th><th class="n">Cobrado</th><th>Archivos</th></tr></thead><tbody>' +
+          st.vs.map(function (v) {
+            return "<tr><td>" + bizEsc(fechaLabel(v.fecha)) + "</td><td>" + bizEsc(v.plan) + (num(v.cant) > 1 ? " × " + num(v.cant) : "") + (v.notas ? '<br><small class="note">' + bizEsc(v.notas) + "</small>" : "") +
+              '</td><td class="n">' + bizUnits(v) + '</td><td class="n">' + money(num(v.total)) + "</td><td>" + clipBtn(v) + "</td></tr>";
+          }).join("") +
+          '</tbody><tfoot><tr><td>Total</td><td></td><td class="n">' + u.join(" + ") + '</td><td class="n">' + money(st.tot) + "</td><td></td></tr></tfoot></table></div>" : "") +
+        "</div></details>";
+    }).join("");
+  }
+  function bizCliInfo() {
+    var c = bizCliByName($("b-vcli").value), el = $("b-vcliinfo");
+    if (!c) { el.textContent = $("b-vcli").value.trim() ? "Negocio nuevo: se agregará al historial al registrar la venta." : ""; return; }
+    var st = cliStats(c);
+    el.innerHTML = "<b>" + bizEsc(c.nombre) + "</b> ya está en el historial: " + (st.n ? st.n + (st.n === 1 ? " compra" : " compras") + " por " + money(st.tot) + ", la última el " + fechaLabel(st.last) : "sin compras todavía") + ".";
+  }
+  $("b-vcli").addEventListener("input", bizCliInfo);
+  $("b-vfiles").addEventListener("change", function () {
+    var n = $("b-vfiles").files.length;
+    $("b-vfileslabel").textContent = n ? n + (n === 1 ? " archivo elegido" : " archivos elegidos") : "Elegir archivos";
+  });
+  $("b-csearch").addEventListener("input", renderClients);
+  $("b-clients").addEventListener("toggle", function (e) { var d = e.target; if (d.classList && d.classList.contains("bcli")) cliOpen[d.dataset.c] = d.open; }, true);
+  $("b-clients").addEventListener("change", function (e) {
+    var f = e.target.dataset.cf; if (!f) return;
+    var c = bizCli(e.target.closest("[data-c]").dataset.c); if (!c) return;
+    var val = e.target.value.replace(/\s+/g, " ").trim();
+    if (f === "nombre") {
+      var o = bizCliByName(val);
+      if (!val || (o && o !== c)) { alert(val ? "Ya hay un negocio con ese nombre." : "El nombre no puede quedar vacío."); e.target.value = c.nombre; return; }
+      c.nombre = val;
+      biz.ventas.forEach(function (v) { if (v.clienteId === c.id) v.cliente = val; });
+      saveBiz(); keepFocus(renderBiz); return;
+    }
+    c[f] = val; saveBiz();
+    if (f === "link" || f === "tel" || f === "dir") keepFocus(renderClients);
+  });
+  $("b-clients").addEventListener("click", function (e) {
+    var vo = e.target.closest("[data-vo]"); if (vo) { bvOpen(vo.dataset.vo); return; }
+    var b = e.target.closest("[data-ca]"); if (!b) return;
+    var c = bizCli(b.closest("[data-c]").dataset.c); if (!c) return;
+    var a = b.dataset.ca;
+    if (a === "sale") {
+      $("b-vcli").value = c.nombre; bizCliInfo();
+      $("b-vcli").scrollIntoView({ behavior: "smooth", block: "center" }); $("b-vplan").focus({ preventScroll: true });
+    } else if (a === "link") {
+      $("s-link").value = c.link; $("s-link").dispatchEvent(new Event("input"));
+      b.textContent = "Listo: su link ya está en los QR de Soportes ✓";
+    } else if (a === "del" && confirm("¿Borrar el negocio \"" + c.nombre + "\"? No tiene ventas registradas.")) {
+      biz.clientes = biz.clientes.filter(function (x) { return x !== c; }); saveBiz(); renderClients();
+    }
+  });
+  $("b-cnew").addEventListener("click", function () {
+    var n = prompt("Nombre del negocio:"); if (n == null) return;
+    n = n.replace(/\s+/g, " ").trim(); if (!n) return;
+    var ex = bizCliByName(n), c = bizCliEnsure(n);
+    cliOpen[c.id] = true; $("b-csearch").value = ""; saveBiz(); renderClients();
+    var d = document.querySelector('#b-clients [data-c="' + c.id + '"]');
+    if (d) { d.scrollIntoView({ behavior: "smooth", block: "center" }); if (!ex) { var i = d.querySelector('[data-cf="tel"]'); if (i) i.focus({ preventScroll: true }); } }
+  });
+
+  // ---- Archivos de cada venta (IndexedDB "nfc-adjuntos": no caben en localStorage) ----
+  var adjDb = null;
+  function adjDB(cb) {
+    if (adjDb) { cb(adjDb); return; }
+    var rq;
+    try { rq = indexedDB.open("nfc-adjuntos", 1); } catch (err) { alert("Este navegador no permite guardar archivos."); cb(null); return; }
+    rq.onupgradeneeded = function () { rq.result.createObjectStore("files", { keyPath: "id" }).createIndex("venta", "venta"); };
+    rq.onsuccess = function () { adjDb = rq.result; cb(adjDb); };
+    rq.onerror = function () { alert("No se pudo abrir el almacén de archivos del navegador."); cb(null); };
+  }
+  function adjTx(mode, fn, done) {
+    adjDB(function (db) {
+      if (!db) { if (done) done(false); return; }
+      var tx;
+      try { tx = db.transaction("files", mode); } catch (err) { if (done) done(false); return; }
+      var req = fn(tx.objectStore("files"));
+      tx.oncomplete = function () { if (done) done(true, req ? req.result : null); };
+      tx.onerror = function () { if (mode === "readwrite") alert("No se pudo guardar en el navegador (puede faltar espacio)."); };
+      tx.onabort = function () { if (done) done(false); };
+    });
+  }
+  function adjPut(recs, done) { adjTx("readwrite", function (st) { recs.forEach(function (r) { st.put(r); }); }, done); }
+  function adjGet(id, done) { adjTx("readonly", function (st) { return st.get(id); }, function (ok, r) { done(ok && r ? r : null); }); }
+  function adjAll(done) { adjTx("readonly", function (st) { return st.getAll(); }, function (ok, r) { done(ok && r ? r : []); }); }
+  function adjDel(ids, done) { adjTx("readwrite", function (st) { ids.forEach(function (id) { st.delete(id); }); }, done); }
+  function adjClear(done) { adjTx("readwrite", function (st) { st.clear(); }, done); }
+  function adjFromFiles(files) {
+    return Array.prototype.map.call(files || [], function (f) { return { name: f.name, type: f.type || "application/octet-stream", size: f.size, blob: f }; });
+  }
+  function adjBlob(d) {
+    var i = d.indexOf(","), meta = d.slice(5, i), raw = meta.indexOf(";base64") >= 0 ? atob(d.slice(i + 1)) : decodeURIComponent(d.slice(i + 1));
+    var u = new Uint8Array(raw.length); for (var k = 0; k < raw.length; k++) u[k] = raw.charCodeAt(k);
+    return new Blob([u], { type: meta.split(";")[0] || "application/octet-stream" });
+  }
+  function adjAdd(v, recs, done) {
+    if (!recs.length) { if (done) done(false); return; }
+    recs.forEach(function (r) { r.id = bizId(); r.venta = v.id; r.fecha = todayISO(); });
+    adjPut(recs, function (ok) {
+      if (ok) {
+        v.adj = (v.adj || []).concat(recs.map(function (r) { var m = { id: r.id, name: r.name, type: r.type, size: r.size, fecha: r.fecha }; if (r.design) m.design = r.design.area; return m; }));
+        saveBiz();
+        try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (err) {}
+      }
+      if (done) done(ok);
+    });
+  }
+  // Diseño actual de Soportes o de Plantillas: imagen a tamaño real + diseño editable (JSON)
+  function adjDesign(area, v, done) {
+    var json, cv, what;
+    if (area === "sup") {
+      if (!supReady()) { done(null); return; }
+      json = supPack(true); cv = renderSupport(EXPORT_PPMM, 0); what = "soporte " + supName();
+    } else {
+      var o = {}; TPL_SAVE.forEach(function (k) { o[k] = tpl[k]; }); json = JSON.stringify(o);
+      var cs = tplSides(tpl).map(function (st) { return renderTemplate(st, EXPORT_PPMM, 0, false); });
+      if (!cs.length) { alert("La plantilla no tiene diseño."); done(null); return; }
+      var gap = Math.round(4 * EXPORT_PPMM), W = 0, H = gap * (cs.length - 1), y = 0;
+      cs.forEach(function (x) { W = Math.max(W, x.width); H += x.height; });
+      cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+      var cx = cv.getContext("2d");
+      cs.forEach(function (x) { cx.drawImage(x, Math.round((W - x.width) / 2), y); y += x.height + gap; });
+      var d = TPL_SIZES[tpl.size] || {};
+      what = (d.chip ? "chip " : tpl.size === "card" ? "tarjeta " : "etiqueta ") + (tpl.name || "");
+    }
+    cv.toBlob(function (b) {
+      if (!b) { alert("No se pudo generar la imagen del diseño."); done(null); return; }
+      var name = fnClean((v.cliente ? v.cliente + " - " : "") + "diseño " + what + " - " + v.fecha) + ".png";
+      done({ name: name, type: "image/png", size: b.size, blob: b, design: { area: area, json: json } });
+    }, "image/png");
+  }
+  function adjOpenDesign(rec) {
+    var isSup = rec.design.area === "sup", where = isSup ? "Soportes" : "Plantillas";
+    if (!confirm("Se abrirá este diseño en " + where + " y reemplazará el que tienes ahora allí (si lo necesitas, guárdalo antes en su venta). ¿Continuar?")) return;
+    try { localStorage.setItem(isSup ? "nfc-soporte" : "nfc-plantilla", rec.design.json); sessionStorage.setItem("nfc-goto", isSup ? "sup" : "tpl"); }
+    catch (err) { alert("No hay espacio en el navegador para abrir este diseño con sus imágenes."); return; }
+    location.reload();
+  }
+
+  // ---- Ventana de una venta: notas y archivos ----
+  var bvSale = null, bvURL = {}, bvTok = 0;
+  function bvOpen(id) { bvSale = bvFind(id); if (!bvSale) return; $("bv").classList.remove("hidden"); bvRender(); }
+  function bvFree() {
+    var old = bvURL; bvURL = {};
+    setTimeout(function () { Object.keys(old).forEach(function (k) { URL.revokeObjectURL(old[k].url); }); }, 60000);   // las pestañas abiertas con "Ver" alcanzan a cargar
+  }
+  function bvClose() { if (!bvSale) return; $("bv").classList.add("hidden"); bvFree(); bvSale = null; renderBiz(); }
+  function fsize(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB"; }
+  function adjExt(m) { var e = /\.([a-z0-9]{1,5})$/i.exec(m.name || ""); return e ? e[1].toUpperCase() : "ARCHIVO"; }
+  function bvRender() {
+    var v = bvSale; if (!v) return;
+    var r = bizCalc(v), tok = ++bvTok;
+    $("bv-title").textContent = (v.cliente || "Venta sin cliente") + " · " + fechaLabel(v.fecha);
+    $("bv-info").innerHTML = bizEsc(v.plan) + (num(v.cant) > 1 ? " × " + num(v.cant) : "") + (v.plan === "Otro" ? " · " + bizUnits(v) : "") + " · cobrado <b>" + money(num(v.total)) + "</b> · utilidad " + money(r.util);
+    $("bv-notas").value = v.notas || "";
+    bvFree();
+    var list = v.adj || [];
+    if (!list.length) { $("bv-files").innerHTML = '<p class="bempty">Aún no hay archivos en esta venta.</p>'; return; }
+    $("bv-files").innerHTML = list.map(function (m) {
+      var area = m.design === "sup" ? "Soportes" : m.design === "tpl" ? "Plantillas" : "";
+      return '<div class="bvf" data-a="' + bizEsc(m.id) + '"><div class="th">' + (/^image\//.test(m.type) ? '<img alt="">' : "<b>" + bizEsc(adjExt(m)) + "</b>") + "</div>" +
+        '<div class="nm">' + bizEsc(m.name) + '</div><small class="note">' + (area ? "Diseño editable de " + area + " · " : "") + fsize(num(m.size)) + " · " + bizEsc(fechaLabel(m.fecha)) + "</small>" +
+        '<div class="acts"><button data-x="open">Ver</button><button data-x="dl">Descargar</button>' + (area ? '<button data-x="edit">Editar en ' + area + "</button>" : "") +
+        '<button data-x="del" class="del">Borrar</button></div></div>';
+    }).join("");
+    list.forEach(function (m) {
+      adjGet(m.id, function (rec) {
+        if (tok !== bvTok) return;
+        var card = document.querySelector('#bv-files [data-a="' + m.id + '"]'); if (!card) return;
+        if (!rec) { card.querySelector(".note").textContent = "No está en este navegador (restaura el respaldo donde lo guardaste)."; return; }
+        var url = URL.createObjectURL(rec.blob); bvURL[m.id] = { url: url, rec: rec };
+        var im = card.querySelector("img"); if (im) im.src = url;
+      });
+    });
+  }
+  $("bv-files").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-x]"); if (!b || !bvSale) return;
+    var id = b.closest("[data-a]").dataset.a, x = b.dataset.x, h = bvURL[id];
+    var m = (bvSale.adj || []).filter(function (a) { return a.id === id; })[0]; if (!m) return;
+    if (x === "del") {
+      if (!confirm("¿Borrar \"" + m.name + "\" de esta venta?")) return;
+      var v = bvSale;
+      adjDel([id], function () { v.adj = v.adj.filter(function (a) { return a.id !== id; }); saveBiz(); if (bvSale === v) bvRender(); });
+      return;
+    }
+    if (!h) { alert("El archivo aún se está cargando o no está en este navegador."); return; }
+    if (x === "open") { if (!window.open(h.url, "_blank")) downloadBlob(h.rec.blob, m.name); }
+    else if (x === "dl") downloadBlob(h.rec.blob, m.name);
+    else if (x === "edit") adjOpenDesign(h.rec);
+  });
+  $("bv-x").addEventListener("click", bvClose);
+  $("bv").addEventListener("click", function (e) { if (e.target === $("bv")) bvClose(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && bvSale && $("fn").classList.contains("hidden")) bvClose(); });
+  $("bv-notas").addEventListener("change", function () { if (!bvSale) return; bvSale.notas = $("bv-notas").value.trim(); saveBiz(); });
+  $("bv-up").addEventListener("change", function () {
+    var v = bvSale, recs = adjFromFiles($("bv-up").files); $("bv-up").value = "";
+    if (!v || !recs.length) return;
+    adjAdd(v, recs, function () { if (bvSale === v) bvRender(); });
+  });
+  ["sup", "tpl"].forEach(function (a) {
+    $("bv-d" + a).addEventListener("click", function () {
+      var v = bvSale; if (!v) return;
+      adjDesign(a, v, function (rec) { if (rec) adjAdd(v, [rec], function () { if (bvSale === v) bvRender(); }); });
+    });
   });
 
   // ---- Exportar (CSV para Excel / Power BI) y respaldo ----
@@ -6060,17 +6460,35 @@
   document.querySelector("#view-biz .s-tools").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-csv]"); if (!b) return;
     var k = b.dataset.csv;
-    if (k === "ventas") bizCSV("ventas.csv", [["fecha", "cliente", "plan", "cantidad", "precio_unitario", "precio_total", "stands", "tarjetas", "costo_materiales", "costo_tiempo", "utilidad", "notas"]].concat(
-      biz.ventas.map(function (v) { var r = bizCalc(v); return [v.fecha, v.cliente, v.plan, num(v.cant), num(v.total) / Math.max(1, num(v.cant)), num(v.total), num(v.stands), num(v.tarjetas), r.mat, r.time, r.util, v.notas]; })));
+    if (k === "ventas") bizCSV("ventas.csv", [["fecha", "cliente", "plan", "cantidad", "precio_unitario", "precio_total", "stands", "tarjetas", "costo_materiales", "costo_tiempo", "utilidad", "notas", "archivos"]].concat(
+      biz.ventas.map(function (v) { var r = bizCalc(v); return [v.fecha, v.cliente, v.plan, num(v.cant), num(v.total) / Math.max(1, num(v.cant)), num(v.total), num(v.stands), num(v.tarjetas), r.mat, r.time, r.util, v.notas, (v.adj || []).map(function (a) { return a.name; }).join(" | ")]; })));
     else if (k === "inversiones") bizCSV("inversiones.csv", [["fecha", "material", "piezas", "costo_total", "tipo"]].concat(
       biz.invs.map(function (r) { return [r.fecha, r.item, num(r.piezas), num(r.costo), r.tipo]; })));
     else if (k === "catalogo") bizCSV("catalogo.csv", [["item", "pack_piezas", "precio_pack", "costo_unitario"]].concat(
       biz.mats.map(function (m) { return [m.name, num(m.pack), num(m.price), bizUnit(m)]; })));
     else if (k === "planes") bizCSV("planes.csv", [["plan", "precio", "stands", "tarjetas"]].concat(
       biz.plans.map(function (p) { return [p.name, num(p.price), num(p.stands), num(p.tarjetas)]; })));
+    else if (k === "clientes") bizCSV("negocios.csv", [["negocio", "telefono", "contacto", "direccion", "link_resenas", "compras", "stands", "tarjetas", "total_comprado", "ultima_compra", "notas"]].concat(
+      biz.clientes.map(function (c) { var t = cliStats(c); return [c.nombre, c.tel, c.contacto, c.dir, c.link, t.n, t.st, t.tj, t.tot, t.last, c.notas]; })));
   });
   $("b-backup").addEventListener("click", function () {
-    downloadBlob(new Blob([JSON.stringify(biz, null, 2)], { type: "application/json" }), "negocio-nfc-respaldo-" + todayISO() + ".json");
+    var btn = $("b-backup"), label = btn.textContent;
+    function out(adj) {
+      var o = Object.assign({}, biz); if (adj && adj.length) o.adjuntos = adj;
+      downloadBlob(new Blob([JSON.stringify(o, null, 2)], { type: "application/json" }), "negocio-nfc-respaldo-" + todayISO() + ".json");
+    }
+    if (!window.indexedDB) { out(null); return; }
+    btn.disabled = true; btn.textContent = "Preparando…";
+    adjAll(function (recs) {   // los archivos van dentro del respaldo (en base64)
+      var res = [], i = 0;
+      (function next() {
+        if (i >= recs.length) { btn.disabled = false; btn.textContent = label; out(res); return; }
+        var r = recs[i++], fr = new FileReader();
+        fr.onload = function () { var o = {}; Object.keys(r).forEach(function (k) { if (k !== "blob") o[k] = r[k]; }); o.data = fr.result; res.push(o); next(); };
+        fr.onerror = next;
+        fr.readAsDataURL(r.blob);
+      })();
+    });
   });
   $("b-restore").addEventListener("change", function (ev) {
     var f = ev.target.files && ev.target.files[0]; ev.target.value = "";
@@ -6080,16 +6498,21 @@
       var o = null;
       try { o = JSON.parse(rd.result); } catch (err) {}
       if (!o || !Array.isArray(o.ventas) || !Array.isArray(o.invs)) { alert("Ese archivo no es un respaldo del negocio."); return; }
-      if (!confirm("Se reemplazarán los datos actuales por los del respaldo (" + o.ventas.length + " ventas, " + o.invs.length + " compras). ¿Continuar?")) return;
+      var adj = Array.isArray(o.adjuntos) ? o.adjuntos : null; delete o.adjuntos;
+      if (!confirm("Se reemplazarán los datos actuales por los del respaldo (" + o.ventas.length + " ventas, " + o.invs.length + " compras" + (adj ? ", " + adj.length + " archivos" : "") + "). ¿Continuar?")) return;
       try { localStorage.setItem(BIZ_KEY, JSON.stringify(o)); } catch (err) { alert("No se pudo guardar."); return; }
-      loadBiz(); buildBizEditors(); renderBiz();
+      function done() { loadBiz(); buildBizEditors(); renderBiz(); }
+      if (!adj) { done(); return; }
+      var recs = [];
+      adj.forEach(function (a) { try { var r = Object.assign({}, a); r.blob = adjBlob(a.data); delete r.data; recs.push(r); } catch (err) {} });
+      adjClear(function () { adjPut(recs, done); });
     };
     rd.readAsText(f);
   });
   function initBiz() {
     loadBiz();
     $("b-vfecha").value = todayISO(); $("b-ifecha").value = todayISO();
-    buildBizEditors(); bizSyncInvType(); bizFillSale();
+    buildBizEditors(); bizSyncInvType(); bizFillSale(); bizCliInfo();
   }
 
   // ---- Calidad de impresión (A4, PDF y PNG a tamaño real) ----
@@ -6119,6 +6542,8 @@
   updateLabelQueue();
   initBiz();
   syncDpi();
+  // "Editar" un diseño guardado en una venta: se recarga la página y se abre su pestaña
+  try { var goto0 = sessionStorage.getItem("nfc-goto"); if (goto0) { sessionStorage.removeItem("nfc-goto"); showView(goto0 === "sup" ? "sup" : "tpl"); } } catch (err) {}
   window.addEventListener("resize", function () { render(); renderTpl(); renderSup(); });
 })();
 </script>
