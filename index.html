@@ -350,6 +350,7 @@
   .s-pal #s-pal { display: inline-flex; gap: 4px; }
   .s-pal i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line-strong); display: inline-block; }
   .s-pal .linkbtn { font-size: .8rem; margin-left: auto; }
+  canvas#t-3dcv { display: block; width: 100%; height: auto; border-radius: 10px; cursor: ew-resize; touch-action: none; }
   canvas#s-3dcv { display: block; width: 100%; height: auto; border-radius: 10px; cursor: ew-resize; touch-action: none; }
   .s-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .s-tools .btn { font-size: .78rem; padding: 8px 4px; }
@@ -484,6 +485,62 @@
       <label class="check" id="t-mockwrap" style="justify-content:center;margin-top:6px" title="Solo en pantalla: el sticker laminado pegado sobre la tarjeta o el chip, con su relieve">
         <input type="checkbox" id="t-mock" checked> Ver acabado real (sticker laminado con relieve)
       </label>
+      <button class="btn" id="t-3dbtn" style="margin-top:10px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>
+        <span id="t-3dlabel">Ver maqueta 3D</span>
+      </button>
+      <div id="t-3d" class="hidden" style="margin-top:12px">
+        <canvas id="t-3dcv" width="1000" height="760" role="img" aria-label="Maqueta 3D de la tarjeta"></canvas>
+        <div class="field" style="margin-top:12px">
+          <label for="t-3dyaw">Girar (también puedes arrastrar la maqueta; media vuelta muestra el reverso)</label>
+          <input type="range" id="t-3dyaw" min="-180" max="180" step="1" value="-25">
+        </div>
+        <div class="opts" style="margin-top:10px">
+          <div class="field">
+            <label for="t-3dpose">Posición</label>
+            <select id="t-3dpose">
+              <option value="stand">En soporte acrílico pequeño</option>
+              <option value="flat">Sobre la mesa</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="t-3dtable">Mesa</label>
+            <select id="t-3dtable">
+              <option value="dark">Oscura</option>
+              <option value="light">Clara</option>
+              <option value="wood">Madera</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn" id="t-3ddl" style="margin-top:10px">Descargar imagen de la maqueta</button>
+        <div class="glabel" style="margin-top:16px">Video para redes (sin música)</div>
+        <div class="opts">
+          <div class="field">
+            <label for="t-3dvfmt">Formato</label>
+            <select id="t-3dvfmt">
+              <option value="vertical">Vertical 9:16 (historias, reels, TikTok)</option>
+              <option value="square">Cuadrado 1:1 (publicación)</option>
+              <option value="landscape">Horizontal 16:9</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="t-3dvdur">Duración</label>
+            <select id="t-3dvdur">
+              <option value="6">6 s</option>
+              <option value="8" selected>8 s</option>
+              <option value="12">12 s</option>
+              <option value="15">15 s</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="t-3dvtxt">Texto arriba (opcional, Enter para una segunda línea)</label>
+          <textarea id="t-3dvtxt" rows="2" maxlength="120" placeholder="Tarjeta NFC inteligente&#10;Acércala a tu celular"></textarea>
+        </div>
+        <button class="btn primary" id="t-3dvid" style="margin-top:6px">Grabar y descargar video</button>
+        <p class="note" id="t-3dvnote" style="margin-top:8px">En el soporte acrílico la tarjeta da una vuelta completa y muestra el frente y el reverso; sobre la mesa se mece suave. Mantén esta pestaña abierta mientras graba.</p>
+        <p class="note" style="margin-top:8px">Vista aproximada: tarjeta o chip de PVC blanco con el sticker de vinil laminado pegado en cada cara (el grosor está un poco exagerado para que se note).</p>
+      </div>
       <div class="tplgrid" id="tplgrid"></div>
       <div class="added hidden" id="tpladded">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -3102,6 +3159,11 @@
       if (mock) out = tplMock(out, cur);
       pv.width = out.width; pv.height = out.height;
       pv.getContext("2d").drawImage(out, 0, 0);
+      // maqueta 3D: solo para tarjeta y chips (las etiquetas térmicas no llevan)
+      var ok3 = card3DOK();
+      $("t-3dbtn").classList.toggle("hidden", !ok3);
+      if (!ok3 && !$("t-3d").classList.contains("hidden")) { $("t-3d").classList.add("hidden"); $("t-3dlabel").textContent = "Ver maqueta 3D"; }
+      t3dTex = null; renderCard3DSoon();
       $("t-dotswrap").classList.toggle("hidden", card);
       $("t-mockwrap").classList.toggle("hidden", dots);
       pv.classList.toggle("thermal", dots);
@@ -5253,6 +5315,77 @@
     c.restore();
   }
 
+  // ---- Piezas compartidas de las maquetas 3D (soporte y tarjeta) ----
+  function shadeCol(col, f) { return f >= 0 ? mix(col, "#ffffff", f) : mix(col, "#000000", -f); }
+  function drawTable3D(c, CW, CH, tb) {
+    var g = c.createLinearGradient(0, 0, 0, CH);
+    if (tb === "light") { g.addColorStop(0, "#d9d6d0"); g.addColorStop(1, "#f4f2ee"); }
+    else if (tb === "wood") { g.addColorStop(0, "#7a5230"); g.addColorStop(1, "#b07a48"); }
+    else { g.addColorStop(0, "#15161a"); g.addColorStop(1, "#33363d"); }
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.fillStyle = g; c.fillRect(0, 0, CW, CH);
+    if (tb === "wood") { c.save(); c.globalAlpha = 0.5; drawWood(c, 0, 0, CW / 2, CH / 2, 2); c.restore(); c.fillStyle = "rgba(60,35,15,.25)"; c.fillRect(0, 0, CW, CH); }
+    var spot = c.createRadialGradient(CW * 0.5, CH * 0.35, 10, CW * 0.5, CH * 0.45, CW * 0.7);
+    spot.addColorStop(0, "rgba(255,255,255,.10)"); spot.addColorStop(1, "rgba(0,0,0,.25)");
+    c.fillStyle = spot; c.fillRect(0, 0, CW, CH);
+  }
+  function drawCaption3D(c, CW, CH, caption, col) {
+    var lines = String(caption).split("\n").slice(0, 3), fsz = Math.round(Math.min(CW * 0.065, CH * 0.055));
+    c.save();
+    c.fillStyle = col; c.textAlign = "center"; c.textBaseline = "middle";
+    lines.forEach(function (l, i) {
+      var sz = i ? Math.round(fsz * 0.6) : fsz;
+      c.font = (i ? "500 " : "700 ") + sz + "px " + FONTS.sans;
+      while (c.measureText(l).width > CW * 0.9 && sz > 12) { sz -= 2; c.font = (i ? "500 " : "700 ") + sz + "px " + FONTS.sans; }
+      var y = CH * (CH > CW ? 0.13 : 0.1) + (i ? fsz * 0.55 + i * fsz * 0.75 : 0);
+      c.fillText(l, CW / 2, y);
+    });
+    c.restore();
+  }
+  // Sticker laminado sobre una cara en 3D: sombra, canto blanco, diseño en perspectiva (malla), brillo y bisel.
+  // F3(x, y, lift) = punto 3D del sticker en (x, y) mm, levantado lift mm; scr lo pasa a pantalla; bp = posición de la franja de brillo (0–1)
+  function sticker3D(c, outl, sw, sh, F3, scr, tS, tex, k, bp) {
+    var CW = c.canvas.width, CH = c.canvas.height;
+    function path3(lift, dy) { c.beginPath(); outl.forEach(function (p, i2) { var s2 = scr(F3(p[0], p[1] + (dy || 0), lift)); c[i2 ? "lineTo" : "moveTo"](s2[0], s2[1]); }); c.closePath(); }
+    // sombra del sticker sobre la cara
+    c.save();
+    c.filter = "blur(" + Math.max(1, Math.round(k * 0.9)) + "px)";
+    path3(0, tS * 0.9); c.fillStyle = "rgba(0,0,0,.45)"; c.fill();
+    c.restore();
+    // canto del sticker (el corte deja ver el vinil blanco)
+    outl.forEach(function (p, i2) {
+      var p2 = outl[(i2 + 1) % outl.length], ex = p2[0] - p[0], ey = p2[1] - p[1], el = Math.sqrt(ex * ex + ey * ey) || 1;
+      var nx = ey / el, ny = -ex / el;   // normal hacia afuera
+      var col = shadeCol("#efefec", 0.04 - 0.24 * Math.max(0, ny) - 0.1 * Math.abs(nx) + 0.08 * Math.max(0, -ny));
+      var w4 = [F3(p[0], p[1], 0), F3(p2[0], p2[1], 0), F3(p2[0], p2[1], tS), F3(p[0], p[1], tS)].map(scr);
+      c.beginPath(); w4.forEach(function (s2, i3) { c[i3 ? "lineTo" : "moveTo"](s2[0], s2[1]); }); c.closePath();
+      c.fillStyle = col; c.fill(); c.strokeStyle = col; c.lineWidth = 0.6; c.stroke();
+    });
+    // cara del sticker con el diseño (malla para que la perspectiva sea real)
+    var TW = tex.width, TH = tex.height, N = 14;
+    function pt(u, v) { return scr(F3(u * sw, (1 - v) * sh, tS)); }
+    c.save();
+    path3(tS); c.clip();
+    for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) {
+      var u0 = i / N, u1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
+      var a = pt(u0, v0), b = pt(u1, v0), d2 = pt(u1, v1), e2 = pt(u0, v1);
+      var ta = [u0 * TW, (1 - v0) * TH], tb2 = [u1 * TW, (1 - v0) * TH], td = [u1 * TW, (1 - v1) * TH], te = [u0 * TW, (1 - v1) * TH];
+      texTri(c, tex, a, b, d2, ta, tb2, td);
+      texTri(c, tex, a, d2, e2, ta, td, te);
+    }
+    // brillo del laminado: una franja que se mueve al girar (en el video recorre el sticker)
+    var qa = scr(F3(0, 0, tS)), qb = scr(F3(sw, sh, tS));
+    var lg = c.createLinearGradient(qa[0], qa[1], qb[0], qb[1]);
+    lg.addColorStop(0, "rgba(255,255,255,.14)"); lg.addColorStop(bp - 0.13, "rgba(255,255,255,.03)");
+    lg.addColorStop(bp, "rgba(255,255,255,.24)"); lg.addColorStop(bp + 0.06, "rgba(255,255,255,.03)"); lg.addColorStop(1, "rgba(255,255,255,.07)");
+    c.fillStyle = lg; c.fillRect(0, 0, CW, CH);
+    // bisel: luz en el borde de arriba, sombra en el de abajo
+    var qt = scr(F3(0, 0, tS)), qd = scr(F3(0, sh, tS)), bv = c.createLinearGradient(qt[0], qt[1], qd[0], qd[1]);
+    bv.addColorStop(0, "rgba(255,255,255,.8)"); bv.addColorStop(0.5, "rgba(255,255,255,.1)"); bv.addColorStop(1, "rgba(0,0,0,.3)");
+    path3(tS); c.strokeStyle = bv; c.lineWidth = Math.max(1.5, 0.45 * k); c.stroke();
+    c.restore();
+  }
+
   // o (opcional, para el video): { cv, yaw (grados), tex, zoom, side, caption }
   function render3D(o) {
     o = o || {};
@@ -5290,16 +5423,7 @@
 
     // mesa
     var tb = o.table || $("s-3dtable").value;
-    var g = c.createLinearGradient(0, 0, 0, CH);
-    if (tb === "light") { g.addColorStop(0, "#d9d6d0"); g.addColorStop(1, "#f4f2ee"); }
-    else if (tb === "wood") { g.addColorStop(0, "#7a5230"); g.addColorStop(1, "#b07a48"); }
-    else { g.addColorStop(0, "#15161a"); g.addColorStop(1, "#33363d"); }
-    c.setTransform(1, 0, 0, 1, 0, 0);
-    c.fillStyle = g; c.fillRect(0, 0, CW, CH);
-    if (tb === "wood") { c.save(); c.globalAlpha = 0.5; drawWood(c, 0, 0, CW / 2, CH / 2, 2); c.restore(); c.fillStyle = "rgba(60,35,15,.25)"; c.fillRect(0, 0, CW, CH); }
-    var spot = c.createRadialGradient(CW * 0.5, CH * 0.35, 10, CW * 0.5, CH * 0.45, CW * 0.7);
-    spot.addColorStop(0, "rgba(255,255,255,.10)"); spot.addColorStop(1, "rgba(0,0,0,.25)");
-    c.fillStyle = spot; c.fillRect(0, 0, CW, CH);
+    drawTable3D(c, CW, CH, tb);
 
     function poly(pts, fill) {
       var q = pts.map(scr);
@@ -5349,61 +5473,12 @@
     var sw = W - 2 * ins, sh = H - 2 * ins;
     var outl = stickerOutline(sw, sh, circ ? 0 : rnd ? CORNER_MM : 0.8, circ);
     function F3(x, y, lift) { var u = (ins + x) / W, v = 1 - (ins + y) / H; return add(add(add(FL, [W, 0, 0], u), [0, H * ct, -H * st], v), n, lift); }
-    function path3(lift, dy) { c.beginPath(); outl.forEach(function (p, i2) { var s2 = scr(F3(p[0], p[1] + (dy || 0), lift)); c[i2 ? "lineTo" : "moveTo"](s2[0], s2[1]); }); c.closePath(); }
-    // sombra del sticker sobre el acrílico
-    c.save();
-    c.filter = "blur(" + Math.max(1, Math.round(k * 0.9)) + "px)";
-    path3(0, tS * 0.9); c.fillStyle = "rgba(0,0,0,.45)"; c.fill();
-    c.restore();
-    // canto del sticker (el corte deja ver el vinil blanco)
-    outl.forEach(function (p, i2) {
-      var p2 = outl[(i2 + 1) % outl.length], ex = p2[0] - p[0], ey = p2[1] - p[1], el = Math.sqrt(ex * ex + ey * ey) || 1;
-      var nx = ey / el, ny = -ex / el;   // normal hacia afuera
-      var col = shade("#efefec", 0.04 - 0.24 * Math.max(0, ny) - 0.1 * Math.abs(nx) + 0.08 * Math.max(0, -ny));
-      var w4 = [F3(p[0], p[1], 0), F3(p2[0], p2[1], 0), F3(p2[0], p2[1], tS), F3(p[0], p[1], tS)].map(scr);
-      c.beginPath(); w4.forEach(function (s2, i3) { c[i3 ? "lineTo" : "moveTo"](s2[0], s2[1]); }); c.closePath();
-      c.fillStyle = col; c.fill(); c.strokeStyle = col; c.lineWidth = 0.6; c.stroke();
-    });
-    // cara del sticker con el diseño (malla para que la perspectiva sea real)
-    var tex = o.tex || renderSupport(Math.min(6, 900 / Math.max(W, H)), 0), TW = tex.width, TH = tex.height, N = 14;
-    function pt(u, v) { return scr(F3(u * sw, (1 - v) * sh, tS)); }
-    c.save();
-    path3(tS); c.clip();
-    for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) {
-      var u0 = i / N, u1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
-      var a = pt(u0, v0), b = pt(u1, v0), d2 = pt(u1, v1), e2 = pt(u0, v1);
-      var ta = [u0 * TW, (1 - v0) * TH], tb2 = [u1 * TW, (1 - v0) * TH], td = [u1 * TW, (1 - v1) * TH], te = [u0 * TW, (1 - v1) * TH];
-      texTri(c, tex, a, b, d2, ta, tb2, td);
-      texTri(c, tex, a, d2, e2, ta, td, te);
-    }
-    // brillo del laminado: una franja que se mueve al girar (en el video recorre el sticker)
-    var qa = scr(F3(0, 0, tS)), qb = scr(F3(sw, sh, tS));
-    var bp = clamp(0.42 - yaw / (Math.PI / 3) * 0.3, 0.14, 0.86);
-    var lg = c.createLinearGradient(qa[0], qa[1], qb[0], qb[1]);
-    lg.addColorStop(0, "rgba(255,255,255,.14)"); lg.addColorStop(bp - 0.13, "rgba(255,255,255,.03)");
-    lg.addColorStop(bp, "rgba(255,255,255,.24)"); lg.addColorStop(bp + 0.06, "rgba(255,255,255,.03)"); lg.addColorStop(1, "rgba(255,255,255,.07)");
-    c.fillStyle = lg; c.fillRect(0, 0, CW, CH);
-    // bisel: luz en el borde de arriba, sombra en el de abajo
-    var qt = scr(F3(0, 0, tS)), qd = scr(F3(0, sh, tS)), bv = c.createLinearGradient(qt[0], qt[1], qd[0], qd[1]);
-    bv.addColorStop(0, "rgba(255,255,255,.8)"); bv.addColorStop(0.5, "rgba(255,255,255,.1)"); bv.addColorStop(1, "rgba(0,0,0,.3)");
-    path3(tS); c.strokeStyle = bv; c.lineWidth = Math.max(1.5, 0.45 * k); c.stroke();
-    c.restore();
+    var tex = o.tex || renderSupport(Math.min(6, 900 / Math.max(W, H)), 0);
+    sticker3D(c, outl, sw, sh, F3, scr, tS, tex, k, clamp(0.42 - yaw / (Math.PI / 3) * 0.3, 0.14, 0.86));
 
     var lineCol = tb === "light" ? "#2b2d33" : "#f2f2f2", pillBg = tb === "light" ? "rgba(255,255,255,.92)" : "rgba(20,21,25,.85)";
     // texto del video, arriba
-    if (o.caption) {
-      var lines = String(o.caption).split("\n").slice(0, 3), fsz = Math.round(Math.min(CW * 0.065, CH * 0.055));
-      c.save();
-      c.fillStyle = lineCol; c.textAlign = "center"; c.textBaseline = "middle";
-      lines.forEach(function (l, i) {
-        var sz = i ? Math.round(fsz * 0.6) : fsz;
-        c.font = (i ? "500 " : "700 ") + sz + "px " + FONTS.sans;
-        while (c.measureText(l).width > CW * 0.9 && sz > 12) { sz -= 2; c.font = (i ? "500 " : "700 ") + sz + "px " + FONTS.sans; }
-        var y = CH * (CH > CW ? 0.13 : 0.1) + (i ? fsz * 0.55 + i * fsz * 0.75 : 0);
-        c.fillText(l, CW / 2, y);
-      });
-      c.restore();
-    }
+    if (o.caption) drawCaption3D(c, CW, CH, o.caption, lineCol);
     // medidas: alto y ancho de la cara, y fondo de la base
     if (!meas) return;
     function cm(mm) { return +(mm / 10).toFixed(2) + " cm"; }
@@ -5488,21 +5563,21 @@
     render3D({ cv: cv, tex: tex, yaw: -28 + 24 * Math.sin(a * 2 * Math.PI), zoom: 1 + 0.06 * (0.5 - 0.5 * Math.cos(a * 2 * Math.PI)), side: 1, caption: caption });
   }
   var vidBusy = false;
-  $("s-3dvid").addEventListener("click", function () {
-    if (vidBusy || !supReady()) return;
+  // p = prefijo de los controles ("s" Soportes, "t" Plantillas); makeFrame() prepara las texturas y devuelve frame(cv, t, secs, caption)
+  function startVideo(p, name, makeFrame) {
+    if (vidBusy) return;
     var mime = videoMime();
     if (!mime || !document.createElement("canvas").captureStream) { alert("Este navegador no puede grabar video. Usa Chrome o Edge actualizados."); return; }
     var ext = mime.indexOf("mp4") >= 0 ? "mp4" : "webm";
-    askFileName("video-soporte-" + supName() + "." + ext, function (fname) { recordVideo(mime, ext, fname); }, "Nombre del video (se descarga al terminar de grabar)");
-  });
-  function recordVideo(mime, ext, fname) {
+    askFileName(name + "." + ext, function (fname) { recordVideo(p, mime, ext, fname, makeFrame()); }, "Nombre del video (se descarga al terminar de grabar)");
+  }
+  function recordVideo(p, mime, ext, fname, frame) {
     if (vidBusy) return;
-    var btn = $("s-3dvid"), label = btn.textContent;
-    var fmt = VID_FORMATS[$("s-3dvfmt").value] || VID_FORMATS.vertical, secs = parseFloat($("s-3dvdur").value) || 8;
+    var btn = $(p + "-3dvid"), label = btn.textContent;
+    var fmt = VID_FORMATS[$(p + "-3dvfmt").value] || VID_FORMATS.vertical, secs = parseFloat($(p + "-3dvdur").value) || 8;
     var cv = document.createElement("canvas"); cv.width = fmt[0]; cv.height = fmt[1];
-    var tex = renderSupport(Math.min(8, 1400 / Math.max(sup.w, sup.h)), 0);
-    var caption = $("s-3dvtxt").value.trim();
-    videoFrame(cv, tex, 0, secs, caption);
+    var caption = $(p + "-3dvtxt").value.trim();
+    frame(cv, 0, secs, caption);
     var stream = cv.captureStream(30), chunks = [], rec;
     try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10000000 }); }
     catch (err) { alert("No se pudo iniciar la grabación: " + err.message); return; }
@@ -5510,7 +5585,7 @@
     rec.onstop = function () {
       vidBusy = false; btn.disabled = false; btn.textContent = label;
       downloadBlob(new Blob(chunks, { type: mime.split(";")[0] }), fname, true);
-      $("s-3dvnote").textContent = ext === "webm"
+      $(p + "-3dvnote").textContent = ext === "webm"
         ? "Listo. Se descargó en WEBM: CapCut lo abre; si otra app no lo acepta, conviértelo a MP4."
         : "Listo. Se descargó en MP4: agrégale música en CapCut, InShot o al subirlo a Instagram o TikTok.";
     };
@@ -5519,12 +5594,165 @@
     rec.start(500);
     (function loop() {
       var t = (performance.now() - t0) / 1000;
-      if (t >= secs) { videoFrame(cv, tex, secs, secs, caption); setTimeout(function () { rec.stop(); }, 150); return; }
-      videoFrame(cv, tex, t, secs, caption);
+      if (t >= secs) { frame(cv, secs, secs, caption); setTimeout(function () { rec.stop(); }, 150); return; }
+      frame(cv, t, secs, caption);
       btn.textContent = "Grabando... " + Math.ceil(secs - t) + " s";
       requestAnimationFrame(loop);
     })();
   }
+  $("s-3dvid").addEventListener("click", function () {
+    if (vidBusy || !supReady()) return;
+    startVideo("s", "video-soporte-" + supName(), function () {
+      var tex = renderSupport(Math.min(8, 1400 / Math.max(sup.w, sup.h)), 0);
+      return function (cv, t, secs, caption) { videoFrame(cv, tex, t, secs, caption); };
+    });
+  });
+
+  // ---- Maqueta 3D de la tarjeta o el chip (Plantillas) ----
+  var t3dTex = null, c3dRaf = 0;
+  function card3DOK() { var d = TPL_SIZES[tpl.size]; return !!d && (tpl.size === "card" || !!d.chip); }
+  function card3DTex(ppmm) {
+    var card = tpl.size === "card";
+    function one(side) { var st = sideTpl(tpl, side); return st ? renderTemplate(st, ppmm, 0, !card) : null; }
+    return { front: one("front"), back: one("back") };
+  }
+  // o: { cv, yaw (grados), pose ("stand" | "flat"), side ("front" | "back"), table, tex { front, back }, zoom, caption }
+  function renderCard3D(o) {
+    o = o || {};
+    var cv = o.cv || $("t-3dcv"), c = cv.getContext("2d"), CW = cv.width, CH = cv.height, U = Math.min(CW, CH) / 760;
+    var t = tpl, d = TPL_SIZES[t.size], card = t.size === "card", sd = tplDims(t), circ = !!d.circle;
+    var BW = d.w, BH = d.h, T = Math.max(0.9, Math.min(BW, BH) * 0.018);   // PVC algo más grueso que el real (0.76 mm) para que se note
+    var tS = Math.max(0.25, Math.min(BW, BH) * 0.007);
+    var r0 = circ ? 0 : card ? (t.rounded ? CORNER_MM : 0.6) : 1.5, rS = circ ? 0 : card ? (t.rounded ? CORNER_MM : 0) : 1;
+    var pose = o.pose || $("t-3dpose").value, back = (o.side || t.side) === "back";
+    var tex = o.tex || t3dTex || (t3dTex = card3DTex(Math.min(10, 1000 / BW)));
+    var yawD = o.yaw != null ? o.yaw : parseFloat($("t-3dyaw").value) || 0;
+    var tilt = 8 * Math.PI / 180, ex, ey, n, C, blk = null;
+    if (pose === "flat") {   // acostada; para el reverso se voltea
+      ex = [back ? -1 : 1, 0, 0]; ey = [0, 0, -1]; n = [0, back ? -1 : 1, 0]; C = [0, T / 2, 0];
+    } else {   // parada en un bloque de acrílico con ranura, un poco inclinada hacia atrás
+      if (back) yawD += 180;
+      blk = { w: clamp(BW * 0.5, 14, 44), d: Math.min(16, BW * 0.5), h: Math.min(9, BW * 0.3) };   // más chico para los chips
+      ex = [1, 0, 0]; ey = [0, Math.cos(tilt), -Math.sin(tilt)]; n = [0, Math.sin(tilt), Math.cos(tilt)];
+      C = [0, blk.h * 0.5 + BH / 2 * Math.cos(tilt), -BH / 2 * Math.sin(tilt)];
+    }
+    function L(a, b, h) { return [C[0] + ex[0] * a + ey[0] * b + n[0] * h, C[1] + ex[1] * a + ey[1] * b + n[1] * h, C[2] + ex[2] * a + ey[2] * b + n[2] * h]; }
+    var yaw = yawD * Math.PI / 180, pitch = (pose === "flat" ? 44 : 15) * Math.PI / 180;
+    var cy = pose === "flat" ? 0 : C[1] * 0.75, dist = 3.4 * Math.max(BW, BH);
+    function rot(p, yw) {
+      var x1 = p[0] * Math.cos(yw) + p[2] * Math.sin(yw), z1 = -p[0] * Math.sin(yw) + p[2] * Math.cos(yw);
+      return [x1, p[1] * Math.cos(pitch) - z1 * Math.sin(pitch), p[1] * Math.sin(pitch) + z1 * Math.cos(pitch)];
+    }
+    function camAt(p, yw) { var q = rot([p[0], p[1] - cy, p[2]], yw), f = dist / (dist - q[2]); return [q[0] * f, -q[1] * f, q[2]]; }
+    // encuadre fijo para cualquier giro (así no cambia de tamaño en el video)
+    var key = [];
+    [-1, 1].forEach(function (sa) { [-1, 1].forEach(function (sb) { key.push(L(sa * BW / 2, sb * BH / 2, 0)); }); });
+    if (blk) [-1, 1].forEach(function (sx) { [-1, 1].forEach(function (sz) { [0, blk.h].forEach(function (y) { key.push([sx * blk.w / 2, y, sz * blk.d / 2]); }); }); });
+    var mnx = 1e9, mxx = -1e9, mny = 1e9, mxy = -1e9;
+    for (var a = 0; a < 360; a += 30) key.forEach(function (p) { var q = camAt(p, a * Math.PI / 180); mnx = Math.min(mnx, q[0]); mxx = Math.max(mxx, q[0]); mny = Math.min(mny, q[1]); mxy = Math.max(mxy, q[1]); });
+    var capt = !!o.caption;
+    var k = Math.min(CW * 0.72 / (mxx - mnx), CH * (capt ? 0.5 : 0.68) / (mxy - mny)) * (o.zoom || 1);
+    var ox = CW / 2 - (mnx + mxx) / 2 * k, oy = CH * (capt ? 0.6 : 0.52) - (mny + mxy) / 2 * k;
+    function scr(p) { var q = camAt(p, yaw); return [ox + q[0] * k, oy + q[1] * k, q[2]]; }
+    function poly(pts, fill, stroke, lw) {
+      var q = pts.map(scr);
+      c.beginPath(); q.forEach(function (p, i) { c[i ? "lineTo" : "moveTo"](p[0], p[1]); }); c.closePath();
+      if (fill) { c.fillStyle = fill; c.fill(); }
+      if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw || 1; c.lineJoin = "round"; c.stroke(); }
+    }
+    var tb = o.table || $("t-3dtable").value, light = tb === "light";
+    drawTable3D(c, CW, CH, tb);
+    var baseOut = stickerOutline(BW, BH, r0, circ);
+    function LB(p, h) { return L(p[0] - BW / 2, BH / 2 - p[1], h); }
+    // sombras en la mesa
+    c.save();
+    c.filter = "blur(" + Math.max(2, Math.round(k * (pose === "flat" ? 1.4 : 2.6))) + "px)";
+    if (pose === "flat") poly(baseOut.map(function (p) { var q = LB(p, 0); return [q[0] + 1, 0, q[2] + 1.6]; }), "rgba(0,0,0,.5)");
+    else {
+      poly([[-BW / 2, 0, 2], [BW / 2, 0, 2], [BW / 2 + 4, 0, -BH * 0.5], [-BW / 2 + 4, 0, -BH * 0.5]], "rgba(0,0,0,.28)");
+      poly([[-blk.w / 2 - 1, 0, blk.d / 2 + 1.5], [blk.w / 2 + 1, 0, blk.d / 2 + 1.5], [blk.w / 2 + 2, 0, -blk.d / 2 - 2], [-blk.w / 2 - 1, 0, -blk.d / 2 - 2]], "rgba(0,0,0,.35)");
+    }
+    c.restore();
+
+    var LGT = [-0.32, 0.82, 0.48];
+    function lit(v) { return v[0] * LGT[0] + v[1] * LGT[1] + v[2] * LGT[2]; }
+    function drawCard() {
+      var pc = rot([C[0], C[1] - cy, C[2]], yaw), nc = rot(n, yaw);
+      var fv = -nc[0] * pc[0] - nc[1] * pc[1] + nc[2] * (dist - pc[2]) > 0, hs = fv ? 1 : -1;   // ¿se ve el frente?
+      // canto del PVC
+      baseOut.map(function (p, i) {
+        var p2 = baseOut[(i + 1) % baseOut.length], dx = p2[0] - p[0], dy = p2[1] - p[1], dl = Math.sqrt(dx * dx + dy * dy) || 1;
+        var nx = dy / dl, ny = -dx / dl, wn = [ex[0] * nx - ey[0] * ny, ex[1] * nx - ey[1] * ny, ex[2] * nx - ey[2] * ny];
+        var q = [LB(p, -T / 2), LB(p2, -T / 2), LB(p2, T / 2), LB(p, T / 2)];
+        var z = q.reduce(function (sm, v) { return sm + scr(v)[2]; }, 0) / 4;
+        return { q: q, z: z, col: shadeCol("#ecebe6", -0.24 + 0.3 * lit(wn)) };
+      }).sort(function (a2, b2) { return a2.z - b2.z; }).forEach(function (e) { poly(e.q, e.col, e.col, 0.8); });
+      // cara de PVC blanco
+      poly(baseOut.map(function (p) { return LB(p, hs * T / 2); }), shadeCol("#f7f7f4", -0.12 + 0.14 * lit([n[0] * hs, n[1] * hs, n[2] * hs])));
+      var tx = fv ? tex.front : tex.back;
+      if (!tx) return;   // cara sin diseño: solo el PVC
+      var outl = stickerOutline(sd.w, sd.h, rS, circ);
+      function F3(x, y, lift) { return L(hs * (x - sd.w / 2), sd.h / 2 - y, hs * (T / 2 + lift)); }
+      var yv = yaw + (fv ? 0 : Math.PI); yv = Math.atan2(Math.sin(yv), Math.cos(yv));
+      sticker3D(c, outl, sd.w, sd.h, F3, scr, tS, tx, k, clamp(0.42 - yv / (Math.PI / 3) * 0.3, 0.14, 0.86));
+    }
+    var items = [{ z: scr(C)[2], draw: drawCard }];
+    if (blk) {   // bloque de acrílico transparente
+      var w2 = blk.w / 2, d2 = blk.d / 2, h = blk.h;
+      var fillA = light ? "rgba(140,165,190,.20)" : "rgba(205,228,245,.13)", edgeA = light ? "rgba(85,105,125,.6)" : "rgba(255,255,255,.55)";
+      [[[-w2, 0, d2], [w2, 0, d2], [w2, h, d2], [-w2, h, d2]], [[-w2, 0, -d2], [w2, 0, -d2], [w2, h, -d2], [-w2, h, -d2]],
+       [[-w2, 0, -d2], [-w2, 0, d2], [-w2, h, d2], [-w2, h, -d2]], [[w2, 0, -d2], [w2, 0, d2], [w2, h, d2], [w2, h, -d2]],
+       [[-w2, h, -d2], [w2, h, -d2], [w2, h, d2], [-w2, h, d2]]].forEach(function (f, i) {
+        var z = f.reduce(function (sm, v) { return sm + scr(v)[2]; }, 0) / 4;
+        items.push({ z: z, draw: function () {
+          poly(f, i === 4 ? (light ? "rgba(150,175,200,.26)" : "rgba(225,240,255,.2)") : fillA, edgeA, 1.2 * U);
+          if (i === 4) poly([[-w2, h, 0.6], [w2, h, 0.6], [w2, h, -0.6], [-w2, h, -0.6]], "rgba(0,0,0,.28)");   // ranura
+        } });
+      });
+    }
+    items.sort(function (a2, b2) { return a2.z - b2.z; }).forEach(function (it) { it.draw(); });
+    if (o.caption) drawCaption3D(c, CW, CH, o.caption, light ? "#2b2d33" : "#f2f2f2");
+  }
+  function renderCard3DSoon() {
+    if ($("t-3d").classList.contains("hidden") || c3dRaf) return;
+    c3dRaf = requestAnimationFrame(function () { c3dRaf = 0; if (card3DOK()) renderCard3D(); });
+  }
+  $("t-3dbtn").addEventListener("click", function () {
+    var open = $("t-3d").classList.toggle("hidden") === false;
+    $("t-3dlabel").textContent = open ? "Ocultar maqueta 3D" : "Ver maqueta 3D";
+    if (open) { t3dTex = null; renderCard3D(); $("t-3d").scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+  });
+  $("t-3dyaw").addEventListener("input", renderCard3DSoon);
+  ["t-3dpose", "t-3dtable"].forEach(function (id) { $(id).addEventListener("change", renderCard3DSoon); });
+  (function () {
+    var cv = $("t-3dcv"), last = null;
+    cv.addEventListener("pointerdown", function (e) { last = e.clientX; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener("pointermove", function (e) {
+      if (last === null) return;
+      var y = $("t-3dyaw"), v = parseFloat(y.value) + (e.clientX - last) * 0.5; last = e.clientX;
+      if (v > 180) v -= 360; if (v < -180) v += 360;   // da la vuelta completa
+      y.value = v; renderCard3DSoon();
+    });
+    function up() { last = null; }
+    cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  })();
+  function card3DName() { return (TPL_SIZES[tpl.size].chip ? "chip" : "tarjeta") + (tpl.name ? "-" + fnClean(tpl.name).replace(/\s+/g, "-").toLowerCase() : ""); }
+  $("t-3ddl").addEventListener("click", function () {
+    if (!card3DOK()) return;
+    renderCard3D();
+    $("t-3dcv").toBlob(function (blob) { downloadBlob(blob, "maqueta-" + card3DName() + ".png"); }, "image/png");
+  });
+  $("t-3dvid").addEventListener("click", function () {
+    if (vidBusy || !card3DOK()) return;
+    startVideo("t", "video-" + card3DName(), function () {
+      var tex = card3DTex(Math.min(14, 1600 / TPL_SIZES[tpl.size].w)), pose = $("t-3dpose").value, side = tpl.side, spin = pose === "stand" && tex.back;
+      return function (cv, t, secs, caption) {
+        var a = t / secs;
+        if (spin) renderCard3D({ cv: cv, tex: tex, pose: pose, side: "front", yaw: -25 + 360 * (0.5 - 0.5 * Math.cos(a * Math.PI)), zoom: 1 + 0.05 * Math.sin(a * Math.PI), caption: caption });   // vuelta completa: frente, reverso y frente
+        else renderCard3D({ cv: cv, tex: tex, pose: pose, side: side, yaw: -25 + 24 * Math.sin(a * 2 * Math.PI), zoom: 1 + 0.06 * (0.5 - 0.5 * Math.cos(a * 2 * Math.PI)), caption: caption });
+      };
+    });
+  });
 
   // ---- Guardar en el navegador (imágenes incluidas si caben) ----
   function saveSup() {

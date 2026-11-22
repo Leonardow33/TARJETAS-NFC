@@ -40,6 +40,7 @@ Enlaces:
   - Soportes: vista previa y miniaturas de modelos con canto y brillo. Casilla `#s-fx` ("Relieve y laminado").
 - Utilidades de color, junto al código de Soportes: `hex2rgb`, `rgb2hex`, `lum`, `sat`, `mix`, `contrastOn`, `vivid` e `inkFor`. Para medir imagen o canvas: `iw` e `ih`.
 - Madera compartida: `WOOD_BG`, `WOOD_INK` y `drawWood(c, x, y, w, h, S)`, con veta en mm y semilla fija para que salga igual a cualquier resolución.
+- Maquetas 3D (soporte y tarjeta) comparten `drawTable3D`, `drawCaption3D`, `shadeCol` y `sticker3D(c, outl, sw, sh, F3, scr, tS, tex, k, bp)` (sombra, canto blanco, malla `texTri`, brillo y bisel). Los videos usan `startVideo(p, nombre, makeFrame)` + `recordVideo` con los controles `p-3dv*` (p = "s" o "t").
 
 ### Foto
 - `state`: size `card`|`l70x40`, orientation, img, zoom, cx, cy, bg, text, bright, contrast, auto, dither.
@@ -74,6 +75,12 @@ Enlaces:
   - Pensado para que la térmica de 203 DPI no empaste letras chicas.
 - Hay 11 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
 - "Agregar a hoja A4" (`#t-card`, `t-add`, `tplA4Snap`) se ve en todos los tamaños. Los chips se agregan con la medida de su sticker (Ø 23 / 28 × 18.8, cara y sello, corte redondo en la Ø25); las etiquetas 70 × 40 y 50 × 25 pasan a tarjeta 85.6 × 54. "PDF tamaño real" usa la misma medida.
+- **Maqueta 3D de tarjeta y chips** (`#t-3dbtn`, `#t-3d`, `renderCard3D(o)`; oculta en etiquetas térmicas, `card3DOK`):
+  - PVC blanco con grosor (canto sombreado por segmento) y el sticker laminado en cada cara con diseño (`sticker3D`); una cara sin diseño queda en PVC liso.
+  - Posición `#t-3dpose`: "stand" (parada e inclinada 8° en un bloque de acrílico transparente con ranura; el bloque se achica para chips) o "flat" (acostada; el reverso se voltea). Frente/Reverso usa `tpl.side` (en stand suma 180° de giro).
+  - Giro `#t-3dyaw` de −180 a 180 (arrastrar da la vuelta completa). Encuadre fijo calculado con todos los giros, para que no cambie de tamaño. Mesa `#t-3dtable`, PNG `#t-3ddl`.
+  - Texturas en caché `t3dTex` (se borra en `renderTpl`, que además refresca la maqueta). `o` acepta { cv, yaw, pose, side, table, tex {front, back}, zoom, caption }.
+  - Video (`t-3dv*`): en el soporte, vuelta completa con easing (frente, reverso, frente) si hay reverso; si no, o sobre la mesa, vaivén suave.
 - **Material** (`tpl.material`, `#tplmat`): white, black o wood. Reemplaza a "Invertir".
   - `tpl.invert` queda en sync para compatibilidad.
   - Madera solo en tamaño tarjeta y no en térmica.
@@ -271,7 +278,6 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - el editor de imagen en el celular (recortar con el dedo) y volver a subir su logo "Industry Secrets" (el guardado se procesó con el método anterior);
   - imprimir un A4 a 600 DPI y comparar con 300;
   - el relieve y el brillo del sticker en pantalla (maqueta, video y vistas previas): ajustar si lo quiere más fino o con menos brillo (`tS`, `ins` y la franja `bp` en `render3D`; `stickerGloss`).
-- **Posible:** maqueta 3D de la "tarjeta con soporte pequeño" (hoy `render3D` solo dibuja el soporte en L).
 - **Calidad:** el usuario quiere la mejor calidad (HD) en A4, PDF y PNG; en la térmica, solo si se puede mejorar sin romper nada.
 - **Negocio:** el usuario aún no registra sus compras de material (solo está el equipo de S/ 357.78), así que el stock sale incompleto. El precio del laminado sigue sin confirmar (S/ 0.50 por stand).
   - Planes actualizados a la propuesta comercial (49/88/120/148/78/18) y se quitó "Promo 4 stands". `loadBiz` migra una sola vez (`plansV: 2`) solo los planes que seguían con el precio anterior; si el usuario los había editado, se respetan.
