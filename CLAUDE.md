@@ -173,14 +173,17 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
   - cfg: hora, minStand, minTarjeta, stkStand (4), stkTarjeta (11), impresion, impuesto (%), tiempo (bool), umbral.
   - El chip NFC va como un pack de 21 piezas a S/ 18.05 (6 + 15 comprados) → S/ 0.86.
 - `bizRecipe("stand"|"tarjeta")`: materiales por producto (la hoja A4 en fracción). `bizProdCost`, `bizTimeCost`, `bizCalc(v)` → mat, time, cost, util, utilMat, margin. Usa siempre el catálogo actual: si cambia un precio, cambian todos los márgenes.
-- Venta: fecha, cliente, clienteId, plan (nombre), cant, total, stands, tarjetas (totales), notas y `adj` (metadatos de archivos). El plan llena stands, tarjetas y precio (editables). "Otro (manual)".
+- Venta: fecha, cliente, clienteId, plan (nombre), cant, total, stands, tarjetas (totales), notas, `adj` (metadatos de archivos) y `links` (lista de URL). El plan llena stands, tarjetas y precio (editables). "Otro (manual)".
 - **Historial de negocios** (`#b-hist`, `renderClients`): `biz.clientes` = { id, nombre, tel, contacto, dir, link, notas, creado }.
   - Se arma solo con las ventas: `bizCliEnsure` busca por nombre normalizado (`cliKey`: sin tildes, mayúsculas ni espacios de más) y `bizLinkClients` (en `loadBiz`) une las ventas antiguas o restauradas.
   - El campo Cliente tiene `datalist` (`#b-clist`) y `#b-vcliinfo` avisa si el negocio ya existe. "Nuevo negocio" usa `prompt()`.
   - Cada negocio (`details.bcli`, `cliOpen` recuerda los abiertos) muestra datos editables, compras con su 📎, "Registrar venta a este negocio", "Usar su link en Soportes" (pone `#s-link`) y WhatsApp (`waLink`, +51 si son 9 dígitos). Solo se borra si no tiene ventas. Al renombrarlo cambia `v.cliente` de sus ventas.
   - `keepFocus(fn)` vuelve a dibujar sin perder el campo activo.
+- **Links por venta** (`v.links`): en el formulario, filas `#b-vlinks` (2 al inicio, "+ Otro link" hasta 8, "Traer el link de Soportes" usa `sup.link`); en la ventana `#bv`, lista con Copiar y Quitar y campo `#bv-linkin` (Enter agrega).
+  - `linkNorm` (agrega https://), `linkList` (sin repetidos), `linkKind` (Reseñas Google, link corto, Instagram, WhatsApp, Facebook, TikTok, LinkedIn, Tarjeta digital o el dominio).
+  - `cliTakeLink`: si el negocio no tiene link de reseñas, toma el de la venta. El buscador del historial también busca en los links. El botón de la tabla muestra "📎 n · 🔗 m". CSV ventas con columna links.
 - **Archivos por venta** (IndexedDB `nfc-adjuntos`, store `files` { id, venta, name, type, size, fecha, blob, design? }): `adjPut/adjGet/adjAll/adjDel/adjClear`, `adjAdd(v, recs)`.
-  - Al registrar la venta: `#b-vfiles` y `#b-vdesign` (diseño actual de Soportes, Plantillas o los dos). Ventana `#bv` (`bvOpen`, botón 📎 en ventas y en el historial): notas, miniaturas, Ver, Descargar, Borrar y subir más.
+  - Al registrar la venta: dos espacios de archivo (`#b-vfile1`, `#b-vfile2`) y `#b-vdesign` (diseño actual de Soportes, Plantillas o los dos). Ventana `#bv` (`bvOpen`, botón 📎 en ventas y en el historial): notas, miniaturas, Ver, Descargar, Borrar y subir más.
   - `adjDesign(area, v)`: PNG a `EXPORT_PPMM` + JSON editable (`supPack(true)` o las claves `TPL_SAVE`). "Editar en Soportes/Plantillas" (`adjOpenDesign`) escribe `nfc-soporte`/`nfc-plantilla`, deja `sessionStorage nfc-goto` y recarga.
   - Borrar una venta borra sus archivos. El respaldo JSON lleva `adjuntos` en base64 (`data`); al restaurar se reemplaza el IndexedDB.
 - Panel (`renderBiz`): filtro por mes (`b-month`), KPI (vendido, invertido, ganancia, caja neta), barra de recuperación del equipo (utilidad solo materiales ÷ inversión en equipo, todo el historial), ventas, por plan, por mes, compras y stock (comprado − usado; aviso si queda menos que el umbral).

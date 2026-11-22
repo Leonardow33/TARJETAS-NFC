@@ -410,6 +410,14 @@
   .bcli-body .wide { grid-column: 1 / -1; }
   .bclip { border: 1px solid var(--line-strong); background: var(--panel-2); color: var(--ink); border-radius: 6px; padding: 2px 8px; cursor: pointer; font: inherit; font-size: .78rem; white-space: nowrap; }
   .bv-box { max-width: 860px; }
+  .bfile { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  #b-vlinks input + input { margin-top: 6px; }
+  .blrow { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: .84rem; min-width: 0; }
+  .blrow:last-child { border-bottom: 0; }
+  .blrow .tag { flex: none; font-size: .7rem; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); }
+  .blrow a { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+  .blrow button { flex: none; font: inherit; font-size: .74rem; padding: 3px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-2); color: var(--ink); cursor: pointer; }
+  .blrow button.del { color: var(--danger); }
   #fn { z-index: 60; }   /* encima de la ventana de la venta */
   .fn-box { max-width: 480px; }
   .fnrow { display: flex; align-items: center; gap: 6px; }
@@ -1360,8 +1368,18 @@
             <div class="field"><label for="b-vdesign">Guardar el diseño actual</label>
               <select id="b-vdesign"><option value="">No</option><option value="sup">De Soportes</option><option value="tpl">De Plantillas</option><option value="both">De los dos</option></select>
             </div>
-            <div class="field"><span class="flabel">Archivos impresos (opcional)</span>
-              <label class="btn" for="b-vfiles" id="b-vfileslabel">Elegir archivos</label><input type="file" id="b-vfiles" multiple>
+            <div class="field"><span class="flabel">Archivo 1 (opcional)</span>
+              <label class="btn bfile" for="b-vfile1" id="b-vfile1l">Elegir archivo</label><input type="file" id="b-vfile1">
+            </div>
+            <div class="field"><span class="flabel">Archivo 2 (opcional)</span>
+              <label class="btn bfile" for="b-vfile2" id="b-vfile2l">Elegir archivo</label><input type="file" id="b-vfile2">
+            </div>
+          </div>
+          <div class="field" style="margin-top:10px"><span class="flabel">Links usados (reseñas de Google, Instagram, menú, WhatsApp…)</span>
+            <div id="b-vlinks"></div>
+            <div class="s-tools" style="margin-top:6px">
+              <button class="btn" id="b-vlinkadd">+ Otro link</button>
+              <button class="btn" id="b-vlinksup" title="Pone el link que tienes ahora en Soportes (el de sus QR)">Traer el link de Soportes</button>
             </div>
           </div>
           <p class="note" id="b-vcliinfo" style="margin-top:10px"></p>
@@ -1523,6 +1541,9 @@
     </div>
     <p class="note" id="bv-info"></p>
     <div class="field"><label for="bv-notas">Notas de la venta</label><input type="text" id="bv-notas" maxlength="300" placeholder="Ej.: stand negro, logo dorado, entregado el sábado"></div>
+    <div class="glabel" style="margin-top:14px">Links de esta venta</div>
+    <div id="bv-links"></div>
+    <div class="fnrow" style="margin-top:8px"><input type="url" id="bv-linkin" placeholder="Pega un link y toca Agregar" aria-label="Link nuevo"><button class="btn" id="bv-linkadd" style="width:auto">Agregar</button></div>
     <div class="glabel" style="margin-top:14px">Archivos de esta venta</div>
     <div class="bvfiles" id="bv-files"></div>
     <div class="s-tools" style="margin-top:12px">
@@ -1531,7 +1552,7 @@
       <button class="btn" id="bv-dtpl">Guardar diseño actual de Plantillas</button>
     </div>
     <input type="file" id="bv-up" multiple>
-    <p class="note" style="margin-top:10px">Sube el PDF o la imagen que imprimiste. "Guardar diseño actual" guarda una imagen a tamaño real y el diseño editable: con <b>Editar</b> lo vuelves a abrir en la app para cambiarlo o reimprimirlo. Los archivos quedan en este navegador; el <b>respaldo</b> de Negocio los incluye.</p>
+    <p class="note" style="margin-top:10px">Guarda aquí los links que grabaste en el chip o el QR (reseñas, Instagram, menú…) y sube el PDF o la imagen que imprimiste. "Guardar diseño actual" guarda una imagen a tamaño real y el diseño editable: con <b>Editar</b> lo vuelves a abrir en la app para cambiarlo o reimprimirlo. Los archivos quedan en este navegador; el <b>respaldo</b> de Negocio los incluye.</p>
   </div>
 </div>
 
@@ -5982,13 +6003,16 @@
     if (!(d.total > 0) && !(d.stands + d.tarjetas > 0)) { alert("Pon el precio cobrado o la cantidad de stands y tarjetas."); return; }
     var c = bizCliEnsure($("b-vcli").value);
     var v = { id: bizId(), fecha: $("b-vfecha").value || todayISO(), cliente: c ? c.nombre : "", plan: p ? p.name : "Otro",
-      cant: Math.max(1, parseInt($("b-vcant").value, 10) || 1), total: d.total, stands: d.stands, tarjetas: d.tarjetas, notas: $("b-vnotas").value.trim(), adj: [] };
+      cant: Math.max(1, parseInt($("b-vcant").value, 10) || 1), total: d.total, stands: d.stands, tarjetas: d.tarjetas, notas: $("b-vnotas").value.trim(), adj: [],
+      links: linkList([].map.call(document.querySelectorAll("#b-vlinks input"), function (i) { return i.value; })) };
     if (c) v.clienteId = c.id;
+    cliTakeLink(c, v);
     biz.ventas.push(v);
     saveBiz();
     // archivos elegidos y diseño actual de la app, guardados con la venta
-    var recs = adjFromFiles($("b-vfiles").files), dz = $("b-vdesign").value, areas = dz === "both" ? ["sup", "tpl"] : dz ? [dz] : [];
-    $("b-vfiles").value = ""; $("b-vfileslabel").textContent = "Elegir archivos"; $("b-vdesign").value = "";
+    var recs = adjFromFiles($("b-vfile1").files).concat(adjFromFiles($("b-vfile2").files)), dz = $("b-vdesign").value, areas = dz === "both" ? ["sup", "tpl"] : dz ? [dz] : [];
+    ["b-vfile1", "b-vfile2"].forEach(function (id) { $(id).value = ""; $(id + "l").textContent = "Elegir archivo"; });
+    $("b-vdesign").value = ""; bizLinkRows();
     $("b-vcli").value = ""; $("b-vnotas").value = ""; $("b-vcant").value = 1; bizFillSale(); bizCliInfo();
     renderBiz();
     (function next(i) {
@@ -6150,7 +6174,7 @@
 
     // ventas del periodo
     var vs = V.slice().sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); });
-    $("b-ventas").innerHTML = vs.length ? "<thead><tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th class=\"n\">Unid.</th><th class=\"n\">Cobrado</th><th class=\"n\">Costo</th><th class=\"n\">Utilidad</th><th class=\"n\">Margen</th><th>Archivos</th><th></th></tr></thead><tbody>" +
+    $("b-ventas").innerHTML = vs.length ? "<thead><tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th class=\"n\">Unid.</th><th class=\"n\">Cobrado</th><th class=\"n\">Costo</th><th class=\"n\">Utilidad</th><th class=\"n\">Margen</th><th>Archivos y links</th><th></th></tr></thead><tbody>" +
       vs.map(function (v) {
         var r = bizCalc(v);
         return "<tr><td>" + bizEsc(v.fecha) + "</td><td>" + bizEsc(v.cliente || "—") + (v.notas ? '<br><small class="note">' + bizEsc(v.notas) + "</small>" : "") + "</td><td>" + bizEsc(v.plan) + (num(v.cant) > 1 ? " × " + num(v.cant) : "") + "</td>" +
@@ -6246,7 +6270,11 @@
   function fechaLabel(f) { f = String(f || ""); return /^\d{4}-\d{2}-\d{2}$/.test(f) ? +f.slice(8, 10) + " " + MESES[+f.slice(5, 7) - 1] + " " + f.slice(0, 4) : f; }
   function waLink(tel) { var d = String(tel || "").replace(/\D/g, ""); if (d.length === 9 && d.charAt(0) === "9") d = "51" + d; return d.length >= 8 ? "https://wa.me/" + d : ""; }
   function bizUnits(v) { var u = []; if (num(v.stands)) u.push(num(v.stands) + " st"); if (num(v.tarjetas)) u.push(num(v.tarjetas) + " tj"); return u.join(" + ") || "—"; }
-  function clipBtn(v) { var n = (v.adj || []).length; return '<button class="bclip" data-vo="' + bizEsc(v.id) + '" title="Ver y adjuntar los archivos de esta venta">' + (n ? "📎 " + n : "+ 📎") + "</button>"; }
+  function clipBtn(v) {
+    var n = (v.adj || []).length, l = (v.links || []).length, t = [];
+    if (n) t.push("📎 " + n); if (l) t.push("🔗 " + l);
+    return '<button class="bclip" data-vo="' + bizEsc(v.id) + '" title="Ver y agregar archivos y links de esta venta">' + (t.join(" · ") || "+ 📎 🔗") + "</button>";
+  }
   // Vuelve a dibujar sin perder el campo donde se estaba escribiendo
   function keepFocus(fn) { setTimeout(function () { var a = document.activeElement, id = a && a.id; fn(); if (id && $(id) && $(id) !== a) $(id).focus({ preventScroll: true }); }, 0); }
   var cliOpen = {};
@@ -6258,7 +6286,7 @@
     var all = biz.clientes.map(function (c) { return { c: c, s: cliStats(c) }; });
     var rec = all.filter(function (x) { return x.s.n > 1; }).length;
     $("b-csum").textContent = all.length ? all.length + (all.length === 1 ? " negocio" : " negocios") + " · " + rec + " con más de una compra. Toca uno para ver sus compras, sus datos y los archivos impresos." : "";
-    var list = all.filter(function (x) { var c = x.c; return !q || cliKey([c.nombre, c.tel, c.contacto, c.dir, c.notas, c.link].join(" ")).indexOf(q) >= 0; })
+    var list = all.filter(function (x) { var c = x.c; return !q || cliKey([c.nombre, c.tel, c.contacto, c.dir, c.notas, c.link].concat(x.s.vs.map(function (v) { return (v.links || []).join(" "); })).join(" ")).indexOf(q) >= 0; })
       .sort(function (a, b) { return String(b.s.last || b.c.creado || "").localeCompare(String(a.s.last || a.c.creado || "")) || a.c.nombre.localeCompare(b.c.nombre); });
     if (!list.length) {
       $("b-clients").innerHTML = '<p class="bempty" style="margin-top:8px">' + (all.length ? "Ningún negocio coincide con la búsqueda." : "Aún no hay negocios. Se crean solos al registrar una venta con el nombre del cliente, o con \"Nuevo negocio\".") + "</p>";
@@ -6281,7 +6309,7 @@
           (wa ? '<a class="btn" href="' + wa + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
           (st.n ? "" : '<button class="btn" data-ca="del">Borrar negocio</button>') +
         "</div>" +
-        (st.n ? '<div class="tscroll" style="margin-top:10px"><table class="btable"><thead><tr><th>Fecha</th><th>Plan</th><th class="n">Unid.</th><th class="n">Cobrado</th><th>Archivos</th></tr></thead><tbody>' +
+        (st.n ? '<div class="tscroll" style="margin-top:10px"><table class="btable"><thead><tr><th>Fecha</th><th>Plan</th><th class="n">Unid.</th><th class="n">Cobrado</th><th>Archivos y links</th></tr></thead><tbody>' +
           st.vs.map(function (v) {
             return "<tr><td>" + bizEsc(fechaLabel(v.fecha)) + "</td><td>" + bizEsc(v.plan) + (num(v.cant) > 1 ? " × " + num(v.cant) : "") + (v.notas ? '<br><small class="note">' + bizEsc(v.notas) + "</small>" : "") +
               '</td><td class="n">' + bizUnits(v) + '</td><td class="n">' + money(num(v.total)) + "</td><td>" + clipBtn(v) + "</td></tr>";
@@ -6297,9 +6325,48 @@
     el.innerHTML = "<b>" + bizEsc(c.nombre) + "</b> ya está en el historial: " + (st.n ? st.n + (st.n === 1 ? " compra" : " compras") + " por " + money(st.tot) + ", la última el " + fechaLabel(st.last) : "sin compras todavía") + ".";
   }
   $("b-vcli").addEventListener("input", bizCliInfo);
-  $("b-vfiles").addEventListener("change", function () {
-    var n = $("b-vfiles").files.length;
-    $("b-vfileslabel").textContent = n ? n + (n === 1 ? " archivo elegido" : " archivos elegidos") : "Elegir archivos";
+  ["b-vfile1", "b-vfile2"].forEach(function (id) {
+    $(id).addEventListener("change", function () { var f = $(id).files[0]; $(id + "l").textContent = f ? "📎 " + f.name : "Elegir archivo"; $(id + "l").title = f ? f.name : ""; });
+  });
+
+  // ---- Links de cada venta (los que se grabaron en el chip o el QR) ----
+  function linkNorm(u) { u = String(u || "").trim(); return u ? qrURL(u) : ""; }
+  function linkList(arr) { var seen = {}, out = []; arr.forEach(function (u) { u = linkNorm(u); if (u && !seen[u]) { seen[u] = 1; out.push(u); } }); return out; }
+  function linkKind(u) {
+    if (/g\.page\/r\/|writereview|search\.google\.[a-z.]+\/local|google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs/i.test(u)) return "Reseñas Google";
+    if (/reviewthis\.biz/i.test(u)) return "Reseñas (link corto)";
+    if (/instagram\.com|instagr\.am/i.test(u)) return "Instagram";
+    if (/wa\.me|whatsapp\.com/i.test(u)) return "WhatsApp";
+    if (/facebook\.com|fb\.me|fb\.com/i.test(u)) return "Facebook";
+    if (/tiktok\.com/i.test(u)) return "TikTok";
+    if (/linkedin\.com/i.test(u)) return "LinkedIn";
+    if (/\/perfil\/?/i.test(u) && /github\.io/i.test(u)) return "Tarjeta digital";
+    var m = /^https?:\/\/(?:www\.)?([^\/?#]+)/i.exec(u); return m ? m[1] : "Link";
+  }
+  function isReviewLink(u) { return /^Reseñas/.test(linkKind(u)); }
+  // Si el negocio aún no tiene link de reseñas, toma el de la venta
+  function cliTakeLink(c, v) {
+    if (!c || c.link) return;
+    var r = (v.links || []).filter(isReviewLink)[0]; if (r) c.link = r;
+  }
+  function bizLinkRows(n) {
+    n = n || 2;
+    $("b-vlinks").innerHTML = "";
+    for (var i = 0; i < n; i++) bizLinkRow("");
+  }
+  function bizLinkRow(val) {
+    var i = document.createElement("input");
+    i.type = "url"; i.maxLength = 400; i.placeholder = "https://… (link " + ($("b-vlinks").children.length + 1) + ")"; i.value = val || "";
+    $("b-vlinks").appendChild(i); return i;
+  }
+  $("b-vlinkadd").addEventListener("click", function () { if ($("b-vlinks").children.length < 8) bizLinkRow("").focus(); });
+  $("b-vlinksup").addEventListener("click", function () {
+    var l = (sup.link || "").trim();
+    if (!l) { alert("En Soportes no hay un link puesto todavía (pestaña Soportes → Link del cliente)."); return; }
+    var ins = [].slice.call($("b-vlinks").children);
+    if (ins.some(function (i) { return linkNorm(i.value) === linkNorm(l); })) return;
+    var e = ins.filter(function (i) { return !i.value.trim(); })[0] || bizLinkRow("");
+    e.value = l;
   });
   $("b-csearch").addEventListener("input", renderClients);
   $("b-clients").addEventListener("toggle", function (e) { var d = e.target; if (d.classList && d.classList.contains("bcli")) cliOpen[d.dataset.c] = d.open; }, true);
@@ -6435,6 +6502,7 @@
     $("bv-title").textContent = (v.cliente || "Venta sin cliente") + " · " + fechaLabel(v.fecha);
     $("bv-info").innerHTML = bizEsc(v.plan) + (num(v.cant) > 1 ? " × " + num(v.cant) : "") + (v.plan === "Otro" ? " · " + bizUnits(v) : "") + " · cobrado <b>" + money(num(v.total)) + "</b> · utilidad " + money(r.util);
     $("bv-notas").value = v.notas || "";
+    bvLinks();
     bvFree();
     var list = v.adj || [];
     if (!list.length) { $("bv-files").innerHTML = '<p class="bempty">Aún no hay archivos en esta venta.</p>'; return; }
@@ -6473,6 +6541,34 @@
   $("bv-x").addEventListener("click", bvClose);
   $("bv").addEventListener("click", function (e) { if (e.target === $("bv")) bvClose(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && bvSale && $("fn").classList.contains("hidden")) bvClose(); });
+  function bvLinks() {
+    var ls = bvSale.links || [];
+    $("bv-links").innerHTML = ls.length ? ls.map(function (u, i) {
+      return '<div class="blrow"><span class="tag">' + bizEsc(linkKind(u)) + '</span><a href="' + bizEsc(u) + '" target="_blank" rel="noopener" title="' + bizEsc(u) + '">' + bizEsc(u.replace(/^https?:\/\//, "")) + "</a>" +
+        '<button data-l="copy" data-i="' + i + '">Copiar</button><button data-l="del" data-i="' + i + '" class="del">Quitar</button></div>';
+    }).join("") : '<p class="bempty">Aún no hay links en esta venta.</p>';
+  }
+  function bvLinkAdd() {
+    if (!bvSale) return;
+    var u = linkNorm($("bv-linkin").value); if (!u) { $("bv-linkin").focus(); return; }
+    bvSale.links = linkList((bvSale.links || []).concat([u]));
+    cliTakeLink(bvSale.clienteId && bizCli(bvSale.clienteId), bvSale);
+    saveBiz(); $("bv-linkin").value = ""; bvLinks();
+  }
+  $("bv-linkadd").addEventListener("click", bvLinkAdd);
+  $("bv-linkin").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); bvLinkAdd(); } });
+  $("bv-links").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-l]"); if (!b || !bvSale) return;
+    var i = +b.dataset.i, u = bvSale.links[i];
+    if (b.dataset.l === "del") {
+      if (!confirm("¿Quitar este link de la venta?\n" + u)) return;
+      bvSale.links.splice(i, 1); saveBiz(); bvLinks();
+    } else {
+      var ok = function () { b.textContent = "Copiado ✓"; setTimeout(function () { b.textContent = "Copiar"; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(ok, function () { prompt("Copia el link:", u); });
+      else prompt("Copia el link:", u);
+    }
+  });
   $("bv-notas").addEventListener("change", function () { if (!bvSale) return; bvSale.notas = $("bv-notas").value.trim(); saveBiz(); });
   $("bv-up").addEventListener("change", function () {
     var v = bvSale, recs = adjFromFiles($("bv-up").files); $("bv-up").value = "";
@@ -6495,8 +6591,8 @@
   document.querySelector("#view-biz .s-tools").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-csv]"); if (!b) return;
     var k = b.dataset.csv;
-    if (k === "ventas") bizCSV("ventas.csv", [["fecha", "cliente", "plan", "cantidad", "precio_unitario", "precio_total", "stands", "tarjetas", "costo_materiales", "costo_tiempo", "utilidad", "notas", "archivos"]].concat(
-      biz.ventas.map(function (v) { var r = bizCalc(v); return [v.fecha, v.cliente, v.plan, num(v.cant), num(v.total) / Math.max(1, num(v.cant)), num(v.total), num(v.stands), num(v.tarjetas), r.mat, r.time, r.util, v.notas, (v.adj || []).map(function (a) { return a.name; }).join(" | ")]; })));
+    if (k === "ventas") bizCSV("ventas.csv", [["fecha", "cliente", "plan", "cantidad", "precio_unitario", "precio_total", "stands", "tarjetas", "costo_materiales", "costo_tiempo", "utilidad", "notas", "archivos", "links"]].concat(
+      biz.ventas.map(function (v) { var r = bizCalc(v); return [v.fecha, v.cliente, v.plan, num(v.cant), num(v.total) / Math.max(1, num(v.cant)), num(v.total), num(v.stands), num(v.tarjetas), r.mat, r.time, r.util, v.notas, (v.adj || []).map(function (a) { return a.name; }).join(" | "), (v.links || []).join(" | ")]; })));
     else if (k === "inversiones") bizCSV("inversiones.csv", [["fecha", "material", "piezas", "costo_total", "tipo"]].concat(
       biz.invs.map(function (r) { return [r.fecha, r.item, num(r.piezas), num(r.costo), r.tipo]; })));
     else if (k === "catalogo") bizCSV("catalogo.csv", [["item", "pack_piezas", "precio_pack", "costo_unitario"]].concat(
@@ -6547,7 +6643,7 @@
   function initBiz() {
     loadBiz();
     $("b-vfecha").value = todayISO(); $("b-ifecha").value = todayISO();
-    buildBizEditors(); bizSyncInvType(); bizFillSale(); bizCliInfo();
+    buildBizEditors(); bizSyncInvType(); bizFillSale(); bizCliInfo(); bizLinkRows();
   }
 
   // ---- Calidad de impresión (A4, PDF y PNG a tamaño real) ----
