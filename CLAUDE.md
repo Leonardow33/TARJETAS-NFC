@@ -37,10 +37,11 @@ Enlaces:
 - **Acabado del sticker** (solo en pantalla; no cambia A4, PDF, PNG ni térmica), junto a `texTri`:
   - `stickerOutline(w,h,r,circle)` da el contorno en mm; `supOutline()` el del soporte; `stickerPath`, `stickerEdge` (canto y sombra, antes del diseño) y `stickerGloss` (brillo del laminado y bisel, después).
   - `tplMock(img, t)`: vista previa y miniaturas de Plantillas con el sticker sobre la tarjeta o el chip de PVC blanco (con su grosor); las etiquetas térmicas van sin laminado. Casilla `#t-mock`.
+    - En tarjeta y chip el sticker se muestra al menos 0.9 mm más chico por lado que el PVC (`vi`, solo en pantalla) y lleva una línea fina en el filo, para que se note el corte del sticker blanco sobre el PVC blanco.
   - Soportes: vista previa y miniaturas de modelos con canto y brillo. Casilla `#s-fx` ("Relieve y laminado").
 - Utilidades de color, junto al código de Soportes: `hex2rgb`, `rgb2hex`, `lum`, `sat`, `mix`, `contrastOn`, `vivid` e `inkFor`. Para medir imagen o canvas: `iw` e `ih`.
 - Madera compartida: `WOOD_BG`, `WOOD_INK` y `drawWood(c, x, y, w, h, S)`, con veta en mm y semilla fija para que salga igual a cualquier resolución.
-- Maquetas 3D (soporte y tarjeta) comparten `drawTable3D`, `drawCaption3D`, `shadeCol` y `sticker3D(c, outl, sw, sh, F3, scr, tS, tex, k, bp)` (sombra, canto blanco, malla `texTri`, brillo y bisel). Los videos usan `startVideo(p, nombre, makeFrame)` + `recordVideo` con los controles `p-3dv*` (p = "s" o "t").
+- Maquetas 3D (soporte y tarjeta) comparten `drawTable3D`, `drawCaption3D`, `shadeCol` y `sticker3D(c, outl, sw, sh, F3, scr, tS, tex, k, bp, cut)` (sombra, canto blanco, malla `texTri`, brillo y bisel). Los videos usan `startVideo(p, nombre, makeFrame)` + `recordVideo` con los controles `p-3dv*` (p = "s" o "t").
 
 ### Foto
 - `state`: size `card`|`l70x40`, orientation, img, zoom, cx, cy, bg, text, bright, contrast, auto, dither.
@@ -76,7 +77,8 @@ Enlaces:
 - Hay 11 diseños en `TEMPLATES`. "Tarjeta completa en térmica" va centrada y girada en una etiqueta de 60 × 90.
 - "Agregar a hoja A4" (`#t-card`, `t-add`, `tplA4Snap`) se ve en todos los tamaños. Los chips se agregan con la medida de su sticker (Ø 23 / 28 × 18.8, cara y sello, corte redondo en la Ø25); las etiquetas 70 × 40 y 50 × 25 pasan a tarjeta 85.6 × 54. "PDF tamaño real" usa la misma medida.
 - **Maqueta 3D de tarjeta y chips** (`#t-3dbtn`, `#t-3d`, `renderCard3D(o)`; oculta en etiquetas térmicas, `card3DOK`):
-  - PVC blanco con grosor (canto sombreado por segmento) y el sticker laminado en cada cara con diseño (`sticker3D`); una cara sin diseño queda en PVC liso.
+  - PVC blanco con grosor (canto sombreado por segmento) y el sticker laminado en cada cara con diseño (`sticker3D(..., cut = true)`); una cara sin diseño queda en PVC liso.
+  - Para que se noten las líneas del sticker, como en Soportes: el sticker va al menos 0.9 mm más chico por lado que el PVC (`vi`), con el mismo grosor exagerado que en Soportes (`tS` = 1.1 % del lado menor). Además, `cut` agrega una línea de contacto oscura en la base y un filo fino arriba.
   - Posición `#t-3dpose`: "stand" (parada e inclinada 8° en un bloque de acrílico transparente con ranura; el bloque se achica para chips) o "flat" (acostada; el reverso se voltea). Frente/Reverso usa `tpl.side` (en stand suma 180° de giro).
   - Giro `#t-3dyaw` de −180 a 180 (arrastrar da la vuelta completa). Encuadre fijo calculado con todos los giros, para que no cambie de tamaño. Mesa `#t-3dtable`, PNG `#t-3ddl`.
   - Texturas en caché `t3dTex` (se borra en `renderTpl`, que además refresca la maqueta). `o` acepta { cv, yaw, pose, side, table, tex {front, back}, zoom, caption }.

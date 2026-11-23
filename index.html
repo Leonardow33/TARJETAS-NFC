@@ -5287,7 +5287,7 @@
   // Vista previa de Plantillas: el sticker pegado sobre la tarjeta o el chip de PVC (solo en pantalla)
   function tplMock(img, t) {
     var d = TPL_SIZES[t.size], sd = tplDims(t), card = t.size === "card", s = img.width / sd.w;
-    var bw = d.chip ? d.w : sd.w, bh = d.chip ? d.h : sd.h, m = Math.max(1.6, Math.min(bw, bh) * 0.07);
+    var bw = d.chip || card ? d.w : sd.w, bh = d.chip || card ? d.h : sd.h, m = Math.max(1.6, Math.min(bw, bh) * 0.07);
     var out = document.createElement("canvas");
     out.width = Math.round((bw + 2 * m) * s); out.height = Math.round((bh + 2 * m) * s);
     var c = out.getContext("2d");
@@ -5299,11 +5299,16 @@
       var bg = c.createLinearGradient(0, 0, 0, bh * s); bg.addColorStop(0, "#fbfbfc"); bg.addColorStop(1, "#e6e8ec");
       c.fillStyle = bg; c.fill();
     }
-    c.translate((bw - sd.w) / 2 * s, (bh - sd.h) / 2 * s);
-    var pts = stickerOutline(sd.w, sd.h, d.circle ? 0 : card ? (t.rounded ? CORNER_MM : 0) : 1, d.circle);
-    stickerEdge(c, pts, s, 0.3, "#f1f1ef");
-    c.save(); stickerPath(c, pts, s); c.clip(); c.drawImage(img, 0, 0, sd.w * s, sd.h * s); c.restore();
-    if (card || d.chip) stickerGloss(c, pts, s, sd.w, sd.h);   // las etiquetas térmicas no van laminadas
+    // en tarjeta y chip el sticker se ve al menos 0.9 mm más chico por lado, para que se note el corte sobre el PVC
+    var vi = card || d.chip ? Math.max(0, 0.9 - (bw - sd.w) / 2) : 0, sw = sd.w - 2 * vi, sh = sd.h - 2 * vi;
+    c.translate((bw - sw) / 2 * s, (bh - sh) / 2 * s);
+    var pts = stickerOutline(sw, sh, d.circle ? 0 : card ? (t.rounded ? Math.max(0.5, CORNER_MM - vi) : 0) : 1, d.circle);
+    stickerEdge(c, pts, s, card || d.chip ? 0.45 : 0.3, "#f1f1ef");
+    c.save(); stickerPath(c, pts, s); c.clip(); c.drawImage(img, 0, 0, sw * s, sh * s); c.restore();
+    if (card || d.chip) {   // las etiquetas térmicas no van laminadas
+      stickerGloss(c, pts, s, sw, sh);
+      c.save(); stickerPath(c, pts, s); c.strokeStyle = "rgba(0,0,0,.22)"; c.lineWidth = Math.max(1, 0.06 * s); c.stroke(); c.restore();   // filo del corte
+    }
     else { c.save(); stickerPath(c, pts, s); c.strokeStyle = "rgba(0,0,0,.12)"; c.lineWidth = 1; c.stroke(); c.restore(); }
     return out;
   }
@@ -5357,7 +5362,8 @@
   }
   // Sticker laminado sobre una cara en 3D: sombra, canto blanco, diseño en perspectiva (malla), brillo y bisel.
   // F3(x, y, lift) = punto 3D del sticker en (x, y) mm, levantado lift mm; scr lo pasa a pantalla; bp = posición de la franja de brillo (0–1)
-  function sticker3D(c, outl, sw, sh, F3, scr, tS, tex, k, bp) {
+  // cut = true: marca más la línea de corte (sticker blanco sobre PVC blanco, donde el canto casi no se ve)
+  function sticker3D(c, outl, sw, sh, F3, scr, tS, tex, k, bp, cut) {
     var CW = c.canvas.width, CH = c.canvas.height;
     function path3(lift, dy) { c.beginPath(); outl.forEach(function (p, i2) { var s2 = scr(F3(p[0], p[1] + (dy || 0), lift)); c[i2 ? "lineTo" : "moveTo"](s2[0], s2[1]); }); c.closePath(); }
     // sombra del sticker sobre la cara
@@ -5374,6 +5380,7 @@
       c.beginPath(); w4.forEach(function (s2, i3) { c[i3 ? "lineTo" : "moveTo"](s2[0], s2[1]); }); c.closePath();
       c.fillStyle = col; c.fill(); c.strokeStyle = col; c.lineWidth = 0.6; c.stroke();
     });
+    if (cut) { path3(0); c.strokeStyle = "rgba(0,0,0,.4)"; c.lineWidth = Math.max(1, 0.16 * k); c.stroke(); }   // línea de contacto con la tarjeta
     // cara del sticker con el diseño (malla para que la perspectiva sea real)
     var TW = tex.width, TH = tex.height, N = 14;
     function pt(u, v) { return scr(F3(u * sw, (1 - v) * sh, tS)); }
@@ -5397,6 +5404,7 @@
     bv.addColorStop(0, "rgba(255,255,255,.8)"); bv.addColorStop(0.5, "rgba(255,255,255,.1)"); bv.addColorStop(1, "rgba(0,0,0,.3)");
     path3(tS); c.strokeStyle = bv; c.lineWidth = Math.max(1.5, 0.45 * k); c.stroke();
     c.restore();
+    if (cut) { path3(tS); c.strokeStyle = "rgba(0,0,0,.2)"; c.lineWidth = 1; c.stroke(); }   // filo del corte
   }
 
   // o (opcional, para el video): { cv, yaw (grados), tex, zoom, side, caption }
@@ -5635,7 +5643,7 @@
     var cv = o.cv || $("t-3dcv"), c = cv.getContext("2d"), CW = cv.width, CH = cv.height, U = Math.min(CW, CH) / 760;
     var t = tpl, d = TPL_SIZES[t.size], card = t.size === "card", sd = tplDims(t), circ = !!d.circle;
     var BW = d.w, BH = d.h, T = Math.max(0.9, Math.min(BW, BH) * 0.018);   // PVC algo más grueso que el real (0.76 mm) para que se note
-    var tS = Math.max(0.25, Math.min(BW, BH) * 0.007);
+    var tS = Math.max(0.3, Math.min(BW, BH) * 0.011);   // grosor del sticker, igual de exagerado que en Soportes
     var r0 = circ ? 0 : card ? (t.rounded ? CORNER_MM : 0.6) : 1.5, rS = circ ? 0 : card ? (t.rounded ? CORNER_MM : 0) : 1;
     var pose = o.pose || $("t-3dpose").value, back = (o.side || t.side) === "back";
     var tex = o.tex || t3dTex || (t3dTex = card3DTex(Math.min(10, 1000 / BW)));
@@ -5704,10 +5712,12 @@
       poly(baseOut.map(function (p) { return LB(p, hs * T / 2); }), shadeCol("#f7f7f4", -0.12 + 0.14 * lit([n[0] * hs, n[1] * hs, n[2] * hs])));
       var tx = fv ? tex.front : tex.back;
       if (!tx) return;   // cara sin diseño: solo el PVC
-      var outl = stickerOutline(sd.w, sd.h, rS, circ);
-      function F3(x, y, lift) { return L(hs * (x - sd.w / 2), sd.h / 2 - y, hs * (T / 2 + lift)); }
+      // el sticker queda al menos 0.9 mm más chico por lado que el PVC, para que se vea el borde y el corte (como en Soportes)
+      var vi = Math.max(0, 0.9 - (BW - sd.w) / 2), sw = sd.w - 2 * vi, sh = sd.h - 2 * vi;
+      var outl = stickerOutline(sw, sh, rS ? Math.max(0.5, rS - vi) : 0, circ);
+      function F3(x, y, lift) { return L(hs * (x - sw / 2), sh / 2 - y, hs * (T / 2 + lift)); }
       var yv = yaw + (fv ? 0 : Math.PI); yv = Math.atan2(Math.sin(yv), Math.cos(yv));
-      sticker3D(c, outl, sd.w, sd.h, F3, scr, tS, tx, k, clamp(0.42 - yv / (Math.PI / 3) * 0.3, 0.14, 0.86));
+      sticker3D(c, outl, sw, sh, F3, scr, tS, tx, k, clamp(0.42 - yv / (Math.PI / 3) * 0.3, 0.14, 0.86), true);
     }
     var items = [{ z: scr(C)[2], draw: drawCard }];
     if (blk) {   // bloque de acrílico transparente
