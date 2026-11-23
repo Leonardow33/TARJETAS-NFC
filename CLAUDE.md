@@ -183,7 +183,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
 Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porque es público y tiene costos).
 - `biz` = { cfg, mats, plans, clientes, ventas, invs }. `bizDefaults()` trae los valores de la guía y el equipo inicial: impresora + lectora/grabadora NFC (S/ 350) y selladora USB (S/ 7.78).
   - cfg: hora, minStand, minTarjeta, stkStand (4), stkTarjeta (11), impresion, impuesto (%), tiempo (bool), umbral.
-  - El chip NFC va como un pack de 21 piezas a S/ 18.05 (6 + 15 comprados) → S/ 0.86.
+  - Catálogo con los precios del restock del 23 nov 2026 (`matsV: 2`; `loadBiz` los aplica una vez y luego respeta lo que edite el usuario): stand 5 × S/ 47.47 → 9.49, chip NFC 6 × S/ 7.49 → 1.25 y soporte pequeño 60 × S/ 14.79 → 0.25.
 - `bizRecipe("stand"|"tarjeta")`: materiales por producto (la hoja A4 en fracción). `bizProdCost`, `bizTimeCost`, `bizCalc(v)` → mat, time, cost, util, utilMat, margin. Usa siempre el catálogo actual: si cambia un precio, cambian todos los márgenes.
 - Venta: fecha, cliente, clienteId, plan (nombre), cant, total, stands, tarjetas (totales), notas, `adj` (metadatos de archivos) y `links` (lista de URL). El plan llena stands, tarjetas y precio (editables). "Otro (manual)".
 - **Historial de negocios** (`#b-hist`, `renderClients`): `biz.clientes` = { id, nombre, tel, contacto, dir, link, notas, creado }.
