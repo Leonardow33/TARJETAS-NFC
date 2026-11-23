@@ -6264,11 +6264,38 @@
       ]
     };
   }
+  // Compras que se cargan solas una vez (id fijo: si se borran, no vuelven). Materiales nuevos van al catálogo.
+  var BIZ_SEED_MATS = [
+    { id: "tarjllave", name: "Tarjeta NFC RFID tipo llave (blanca y negra)", pack: 24, price: 16.02 },
+    { id: "standneg", name: "Stand acrílico negro mate (Google impreso)", pack: 5, price: 23.8 }
+  ];
+  var BIZ_SEED = [
+    { id: "rs2611-1", fecha: "2026-11-23", item: "Temu: 24 tarjetas NFC RFID tipo llave (blancas y negras)", mat: "tarjllave", piezas: 24, costo: 16.02, tipo: "stock" },
+    { id: "rs2611-2", fecha: "2026-11-23", item: "Temu: soporte NFC programable blanco, 2 packs × 5 (S/ 47.47 c/u)", mat: "stand", piezas: 10, costo: 94.94, tipo: "stock" },
+    { id: "rs2611-3", fecha: "2026-11-23", item: "Temu: soporte NFC negro mate con Google, 5 piezas", mat: "standneg", piezas: 5, costo: 23.8, tipo: "stock" },
+    { id: "rs2611-4", fecha: "2026-11-23", item: "Temu: chips NFC 215 blancos, 3 packs × 6 (S/ 7.49 c/u)", mat: "nfc", piezas: 18, costo: 22.47, tipo: "stock" },
+    { id: "rs2611-5", fecha: "2026-11-23", item: "Temu: 60 soportes transparentes pequeños (para tarjetas)", mat: "soporte", piezas: 60, costo: 14.79, tipo: "stock" }
+  ];
+  function bizSeed(o) {
+    if (!Array.isArray(o.seeds)) o.seeds = [];
+    var n = 0;
+    BIZ_SEED.forEach(function (r) {
+      if (o.seeds.indexOf(r.id) >= 0) return;
+      o.seeds.push(r.id);
+      if (o.invs.some(function (x) { return x.id === r.id; })) return;
+      if (!o.mats.some(function (m) { return m.id === r.mat; })) {
+        var m = BIZ_SEED_MATS.filter(function (x) { return x.id === r.mat; })[0];
+        if (m) o.mats.push(Object.assign({}, m));
+      }
+      o.invs.push(Object.assign({}, r)); n++;
+    });
+    return n;
+  }
   function loadBiz() {
     var o = null;
     try { o = JSON.parse(localStorage.getItem(BIZ_KEY) || "null"); } catch (err) {}
     var def = bizDefaults();
-    if (!o || typeof o !== "object") { biz = def; saveBiz(); return; }
+    if (!o || typeof o !== "object") { biz = def; bizSeed(biz); saveBiz(); return; }
     o.cfg = Object.assign({}, def.cfg, o.cfg || {});
     ["mats", "plans", "ventas", "invs", "clientes"].forEach(function (k) { if (!Array.isArray(o[k])) o[k] = def[k]; });
     if (!o.plansV) {   // precios de la propuesta comercial: solo cambia los planes que seguían con el precio anterior
@@ -6280,7 +6307,8 @@
       o.plansV = 2; biz = o; saveBiz();
     }
     biz = o;
-    if (bizLinkClients()) saveBiz();   // historial de negocios a partir de las ventas
+    var seeded = bizSeed(o);
+    if (bizLinkClients() || seeded) saveBiz();   // historial de negocios a partir de las ventas
   }
   function saveBiz() {
     try { localStorage.setItem(BIZ_KEY, JSON.stringify(biz)); }
@@ -6551,7 +6579,9 @@
     var is = I.slice().sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); });
     $("b-invs").innerHTML = is.length ? "<thead><tr><th>Fecha</th><th>Compra</th><th>Tipo</th><th class=\"n\">Piezas</th><th class=\"n\">Costo</th><th></th></tr></thead><tbody>" +
       is.map(function (r) {
-        return "<tr><td>" + bizEsc(r.fecha) + "</td><td>" + bizEsc(r.item) + "</td><td>" + (r.tipo === "equipo" ? "Equipo" : r.tipo === "gasto" ? "Gasto" : "Stock") + '</td><td class="n">' + num(r.piezas) + '</td><td class="n">' + money(num(r.costo)) + "</td>" +
+        return "<tr><td>" + bizEsc(r.fecha) + "</td><td>" + bizEsc(r.item) + "</td><td>" + (r.tipo === "equipo" ? "Equipo" : r.tipo === "gasto" ? "Gasto" : "Stock") + '</td><td class="n">' +
+          (r.tipo === "gasto" ? "—" : '<input type="number" min="0" step="1" data-ie="' + bizEsc(r.id) + '" data-k="piezas" value="' + num(r.piezas) + '" title="Piezas compradas">') +
+          '</td><td class="n"><input type="number" min="0" step="0.01" data-ie="' + bizEsc(r.id) + '" data-k="costo" value="' + num(r.costo) + '" title="Costo total pagado (S/)"></td>' +
           '<td><button class="x" data-di="' + bizEsc(r.id) + '" title="Borrar">×</button></td></tr>';
       }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Sin compras en este periodo.</td></tr></tbody>';
 
@@ -6582,6 +6612,12 @@
     if (!confirm("¿Borrar esta venta" + (n === 1 ? " y su archivo adjunto" : n ? " y sus " + n + " archivos adjuntos" : "") + "?")) return;
     biz.ventas = biz.ventas.filter(function (x) { return x.id !== b.dataset.dv; }); saveBiz(); renderBiz();
     if (n) adjDel(v.adj.map(function (a) { return a.id; }));
+  });
+  $("b-invs").addEventListener("change", function (ev) {
+    var f = ev.target.closest("[data-ie]"); if (!f) return;
+    var r = biz.invs.filter(function (x) { return x.id === f.dataset.ie; })[0]; if (!r) return;
+    r[f.dataset.k] = f.dataset.k === "piezas" ? Math.max(0, parseInt(f.value, 10) || 0) : Math.max(0, num(f.value));
+    saveBiz(); renderBiz();
   });
   $("b-invs").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-di]"); if (!b || !confirm("¿Borrar esta compra?")) return;

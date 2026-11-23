@@ -202,6 +202,8 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
 - Editores en `details.bizcfg` (`buildBizEditors`, `bizEditorNums`): parámetros, catálogo y planes.
 - Compras (`b-iadd`): tipo `stock` (material del catálogo), `equipo` o `gasto` (envío, publicidad, pasajes: suma en Invertido y caja neta, no en stock ni en la recuperación del equipo; sin piezas).
   - "+ Otro material (nuevo)…" (`__new`, `#b-inew`) lo agrega al catálogo con pack = piezas y precio = costo; si el nombre ya existe (`cliKey`), usa ese.
+  - En la tabla de compras, piezas y costo se editan en la misma fila (`data-ie`).
+  - **Compras precargadas** (`BIZ_SEED`, `BIZ_SEED_MATS`, `bizSeed(o)` en `loadBiz`): se agregan una sola vez con id fijo y quedan en `biz.seeds`, así que si se borran no vuelven. Si un material no está en el catálogo, se agrega. Primer lote: restock de Temu del 23 nov 2026 (tarjetas llave 24, stand blanco 10, stand negro 5, chips 18, soportes pequeños 60; S/ 172.02, con el precio de Temu tomado como precio por pack × cantidad).
   - Catálogo: "Agregar material" (`#b-madd`, `prompt()`) y × solo en los materiales propios (los de `BIZ_BASE_MATS` usan las recetas y no se quitan). Los materiales nuevos no entran en el costo de los productos.
 - CSV (`bizCSV`, con BOM, separador coma) de ventas (con nombres de archivos), inversiones, catálogo, planes y negocios; respaldo y restauración en JSON.
 
@@ -296,7 +298,7 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - imprimir un A4 a 600 DPI y comparar con 300;
   - el relieve y el brillo del sticker en pantalla (maqueta, video y vistas previas): ajustar si lo quiere más fino o con menos brillo (`tS`, `ins` y la franja `bp` en `render3D`; `stickerGloss`).
 - **Calidad:** el usuario quiere la mejor calidad (HD) en A4, PDF y PNG; en la térmica, solo si se puede mejorar sin romper nada.
-- **Negocio:** el usuario aún no registra sus compras de material (solo está el equipo de S/ 357.78), así que el stock sale incompleto. El precio del laminado sigue sin confirmar (S/ 0.50 por stand).
+- **Negocio:** las compras de material anteriores al restock del 23 nov 2026 siguen sin registrar, así que el stock de antes sale incompleto. Falta confirmar con el total del pedido de Temu si el precio era por pack (se cargó así) o por línea. También hay que ver si las "tarjetas llave RFID" son NTAG21x: si son MIFARE Classic, el iPhone no las lee. El precio del laminado sigue sin confirmar (S/ 0.50 por stand).
   - Planes actualizados a la propuesta comercial (49/88/120/148/78/18) y se quitó "Promo 4 stands". `loadBiz` migra una sola vez (`plansV: 2`) solo los planes que seguían con el precio anterior; si el usuario los había editado, se respetan.
 - **Posible:** ajuste de desplazamiento si la impresión sale corrida, y tamaño 50 × 25 para fotos.
 - **Tarjetas digitales en Cloudflare:** el usuario aún no crea la cuenta ni el proyecto. Falta probar con él la primera subida del ZIP, el botón "Guardar contacto" (.vcf con foto) en Android y en iPhone, el fondo claro y decidir si compra un dominio propio antes de grabar chips. Su tarjeta personal sigue en GitHub Pages (`perfil/`).
