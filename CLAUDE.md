@@ -181,9 +181,11 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
 
 ### Negocio (`#view-biz`, ids `b-*`, localStorage `nfc-negocio`)
 Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porque es público y tiene costos).
-- `biz` = { cfg, mats, plans, clientes, ventas, invs }. `bizDefaults()` trae los valores de la guía y el equipo inicial: impresora + lectora/grabadora NFC (S/ 350) y selladora USB (S/ 7.78).
+- `biz` = { cfg, mats, plans, clientes, ventas, invs, seeds, plansV, matsV } (las tres últimas son marcas de migraciones que se aplican una sola vez). `bizDefaults()` trae los valores de la guía y el equipo inicial: impresora + lectora/grabadora NFC (S/ 350) y selladora USB (S/ 7.78).
   - cfg: hora, minStand, minTarjeta, stkStand (4), stkTarjeta (11), impresion, impuesto (%), tiempo (bool), umbral.
   - Catálogo con los precios del restock del 23 nov 2026 (`matsV: 2`; `loadBiz` los aplica una vez y luego respeta lo que edite el usuario): stand 5 × S/ 47.47 → 9.49, chip NFC 6 × S/ 7.49 → 1.25 y soporte pequeño 60 × S/ 14.79 → 0.25.
+    - Con esto, un stand cuesta ≈ S/ 12.43 en materiales y una tarjeta ≈ S/ 1.71. El plan con menos margen es "4 stands + 2 tarjetas" (≈ 57 %, contando el tiempo).
+  - Materiales del restock que no entran en las recetas: "Tarjeta NFC RFID tipo llave" (`tarjllave`, S/ 0.67) y "Stand acrílico negro mate" (`standneg`, S/ 4.76). Solo suman al stock; la receta del stand usa el precio del blanco (`stand`).
 - `bizRecipe("stand"|"tarjeta")`: materiales por producto (la hoja A4 en fracción). `bizProdCost`, `bizTimeCost`, `bizCalc(v)` → mat, time, cost, util, utilMat, margin. Usa siempre el catálogo actual: si cambia un precio, cambian todos los márgenes.
 - Venta: fecha, cliente, clienteId, plan (nombre), cant, total, stands, tarjetas (totales), notas, `adj` (metadatos de archivos) y `links` (lista de URL). El plan llena stands, tarjetas y precio (editables). "Otro (manual)".
 - **Historial de negocios** (`#b-hist`, `renderClients`): `biz.clientes` = { id, nombre, tel, contacto, dir, link, notas, creado }.
@@ -299,6 +301,7 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - el relieve y el brillo del sticker en pantalla (maqueta, video y vistas previas): ajustar si lo quiere más fino o con menos brillo (`tS`, `ins` y la franja `bp` en `render3D`; `stickerGloss`).
 - **Calidad:** el usuario quiere la mejor calidad (HD) en A4, PDF y PNG; en la térmica, solo si se puede mejorar sin romper nada.
 - **Negocio:** las compras de material anteriores al restock del 23 nov 2026 siguen sin registrar, así que el stock de antes sale incompleto. Falta confirmar con el total del pedido de Temu si el precio era por pack (se cargó así) o por línea. También hay que ver si las "tarjetas llave RFID" son NTAG21x: si son MIFARE Classic, el iPhone no las lee. El precio del laminado sigue sin confirmar (S/ 0.50 por stand).
+  - Ofrecido, sin respuesta: que una venta pueda indicar stand negro o blanco (o tarjeta tipo llave), para descontar el stock y el costo correctos.
   - Planes actualizados a la propuesta comercial (49/88/120/148/78/18) y se quitó "Promo 4 stands". `loadBiz` migra una sola vez (`plansV: 2`) solo los planes que seguían con el precio anterior; si el usuario los había editado, se respetan.
 - **Posible:** ajuste de desplazamiento si la impresión sale corrida, y tamaño 50 × 25 para fotos.
 - **Tarjetas digitales en Cloudflare:** el usuario aún no crea la cuenta ni el proyecto. Falta probar con él la primera subida del ZIP, el botón "Guardar contacto" (.vcf con foto) en Android y en iPhone, el fondo claro y decidir si compra un dominio propio antes de grabar chips. Su tarjeta personal sigue en GitHub Pages (`perfil/`).
