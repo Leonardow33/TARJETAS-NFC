@@ -214,12 +214,12 @@
   input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid var(--panel); cursor: pointer; }
   input[type="range"][disabled] { opacity: .4; }
 
-  input[type="text"], input[type="search"], input[type="tel"], input[type="url"] {
+  input[type="text"], input[type="search"], input[type="tel"], input[type="url"], input[type="email"] {
     width: 100%; font: inherit; font-size: .9rem; color: var(--ink);
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px;
     padding: 9px 11px;
   }
-  input[type="text"]:focus, input[type="search"]:focus, input[type="tel"]:focus, input[type="url"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  input[type="text"]:focus, input[type="search"]:focus, input[type="tel"]:focus, input[type="url"]:focus, input[type="email"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 
   .swatches { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .swatch { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line-strong); cursor: pointer; padding: 0; }
@@ -419,7 +419,19 @@
   .blrow a { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
   .blrow button { flex: none; font: inherit; font-size: .74rem; padding: 3px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-2); color: var(--ink); cursor: pointer; }
   .blrow button.del { color: var(--danger); }
-  #fn { z-index: 60; }   /* encima de la ventana de la venta */
+  #fn { z-index: 80; }   /* encima de todas las ventanas */
+  #ie { z-index: 70; }   /* el editor de imagen se abre encima de la tarjeta digital */
+  .dc-box { max-width: 1080px; }
+  .dc-body { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 880px) { .dc-body { grid-template-columns: minmax(0, 1fr) 360px; } .dc-prev { position: sticky; top: 0; align-self: start; } }
+  .dc-phone { border: 9px solid #1b1e25; border-radius: 32px; overflow: hidden; height: 660px; max-height: 76vh; max-width: 360px; margin: 0 auto; background: #000; }
+  #dc-frame { width: 100%; height: 100%; border: 0; display: block; }
+  .dc-slug { display: flex; align-items: center; gap: 4px; }
+  .dc-slug span { color: var(--muted); font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+  .dc-slug input { flex: 1; min-width: 80px; }
+  #dc-fields .glabel { grid-column: 1 / -1; margin: 10px 0 0; }
+  #dc-fields .wide { grid-column: 1 / -1; }
+  input[type="color"]#dc-accent { width: 100%; height: 40px; padding: 2px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
   .fn-box { max-width: 480px; }
   .fnrow { display: flex; align-items: center; gap: 6px; }
   .fnrow input { flex: 1; min-width: 0; }
@@ -1494,6 +1506,45 @@
       <p class="note" id="b-csum" style="margin-top:8px"></p>
       <div id="b-clients"></div>
     </div>
+    <div class="group" style="margin-top:14px" id="b-site">
+      <div class="glabel">Tarjetas digitales de tus clientes (sitio web)</div>
+      <div class="opts">
+        <div class="field"><label for="b-sitebase">Dirección de tu sitio</label><input type="url" id="b-sitebase" maxlength="200" placeholder="https://mis-tarjetas.pages.dev"></div>
+        <div class="field"><span class="flabel">Publicar o actualizar</span><button class="btn primary" id="b-sitezip">Descargar sitio completo (ZIP)</button></div>
+      </div>
+      <p class="note" id="b-sitesum" style="margin-top:8px"></p>
+      <div class="tscroll"><table class="btable" id="b-sitetbl"></table></div>
+      <details class="howto">
+        <summary>Cómo publicarlo en Cloudflare Pages (gratis), paso a paso</summary>
+        <ol>
+          <li>Crea una cuenta gratis en <b>dash.cloudflare.com</b> (correo y contraseña; no pide tarjeta).</li>
+          <li>En el menú entra a <b>Workers y Pages</b> → <b>Crear</b> → pestaña <b>Pages</b> → <b>Subir recursos</b> (en inglés: <i>Upload assets</i>).</li>
+          <li>Ponle nombre al proyecto, por ejemplo <code>tarjetas-nfc</code>: tu sitio será <code>https://tarjetas-nfc.pages.dev</code>. Ese nombre no se cambia después, elige bien.</li>
+          <li>Aquí, toca <b>Descargar sitio completo (ZIP)</b>, arrastra ese ZIP a Cloudflare y toca <b>Implementar sitio</b> (<i>Deploy site</i>). En unos segundos queda en línea.</li>
+          <li>Copia la dirección del sitio en <b>Dirección de tu sitio</b> (arriba): así sale el link correcto de cada tarjeta.</li>
+          <li>Para agregar o cambiar tarjetas: descarga otra vez el ZIP y en tu proyecto toca <b>Crear nueva implementación</b> (<i>Create deployment</i>) y súbelo. <b>Sube siempre el sitio completo</b>: lo que no esté en el ZIP desaparece del sitio.</li>
+          <li>Graba en el chip o el QR el link de la tarjeta (sale en la tabla) y pruébalo con tu celular antes de entregarlo.</li>
+        </ol>
+      </details>
+      <details class="howto">
+        <summary>Costos</summary>
+        <ol>
+          <li><b>Cloudflare Pages, plan gratis: S/ 0.</b> Sitios ilimitados y visitas y tráfico ilimitados para páginas como estas. Hasta 20 000 archivos por sitio y 25 MB por archivo. No necesitas ningún plan de pago.</li>
+          <li>Subiendo desde la web (arrastrar el ZIP) el límite es <b>1 000 archivos por subida</b>. Cada tarjeta usa 2 archivos (página y contacto), así que alcanza para unos 490 clientes; para más se usa Wrangler, la herramienta gratis de Cloudflare.</li>
+          <li><b>Dominio propio (opcional, recomendado):</b> un .com en Cloudflare cuesta unos US$ 10.5 al año (≈ S/ 40) y se renueva al mismo precio. Los .pe se compran en registradores peruanos y cuestan más.</li>
+          <li>Cada tarjeta pesa unos 10–40 KB (con logo): el espacio no es problema.</li>
+        </ol>
+      </details>
+      <details class="howto">
+        <summary>Usar tu propio dominio (para que los chips nunca se rompan)</summary>
+        <ol>
+          <li>Compra el dominio en Cloudflare: <b>Registro de dominios</b> → <b>Registrar dominios</b>. Queda conectado solo.</li>
+          <li>En tu proyecto de Pages → <b>Dominios personalizados</b> → <b>Configurar un dominio</b> → escribe, por ejemplo, <code>tarjetas.tunegocio.com</code> → Activar. El https es automático y gratis.</li>
+          <li>Cambia <b>Dirección de tu sitio</b> a tu dominio y vuelve a subir el ZIP (los contactos guardados llevan ese link).</li>
+          <li>Graba en los chips los links con tu dominio: si un día cambias de alojamiento, solo apuntas el dominio al nuevo sitio y ningún chip se rompe.</li>
+        </ol>
+      </details>
+    </div>
     <details class="group bizcfg" style="margin-top:14px">
       <summary>Costos, precios y tiempos (editables)</summary>
       <p class="note" id="b-costline" style="margin-top:10px"></p>
@@ -1612,6 +1663,51 @@
     </div>
     <input type="file" id="bv-up" multiple>
     <p class="note" style="margin-top:10px">Guarda aquí los links que grabaste en el chip o el QR (reseñas, Instagram, menú…) y sube el PDF o la imagen que imprimiste. "Guardar diseño actual" guarda una imagen a tamaño real y el diseño editable: con <b>Editar</b> lo vuelves a abrir en la app para cambiarlo o reimprimirlo. Los archivos quedan en este navegador; el <b>respaldo</b> de Negocio los incluye.</p>
+  </div>
+</div>
+
+<div class="imged hidden" id="dc" role="dialog" aria-modal="true" aria-labelledby="dc-title">
+  <div class="ie-box dc-box">
+    <div class="ie-head">
+      <b id="dc-title">Tarjeta digital</b>
+      <button class="linkbtn" id="dc-x" aria-label="Cerrar">Cerrar ✕</button>
+    </div>
+    <div class="dc-body">
+      <div>
+        <label class="check"><input type="checkbox" id="dc-on"> Publicar esta tarjeta en el sitio</label>
+        <div class="field">
+          <label for="dc-slug">Dirección de la tarjeta</label>
+          <div class="dc-slug"><span id="dc-base"></span><input type="text" id="dc-slug" maxlength="50" autocomplete="off" spellcheck="false"><span>/</span></div>
+        </div>
+        <p class="note" id="dc-url" style="margin-top:6px"></p>
+        <div class="s-tools" style="margin-top:8px">
+          <button class="btn" id="dc-copy">Copiar link</button>
+          <button class="btn" id="dc-sup">Usar en Soportes (QR)</button>
+          <button class="btn" id="dc-sale">Guardar en su última venta</button>
+          <button class="btn" id="dc-open">Abrir vista previa</button>
+        </div>
+        <div class="field">
+          <span class="flabel">Logo</span>
+          <div class="logo-row">
+            <label class="btn" for="dc-logo" id="dc-logolabel">Subir logo</label>
+            <button class="btn ghost hidden" id="dc-logodel">Quitar</button>
+          </div>
+          <input type="file" id="dc-logo" accept="image/*">
+          <label class="check" style="margin-top:8px"><input type="checkbox" id="dc-logobg"> Logo sobre círculo blanco (para logos oscuros)</label>
+        </div>
+        <div class="opts">
+          <div class="field"><label for="dc-accent">Color de acento</label><input type="color" id="dc-accent" value="#d9b45b"></div>
+          <div class="field"><label for="dc-theme">Fondo</label><select id="dc-theme"><option value="dark">Oscuro</option><option value="light">Claro</option></select></div>
+        </div>
+        <div class="opts" id="dc-fields"></div>
+        <p class="note" style="margin-top:12px">Los campos vacíos no se muestran. Se guarda solo. Si ya grabaste el link en un chip, <b>no cambies la dirección</b>.</p>
+        <button class="btn ghost" id="dc-del" style="margin-top:10px;width:auto">Quitar tarjeta digital</button>
+      </div>
+      <div class="dc-prev">
+        <div class="dc-phone"><iframe id="dc-frame" title="Vista previa de la tarjeta digital" sandbox=""></iframe></div>
+        <p class="note" id="dc-size" style="margin-top:8px;text-align:center"></p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -6476,6 +6572,7 @@
           (b ? f1(q) + (low ? " ⚠ comprar" : "") : '<span class="note">sin compras registradas</span>') + "</td></tr>";
       }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Registra tus compras de material (tipo "Material") para ver el stock.</td></tr></tbody>';
     renderClients();
+    renderSite();
     bizEditorNums();
   }
   $("b-ventas").addEventListener("click", function (ev) {
@@ -6556,6 +6653,7 @@
         }).join("") + "</div>" +
         '<div class="s-tools">' +
           '<button class="btn" data-ca="sale">Registrar venta a este negocio</button>' +
+          '<button class="btn" data-ca="card">' + (c.card ? "Tarjeta digital ✓" : "Crear tarjeta digital") + "</button>" +
           (c.link ? '<button class="btn" data-ca="link">Usar su link en Soportes</button>' : "") +
           (wa ? '<a class="btn" href="' + wa + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
           (st.n ? "" : '<button class="btn" data-ca="del">Borrar negocio</button>') +
@@ -6643,6 +6741,8 @@
     if (a === "sale") {
       $("b-vcli").value = c.nombre; bizCliInfo();
       $("b-vcli").scrollIntoView({ behavior: "smooth", block: "center" }); $("b-vplan").focus({ preventScroll: true });
+    } else if (a === "card") {
+      dcOpen(c.id);
     } else if (a === "link") {
       $("s-link").value = c.link; $("s-link").dispatchEvent(new Event("input"));
       b.textContent = "Listo: su link ya está en los QR de Soportes ✓";
@@ -6832,6 +6932,378 @@
       adjDesign(a, v, function (rec) { if (rec) adjAdd(v, [rec], function () { if (bvSale === v) bvRender(); }); });
     });
   });
+
+  // ======== Tarjetas digitales de clientes: página + contacto (.vcf) y sitio completo en ZIP para Cloudflare Pages ========
+  var DC_FIELDS = [
+    ["#", "Cabecera"],
+    ["titulo", "Nombre a mostrar", "text", 0, "Ej.: Pollería El Buen Sabor"],
+    ["sub", "Rubro o cargo", "text", 0, "Ej.: Pollos a la brasa · Delivery"],
+    ["desc", "Frase corta", "text", 1, "Ej.: El mejor sabor de Lima Norte desde 1998"],
+    ["#", "Contacto"],
+    ["wa", "WhatsApp (número)", "tel", 0, "987 654 321"],
+    ["tel", "Teléfono para llamar", "tel", 0, "987 654 321 o 01 234 5678"],
+    ["wamsg", "Mensaje inicial de WhatsApp", "text", 1, "Hola, te escribo desde su tarjeta digital"],
+    ["email", "Correo", "email", 0, "ventas@minegocio.com"],
+    ["web", "Página web", "url", 0, "minegocio.com"],
+    ["#", "Reseñas, redes y links"],
+    ["resenas", "Link de reseñas de Google", "url", 1, "https://g.page/r/…/review"],
+    ["menu", "Menú, carta o catálogo (link)", "url", 1, "Link a la carta, catálogo o PDF"],
+    ["ig", "Instagram (usuario o link)", "text", 0, "@minegocio"],
+    ["fb", "Facebook (usuario o link)", "text", 0, "minegocio"],
+    ["tt", "TikTok (usuario o link)", "text", 0, "@minegocio"],
+    ["li", "LinkedIn (link)", "url", 0, "linkedin.com/in/…"],
+    ["#", "Ubicación"],
+    ["dir", "Dirección", "text", 1, "Av. Los Olivos 123, Lima"],
+    ["maps", "Link de Google Maps (opcional)", "url", 1, "Si lo dejas vacío, se busca la dirección en el mapa"],
+    ["horario", "Horario", "text", 1, "Lun a sáb 9:00 – 20:00"]
+  ];
+  var DC_SV = ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  var DC_ICO = {
+    wa: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 11.9 11.9 0 004.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 001.8-1.3 2.3 2.3 0 00.2-1.3c-.1-.1-.2-.2-.5-.3z"/></svg>',
+    ph: '<svg' + DC_SV + '<path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.8 2z"/></svg>',
+    li: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9.75h4v11.5H3zM9.5 9.75h3.8v1.6h.1a4.2 4.2 0 013.8-2c4 0 4.8 2.6 4.8 6.1v5.8h-4v-5.1c0-1.2 0-2.8-1.7-2.8s-2 1.3-2 2.7v5.2h-4z"/></svg>',
+    ig: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>',
+    fb: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 00-4 4v2H8v4h2v8h4v-8h3l1-4h-4V8.5c0-.3.2-.5.5-.5z"/></svg>',
+    tt: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.6 2h-3.3v13.2a2.9 2.9 0 11-2.9-2.9c.3 0 .6 0 .9.1V9a6.3 6.3 0 106.3 6.3V8.6a7.6 7.6 0 004.4 1.4V6.7a4.4 4.4 0 01-4.4-4.4z"/></svg>',
+    web: '<svg' + DC_SV + '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>',
+    mail: '<svg' + DC_SV + '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+    map: '<svg' + DC_SV + '<path d="M12 22s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+    menu: '<svg' + DC_SV + '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M8 7h7M8 11h7"/></svg>',
+    star: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>',
+    save: '<svg' + DC_SV + '<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>'
+  };
+  function slugify(t) {
+    t = String(t || ""); if (t.normalize) t = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return t.toLowerCase().replace(/&/g, " y ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50).replace(/-+$/, "") || "tarjeta";
+  }
+  function dcSlugFree(slug, cid) { return slug !== "404" && !biz.clientes.some(function (c) { return c.id !== cid && c.card && c.card.slug === slug; }); }
+  function dcSlugUnique(base, cid) { var sl = base, i = 2; while (!dcSlugFree(sl, cid)) sl = base + "-" + i++; return sl; }
+  function siteBase() { var b = String(biz.cfg.siteBase || "").trim().replace(/\/+$/, ""); return b ? qrURL(b) : ""; }
+  function dcURL(card) { var b = siteBase(); return b && card && card.slug ? b + "/" + card.slug + "/" : ""; }
+  function dcDefaults(c) {
+    return { on: true, slug: dcSlugUnique(slugify(c.nombre), c.id), titulo: c.nombre, sub: "", desc: "", wa: c.tel || "", tel: c.tel || "",
+      wamsg: "Hola, te escribo desde su tarjeta digital", email: "", web: "", resenas: c.link || "", menu: "", ig: "", fb: "", tt: "", li: "",
+      dir: c.dir || "", maps: "", horario: "", accent: "#d9b45b", theme: "dark", logobg: true, logo: false };
+  }
+  // Teléfono a formato internacional (+51 si es de Perú)
+  function dcPhone(v) {
+    var raw = String(v || "").trim(); if (!raw) return "";
+    var d = raw.replace(/\D/g, ""); if (!d) return "";
+    if (raw.charAt(0) === "+") return "+" + d;
+    if (d.length === 9 && d.charAt(0) === "9") return "+51" + d;
+    if (d.length === 11 && d.slice(0, 2) === "51") return "+" + d;
+    if (d.charAt(0) === "0" && d.length >= 8) return "+51" + d.slice(1);
+    if (d.length === 7) return "+511" + d;   // fijo de Lima sin código
+    return "+" + d;
+  }
+  function dcHandle(v, base, at) {
+    v = String(v || "").trim(); if (!v) return "";
+    if (/^https?:\/\//i.test(v) || /\.[a-z]{2,}\//i.test(v)) return qrURL(v);
+    return base + (at ? "@" : "") + v.replace(/^@/, "");
+  }
+  function dcInk(hex) { var c = hex2rgb(hex); return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2] > 165 ? "#17140a" : "#ffffff"; }
+  function dcEsc(v) { return bizEsc(v).replace(/'/g, "&#39;"); }
+  // Página de la tarjeta (un solo archivo, sin librerías; el logo va incrustado)
+  // o: { logo (dataURL), vcf (archivo), vcfName, url, foot, home }
+  function dcHTML(d, o) {
+    o = o || {};
+    var dark = d.theme !== "light", a = /^#[0-9a-f]{6}$/i.test(d.accent || "") ? d.accent : "#d9b45b";
+    var a2 = mix(a, dark ? "#ffffff" : "#000000", 0.28), onA = dcInk(a), ac = hex2rgb(a).join(",");
+    var P = dark ? { bg: "#0b0e14", card: "#121722", line: "#232b3a", ink: "#f2f4f8", muted: "#9aa4b6", soft: "rgba(255,255,255,.035)", ph: "#2d3a52", tt: "#000" }
+                 : { bg: "#eef0f4", card: "#ffffff", line: "#e2e5eb", ink: "#15171c", muted: "#5d6575", soft: "#f6f7f9", ph: "#3c4a66", tt: "#111" };
+    var B = [];
+    function btn(href, ico, cls, label, sub, ext, wide, dl) { B.push({ href: href, ico: ico, cls: cls, label: label, sub: sub, ext: ext, wide: wide, dl: dl }); }
+    var wa = dcPhone(d.wa), tel = dcPhone(d.tel), ig = String(d.ig || "").trim(), tt = String(d.tt || "").trim();
+    if (d.resenas) btn(qrURL(d.resenas), "star", "acc", "Déjanos tu reseña", "en Google ★★★★★", true, true);
+    if (wa) btn("https://wa.me/" + wa.replace(/\D/g, "") + (d.wamsg ? "?text=" + encodeURIComponent(d.wamsg) : ""), "wa", "i-wa", "WhatsApp", "Escríbenos", true);
+    if (tel) btn("tel:" + tel, "ph", "i-ph", "Llamar", d.tel, false);
+    if (ig) btn(dcHandle(ig, "https://www.instagram.com/"), "ig", "i-ig", "Instagram", /^@?[\w.]+$/.test(ig) ? "@" + ig.replace(/^@/, "") : "Síguenos", true);
+    if (d.fb) btn(dcHandle(d.fb, "https://www.facebook.com/"), "fb", "i-fb", "Facebook", "Síguenos", true);
+    if (tt) btn(dcHandle(tt, "https://www.tiktok.com/", true), "tt", "i-tt", "TikTok", /^@?[\w.]+$/.test(tt) ? "@" + tt.replace(/^@/, "") : "Síguenos", true);
+    if (d.li) btn(dcHandle(d.li, "https://www.linkedin.com/in/"), "li", "i-li", "LinkedIn", "Perfil", true);
+    if (d.menu) btn(qrURL(d.menu), "menu", "i-mn", "Menú", "Ver la carta", true);
+    if (d.web) btn(qrURL(d.web), "web", "i-web", "Página web", String(d.web).replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, ""), true);
+    if (d.email) btn("mailto:" + String(d.email).trim(), "mail", "i-ml", "Correo", String(d.email).trim(), false);
+    var maps = d.maps ? qrURL(d.maps) : d.dir ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(d.dir) : "";
+    if (maps) btn(maps, "map", "i-mp", "Cómo llegar", "Ver en el mapa", true);
+    var half = B.filter(function (b) { return !b.wide; });
+    if (half.length % 2) half[half.length - 1].wide = true;   // sin huecos en la grilla
+    if (o.vcf) btn(o.vcf, "save", "acc", "Guardar contacto", "", false, true, o.vcfName || "contacto.vcf");
+    var ini = initials(d.titulo) || "★";
+    var avatar = o.logo ? '<div class="avatar' + (d.logobg ? " lb" : "") + '"><img src="' + o.logo + '" alt=""></div>' : '<div class="avatar"><span>' + dcEsc(ini) + "</span></div>";
+    var title = String(d.titulo || "Tarjeta digital"), descr = [d.sub, d.desc].filter(Boolean).join(" · ");
+    var info = [];
+    if (d.dir) info.push('<p class="info">' + DC_ICO.map + "<span>" + dcEsc(d.dir) + "</span></p>");
+    if (d.horario) info.push('<p class="info"><svg' + DC_SV + '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>' + dcEsc(d.horario) + "</span></p>");
+    var fav = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="' + P.card + '"/><text x="32" y="42" font-family="Arial" font-weight="700" font-size="26" fill="' + a + '" text-anchor="middle">' + ini.replace(/[<&]/g, "") + "</text></svg>");
+    return '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
+      "<title>" + dcEsc(title) + "</title>\n" +
+      '<meta name="description" content="' + dcEsc(descr || title) + '">\n<meta name="theme-color" content="' + P.bg + '">\n' +
+      '<meta property="og:title" content="' + dcEsc(title) + '">\n<meta property="og:description" content="' + dcEsc(descr || "Tarjeta digital") + '">\n<meta property="og:type" content="profile">\n' +
+      (o.url ? '<meta property="og:url" content="' + dcEsc(o.url) + '">\n' : "") +
+      '<link rel="icon" href="' + dcEsc(fav) + '">\n<style>\n' +
+      ":root{--bg:" + P.bg + ";--card:" + P.card + ";--line:" + P.line + ";--ink:" + P.ink + ";--muted:" + P.muted + ";--soft:" + P.soft + ";--a:" + a + ";--a2:" + a2 + ";--on:" + onA + "}\n" +
+      "*{box-sizing:border-box}html,body{margin:0}\n" +
+      "body{min-height:100vh;min-height:100dvh;background:radial-gradient(1200px 600px at 50% -10%,rgba(" + ac + ",.16),transparent 60%),var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;align-items:flex-start;padding:max(22px,env(safe-area-inset-top)) 12px max(22px,env(safe-area-inset-bottom))}\n" +
+      "main{width:100%;max-width:420px;animation:rise .6s ease both}@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}\n" +
+      "@media (prefers-reduced-motion:reduce){main,.btn{animation:none!important;transition:none!important}}\n" +
+      ".card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:32px 16px 18px;box-shadow:0 30px 60px rgba(0,0,0," + (dark ? ".45" : ".10") + ");text-align:center;position:relative;overflow:hidden}\n" +
+      ".card::before{content:\"\";position:absolute;inset:0 0 auto 0;height:4px;background:linear-gradient(90deg,transparent,var(--a),transparent)}\n" +
+      ".avatar{width:108px;height:108px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:" + (dark ? "radial-gradient(circle at 30% 25%,#1d2433,#0e121a)" : "#f1f2f5") + ";box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--a),0 14px 30px rgba(0,0,0,.25);font-size:2.3rem;font-weight:700}\n" +
+      ".avatar.lb{background:#fff}.avatar img{width:78%;height:78%;object-fit:contain}\n" +
+      ".avatar span{background:linear-gradient(135deg,var(--a2),var(--a));-webkit-background-clip:text;background-clip:text;color:transparent}\n" +
+      "h1{font-size:1.6rem;line-height:1.2;margin:0 0 6px;font-weight:700;letter-spacing:-.01em}.role{margin:0;color:var(--a);font-weight:600;font-size:.98rem}" + (dark ? "" : ".role{color:var(--a2)}") + "\n" +
+      ".tag{margin:10px auto 0;color:var(--muted);font-size:.9rem;line-height:1.5;max-width:320px}\n" +
+      ".actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:22px}\n" +
+      ".btn{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:11px;font-weight:600;font-size:.94rem;text-align:left;min-width:0;transition:transform .15s,border-color .15s;animation:rise .6s ease both}\n" +
+      ".btn:hover,.btn:focus-visible{border-color:var(--a);outline:none}.btn:active{transform:scale(.98)}.btn.wide{grid-column:1/-1}\n" +
+      ".btn>span:last-child{min-width:0}.btn small{display:block;color:var(--muted);font-weight:500;font-size:.78rem;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n" +
+      ".ico{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;color:#fff}.ico svg{width:21px;height:21px}\n" +
+      ".i-wa{background:#25d366}.i-ph{background:" + P.ph + "}.i-li{background:#0a66c2}.i-fb{background:#1877f2}.i-tt{background:" + P.tt + ";box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}.i-mn{background:#e8743b}.i-web{background:#3b5bdb}.i-ml{background:#6b7280}.i-mp{background:#ea4335}\n" +
+      ".i-ig{background:radial-gradient(circle at 30% 110%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285aeb 90%)}\n" +
+      ".btn.acc{background:linear-gradient(135deg,var(--a2),var(--a));color:var(--on);border:0;justify-content:center;text-align:center}.btn.acc small{color:var(--on);opacity:.75}.btn.acc .ico{background:rgba(0,0,0,.12);color:var(--on);width:36px;height:36px}\n" +
+      ".info{display:flex;gap:8px;align-items:flex-start;justify-content:center;color:var(--muted);font-size:.86rem;line-height:1.45;margin:14px 0 0}.info svg{width:18px;height:18px;flex:none;margin-top:1px;color:var(--a)}.info+.info{margin-top:6px}\n" +
+      ".foot{text-align:center;color:var(--muted);opacity:.75;font-size:.75rem;margin-top:18px}.foot a{color:inherit}\n" +
+      "@media (max-width:380px){.btn{gap:8px;padding:10px;font-size:.9rem}.ico{width:34px;height:34px;border-radius:10px}.ico svg{width:19px;height:19px}}\n@media (max-width:300px){.actions{grid-template-columns:1fr}}\n</style>\n</head>\n<body>\n<main>\n<section class=\"card\">\n" + avatar + "\n" +
+      "<h1>" + dcEsc(title) + "</h1>\n" + (d.sub ? '<p class="role">' + dcEsc(d.sub) + "</p>\n" : "") + (d.desc ? '<p class="tag">' + dcEsc(d.desc) + "</p>\n" : "") +
+      (B.length ? '<nav class="actions" aria-label="Contacto">\n' + B.map(function (b, i) {
+        return '<a class="btn' + (b.wide ? " wide" : "") + (b.cls === "acc" ? " acc" : "") + '" href="' + dcEsc(b.href) + '"' + (b.ext ? ' target="_blank" rel="noopener"' : "") + (b.dl ? ' download="' + dcEsc(b.dl) + '"' : "") +
+          ' style="animation-delay:' + (0.06 + i * 0.05).toFixed(2) + 's"><span class="ico ' + (b.cls === "acc" ? "" : b.cls) + '">' + DC_ICO[b.ico] + "</span><span>" + dcEsc(b.label) + (b.sub ? "<small>" + dcEsc(b.sub) + "</small>" : "") + "</span></a>";
+      }).join("\n") + "\n</nav>\n" : "") + info.join("\n") +
+      "\n</section>\n" + (o.foot ? '<p class="foot">' + o.foot + "</p>\n" : "") + "</main>\n</body>\n</html>\n";
+  }
+  // Contacto para "Guardar contacto" (vCard 3.0; la foto va en JPEG pequeño)
+  function vcEsc(v) { return String(v || "").replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/([,;])/g, "\\$1"); }
+  function dcVCF(d, url, jpgB64) {
+    var Lv = ["BEGIN:VCARD", "VERSION:3.0", "N:" + vcEsc(d.titulo) + ";;;;", "FN:" + vcEsc(d.titulo), "ORG:" + vcEsc(d.titulo)];
+    if (d.sub) Lv.push("TITLE:" + vcEsc(d.sub));
+    var wa = dcPhone(d.wa), tel = dcPhone(d.tel);
+    if (wa) Lv.push("TEL;TYPE=CELL:" + wa);
+    if (tel && tel !== wa) Lv.push("TEL;TYPE=WORK,VOICE:" + tel);
+    if (d.email) Lv.push("EMAIL;TYPE=INTERNET:" + String(d.email).trim());
+    if (url) Lv.push("URL:" + url); else if (d.web) Lv.push("URL:" + qrURL(d.web));
+    if (d.dir) Lv.push("ADR;TYPE=WORK:;;" + vcEsc(d.dir) + ";;;;");
+    if (d.horario) Lv.push("NOTE:" + vcEsc("Horario: " + d.horario));
+    if (jpgB64) { var ph = "PHOTO;ENCODING=b;TYPE=JPEG:" + jpgB64, out = ph.slice(0, 75); for (var i = 75; i < ph.length; i += 74) out += "\r\n " + ph.slice(i, i + 74); Lv.push(out); }
+    Lv.push("END:VCARD");
+    return Lv.join("\r\n") + "\r\n";
+  }
+  // Logo de la tarjeta: PNG de hasta 320 px en IndexedDB ("cardlogo-<id>"), y en memoria como dataURL
+  var dcLogoURL = {};
+  function dcLogoKey(cid) { return "cardlogo-" + cid; }
+  function dcLogoLoad(c, cb) {
+    if (!c.card || !c.card.logo) { cb(null); return; }
+    if (dcLogoURL[c.id]) { cb(dcLogoURL[c.id]); return; }
+    adjGet(dcLogoKey(c.id), function (rec) {
+      if (!rec) { cb(null); return; }
+      var fr = new FileReader();
+      fr.onload = function () { dcLogoURL[c.id] = fr.result; cb(fr.result); };
+      fr.onerror = function () { cb(null); };
+      fr.readAsDataURL(rec.blob);
+    });
+  }
+  function dcJpg(dataURL, cb) {
+    if (!dataURL) { cb(""); return; }
+    var im = new Image();
+    im.onload = function () {
+      var S = 240, cv = document.createElement("canvas"); cv.width = cv.height = S;
+      var g = cv.getContext("2d"), sc = Math.min(S * 0.84 / iw(im), S * 0.84 / ih(im)), w = iw(im) * sc, h = ih(im) * sc;
+      g.fillStyle = "#ffffff"; g.fillRect(0, 0, S, S); g.drawImage(im, (S - w) / 2, (S - h) / 2, w, h);
+      cb(cv.toDataURL("image/jpeg", 0.85).split(",")[1]);
+    };
+    im.onerror = function () { cb(""); };
+    im.src = dataURL;
+  }
+  // ZIP sin compresión (los archivos son chicos): Cloudflare Pages lo acepta tal cual
+  var CRC_T = null;
+  function crc32(u8) {
+    if (!CRC_T) { CRC_T = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; CRC_T[n] = c >>> 0; } }
+    var crc = 0xFFFFFFFF; for (var i = 0; i < u8.length; i++) crc = CRC_T[(crc ^ u8[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+  function zipBlob(files) {
+    var enc = new TextEncoder(), parts = [], central = [], off = 0, dt0 = new Date();
+    var tm = ((dt0.getHours() << 11) | (dt0.getMinutes() << 5) | (dt0.getSeconds() >> 1)) & 0xFFFF;
+    var dd = (((dt0.getFullYear() - 1980) << 9) | ((dt0.getMonth() + 1) << 5) | dt0.getDate()) & 0xFFFF;
+    files.forEach(function (f) {
+      var nm = enc.encode(f.name), data = typeof f.data === "string" ? enc.encode(f.data) : f.data, crc = crc32(data);
+      var h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+      h.setUint16(10, tm, true); h.setUint16(12, dd, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+      h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+      parts.push(h.buffer, nm, data);
+      var cd = new DataView(new ArrayBuffer(46));
+      cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0x0800, true); cd.setUint16(10, 0, true);
+      cd.setUint16(12, tm, true); cd.setUint16(14, dd, true); cd.setUint32(16, crc, true); cd.setUint32(20, data.length, true); cd.setUint32(24, data.length, true);
+      cd.setUint16(28, nm.length, true); cd.setUint32(42, off, true);
+      central.push(cd.buffer, nm);
+      off += 30 + nm.length + data.length;
+    });
+    var csize = central.reduce(function (sm, b) { return sm + b.byteLength; }, 0);
+    var e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+    return new Blob(parts.concat(central, [e.buffer]), { type: "application/zip" });
+  }
+  function dcFoot() { return tpl.name ? 'Tarjeta digital NFC · <a href="/">' + dcEsc(tpl.name) + "</a>" : "Tarjeta digital NFC"; }
+  function dcSiteCards() { return biz.clientes.filter(function (c) { return c.card && c.card.on && c.card.slug; }); }
+  // Sitio completo: portada (tus datos), 404 y una carpeta por tarjeta con index.html y contacto.vcf
+  function dcBuildSite(done) {
+    var list = dcSiteCards(), files = [], i = 0;
+    var home = { titulo: "Tarjetas digitales NFC", sub: tpl.name ? "por " + tpl.name : "", desc: "Tarjetas, stands y chips NFC para negocios: tus clientes te escriben, te guardan y te dejan reseñas con solo acercar el celular.",
+      wa: tpl.phone, wamsg: "Hola, vi su página y quiero una tarjeta digital para mi negocio", email: tpl.email, theme: "dark", accent: "#d9b45b" };
+    files.push({ name: "index.html", data: dcHTML(home, {}) });
+    files.push({ name: "404.html", data: dcHTML({ titulo: "Tarjeta no encontrada", desc: "Revisa el link o pide uno nuevo a quien te lo dio.", theme: "dark", accent: "#d9b45b" }, { foot: dcFoot() }) });
+    (function next() {
+      if (i >= list.length) { done(zipBlob(files), list.length); return; }
+      var c = list[i++], d = c.card, url = dcURL(d);
+      dcLogoLoad(c, function (logo) {
+        dcJpg(logo, function (jpg) {
+          files.push({ name: d.slug + "/index.html", data: dcHTML(d, { logo: logo, vcf: "contacto.vcf", vcfName: fnClean(d.titulo || "contacto") + ".vcf", url: url, foot: dcFoot() }) });
+          files.push({ name: d.slug + "/contacto.vcf", data: dcVCF(d, url, jpg) });
+          next();
+        });
+      });
+    })();
+  }
+  function renderSite() {
+    $("b-sitebase").value = biz.cfg.siteBase || "";
+    var list = biz.clientes.filter(function (c) { return c.card; }).sort(function (a2, b2) { return a2.nombre.localeCompare(b2.nombre); });
+    var on = list.filter(function (c) { return c.card.on; }).length;
+    $("b-sitesum").innerHTML = list.length
+      ? on + (on === 1 ? " tarjeta publicada" : " tarjetas publicadas") + (list.length > on ? " y " + (list.length - on) + " sin publicar" : "") + "." + (siteBase() ? "" : ' <b>Pon la dirección de tu sitio</b> para ver el link de cada tarjeta.')
+      : 'Aún no hay tarjetas digitales. Créalas desde <b>Historial de negocios</b> → <b>Crear tarjeta digital</b>.';
+    $("b-sitetbl").innerHTML = list.length ? "<thead><tr><th>Negocio</th><th>Link</th><th>Estado</th><th></th></tr></thead><tbody>" + list.map(function (c) {
+      var u = dcURL(c.card);
+      return "<tr><td>" + bizEsc(c.card.titulo || c.nombre) + "</td><td>" + (u ? '<a href="' + bizEsc(u) + '" target="_blank" rel="noopener">' + bizEsc(u.replace(/^https?:\/\//, "")) + "</a>" : '<span class="note">/' + bizEsc(c.card.slug) + "/</span>") +
+        "</td><td>" + (c.card.on ? "Publicada" : '<span class="note">Sin publicar</span>') + '</td><td><button class="bclip" data-dce="' + bizEsc(c.id) + '">Editar</button></td></tr>';
+    }).join("") + "</tbody>" : "";
+  }
+  $("b-sitebase").addEventListener("change", function () { biz.cfg.siteBase = $("b-sitebase").value.trim(); saveBiz(); renderSite(); });
+  $("b-sitetbl").addEventListener("click", function (e) { var b = e.target.closest("[data-dce]"); if (b) dcOpen(b.dataset.dce); });
+  $("b-sitezip").addEventListener("click", function () {
+    if (!dcSiteCards().length) { alert("Aún no hay tarjetas publicadas. Créalas desde Historial de negocios → Crear tarjeta digital."); return; }
+    if (!siteBase() && !confirm("Aún no pusiste la dirección de tu sitio: los contactos guardados no llevarán el link de la tarjeta. ¿Descargar igual?")) return;
+    var btn = $("b-sitezip"), label = btn.textContent; btn.disabled = true; btn.textContent = "Armando el sitio…";
+    dcBuildSite(function (blob, n) {
+      btn.disabled = false; btn.textContent = label;
+      $("b-sitesum").innerHTML += " Último ZIP: " + n + (n === 1 ? " tarjeta" : " tarjetas") + ", " + fsize(blob.size) + ".";
+      downloadBlob(blob, "sitio-tarjetas-" + todayISO() + ".zip");
+    });
+  });
+
+  // ---- Ventana de la tarjeta digital ----
+  var dcCli = null, dcT = 0;
+  (function () {
+    $("dc-fields").innerHTML = DC_FIELDS.map(function (f) {
+      if (f[0] === "#") return '<div class="glabel">' + f[1] + "</div>";
+      return '<div class="field' + (f[3] ? " wide" : "") + '"><label for="dc-f-' + f[0] + '">' + f[1] + '</label><input type="' + f[2] + '" id="dc-f-' + f[0] + '" data-dk="' + f[0] + '" maxlength="' + (f[2] === "url" ? 400 : 160) + '" placeholder="' + bizEsc(f[4]) + '"></div>';
+    }).join("");
+  })();
+  function dcCard() { return dcCli && dcCli.card; }
+  function dcOpen(cid) {
+    var c = bizCli(cid); if (!c) return;
+    if (!c.card) { c.card = dcDefaults(c); saveBiz(); }
+    dcCli = c;
+    var d = c.card;
+    $("dc-title").textContent = "Tarjeta digital · " + c.nombre;
+    $("dc-on").checked = !!d.on; $("dc-slug").value = d.slug; $("dc-logobg").checked = d.logobg !== false;
+    $("dc-accent").value = /^#[0-9a-f]{6}$/i.test(d.accent || "") ? d.accent : "#d9b45b"; $("dc-theme").value = d.theme === "light" ? "light" : "dark";
+    DC_FIELDS.forEach(function (f) { if (f[0] !== "#") $("dc-f-" + f[0]).value = d[f[0]] || ""; });
+    $("dc").classList.remove("hidden"); document.body.style.overflow = "hidden";
+    dcSync(); dcPreview(true);
+    dcLogoLoad(c, function () { if (dcCli === c) { dcSync(); dcPreview(true); } });
+  }
+  function dcClose() { if (!dcCli) return; dcCli = null; $("dc").classList.add("hidden"); document.body.style.overflow = ""; renderBiz(); }
+  function dcSync() {
+    var d = dcCard(); if (!d) return;
+    var b = siteBase(), u = dcURL(d);
+    $("dc-base").textContent = (b ? b.replace(/^https?:\/\//, "") : "tu-sitio") + "/";
+    $("dc-url").innerHTML = u ? "Link para el chip o el QR: <b>" + bizEsc(u) + "</b>" + (d.on ? "" : " (sin publicar: no se incluye en el ZIP)") : "Pon la <b>Dirección de tu sitio</b> en Negocio → Tarjetas digitales para ver el link completo.";
+    $("dc-logolabel").textContent = d.logo ? "Cambiar logo" : "Subir logo";
+    $("dc-logodel").classList.toggle("hidden", !d.logo);
+  }
+  function dcPreview(now) {
+    clearTimeout(dcT);
+    dcT = setTimeout(function () {
+      var c = dcCli; if (!c) return;
+      var d = c.card, logo = d.logo ? dcLogoURL[c.id] : null, html = dcHTML(d, { logo: logo, vcf: "contacto.vcf", url: dcURL(d), foot: dcFoot() });
+      $("dc-frame").srcdoc = html;
+      $("dc-size").textContent = "Vista previa · pesa unos " + Math.max(1, Math.round(html.length / 1024)) + " KB (más el contacto)";
+    }, now ? 0 : 250);
+  }
+  $("dc-fields").addEventListener("input", function (e) {
+    var k = e.target.dataset.dk, d = dcCard(); if (!k || !d) return;
+    d[k] = e.target.value; saveBiz(); dcPreview();
+  });
+  $("dc-on").addEventListener("change", function () { var d = dcCard(); if (d) { d.on = $("dc-on").checked; saveBiz(); dcSync(); } });
+  $("dc-logobg").addEventListener("change", function () { var d = dcCard(); if (d) { d.logobg = $("dc-logobg").checked; saveBiz(); dcPreview(true); } });
+  $("dc-accent").addEventListener("input", function () { var d = dcCard(); if (d) { d.accent = $("dc-accent").value; saveBiz(); dcPreview(); } });
+  $("dc-theme").addEventListener("change", function () { var d = dcCard(); if (d) { d.theme = $("dc-theme").value; saveBiz(); dcPreview(true); } });
+  $("dc-slug").addEventListener("change", function () {
+    var d = dcCard(); if (!d) return;
+    var sl = slugify($("dc-slug").value);
+    if (!dcSlugFree(sl, dcCli.id)) { alert("Esa dirección ya la usa otra tarjeta. Se usará \"" + dcSlugUnique(sl, dcCli.id) + "\"."); sl = dcSlugUnique(sl, dcCli.id); }
+    d.slug = sl; $("dc-slug").value = sl; saveBiz(); dcSync();
+  });
+  $("dc-logo").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0]; e.target.value = "";
+    var c = dcCli; if (!f || !c) return;
+    var url = URL.createObjectURL(f), img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      openImgEditor(img, null, function (cv) {
+        var sc = Math.min(1, 320 / Math.max(cv.width, cv.height)), o = document.createElement("canvas");
+        o.width = Math.max(1, Math.round(cv.width * sc)); o.height = Math.max(1, Math.round(cv.height * sc));
+        var g = o.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(cv, 0, 0, o.width, o.height);
+        o.toBlob(function (b) {
+          adjPut([{ id: dcLogoKey(c.id), venta: "", kind: "cardlogo", name: "logo.png", type: "image/png", size: b.size, blob: b, fecha: todayISO() }], function (ok) {
+            if (!ok) return;
+            dcLogoURL[c.id] = o.toDataURL("image/png"); c.card.logo = true; saveBiz();
+            if (dcCli === c) { dcSync(); dcPreview(true); }
+          });
+        }, "image/png");
+      }, "Logo de la tarjeta digital");
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); alert("No se pudo abrir esa imagen."); };
+    img.src = url;
+  });
+  $("dc-logodel").addEventListener("click", function () {
+    var c = dcCli; if (!c) return;
+    adjDel([dcLogoKey(c.id)]); delete dcLogoURL[c.id]; c.card.logo = false; saveBiz(); dcSync(); dcPreview(true);
+  });
+  $("dc-copy").addEventListener("click", function () {
+    var u = dcURL(dcCard()), b = $("dc-copy");
+    if (!u) { alert("Primero pon la dirección de tu sitio (Negocio → Tarjetas digitales)."); return; }
+    var ok = function () { b.textContent = "Copiado ✓"; setTimeout(function () { b.textContent = "Copiar link"; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(ok, function () { prompt("Copia el link:", u); }); else prompt("Copia el link:", u);
+  });
+  $("dc-sup").addEventListener("click", function () {
+    var u = dcURL(dcCard()); if (!u) { alert("Primero pon la dirección de tu sitio (Negocio → Tarjetas digitales)."); return; }
+    $("s-link").value = u; $("s-link").dispatchEvent(new Event("input"));
+    $("dc-sup").textContent = "Listo: puesto en los QR de Soportes ✓";
+  });
+  $("dc-sale").addEventListener("click", function () {
+    var c = dcCli, u = dcURL(dcCard()); if (!c) return;
+    if (!u) { alert("Primero pon la dirección de tu sitio (Negocio → Tarjetas digitales)."); return; }
+    var v = cliStats(c).vs[0];
+    if (!v) { alert("Este negocio aún no tiene ventas registradas."); return; }
+    v.links = linkList((v.links || []).concat([u])); saveBiz();
+    $("dc-sale").textContent = "Guardado en la venta del " + fechaLabel(v.fecha) + " ✓";
+  });
+  $("dc-open").addEventListener("click", function () {
+    var c = dcCli; if (!c) return;
+    var d = c.card, html = dcHTML(d, { logo: d.logo ? dcLogoURL[c.id] : null, url: dcURL(d), foot: dcFoot() });
+    var u = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    if (!window.open(u, "_blank")) alert("El navegador bloqueó la ventana nueva.");
+    setTimeout(function () { URL.revokeObjectURL(u); }, 60000);
+  });
+  $("dc-del").addEventListener("click", function () {
+    var c = dcCli; if (!c || !confirm("¿Quitar la tarjeta digital de " + c.nombre + "? Dejará de estar en el sitio la próxima vez que subas el ZIP.")) return;
+    adjDel([dcLogoKey(c.id)]); delete dcLogoURL[c.id]; delete c.card; saveBiz(); dcClose();
+  });
+  $("dc-x").addEventListener("click", dcClose);
+  $("dc").addEventListener("click", function (e) { if (e.target === $("dc")) dcClose(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && dcCli && $("fn").classList.contains("hidden") && $("ie").classList.contains("hidden")) dcClose(); });
 
   // ---- Exportar (CSV para Excel / Power BI) y respaldo ----
   function csvCell(v) { if (typeof v === "number") return String(Math.round(v * 100) / 100); v = String(v == null ? "" : v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }

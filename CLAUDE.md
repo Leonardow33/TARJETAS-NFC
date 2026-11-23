@@ -205,6 +205,18 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
   - Catálogo: "Agregar material" (`#b-madd`, `prompt()`) y × solo en los materiales propios (los de `BIZ_BASE_MATS` usan las recetas y no se quitan). Los materiales nuevos no entran en el costo de los productos.
 - CSV (`bizCSV`, con BOM, separador coma) de ventas (con nombres de archivos), inversiones, catálogo, planes y negocios; respaldo y restauración en JSON.
 
+### Tarjetas digitales de clientes (Negocio → `#b-site`, ventana `#dc`)
+- Para vender tarjetas digitales como `perfil/`, alojadas en **Cloudflare Pages** (plan gratis). La guía paso a paso, los costos y el dominio propio están en `details.howto` dentro de `#b-site`.
+- Datos: `c.card` en cada negocio (`biz.clientes`): on, slug, titulo, sub, desc, wa, tel, wamsg, email, web, resenas, menu, ig, fb, tt, li, dir, maps, horario, accent, theme (dark/light), logobg y logo (bool). `dcDefaults(c)` lo llena con los datos del negocio.
+  - Logo: PNG de hasta 320 px en IndexedDB con id `cardlogo-<id>` (mismo store que los adjuntos, así entra en el respaldo); en memoria `dcLogoURL`. Se sube pasando por `openImgEditor` (`#ie` tiene z-index 70 y `#fn` 80, encima de `#dc`).
+- `biz.cfg.siteBase` (`#b-sitebase`) = dirección del sitio. `dcURL(card)` = base + "/" + slug + "/". `slugify`, `dcSlugUnique` (no repite ni usa "404").
+- `dcHTML(d, o)`: página de un solo archivo (sin librerías, logo incrustado, mismo estilo que `perfil/`, color de acento y fondo oscuro o claro). Botones solo de los campos llenos: reseña (ancho, acento), WhatsApp, llamar, Instagram, Facebook, TikTok, LinkedIn, menú, web, correo, cómo llegar (Maps o búsqueda de la dirección) y guardar contacto. Si quedan impares, el último medio botón pasa a ancho. Pie con link a la portada (`dcFoot`).
+  - `dcPhone`: +51 si son 9 dígitos con 9, fijo con 0 o 7 dígitos de Lima. `dcHandle`: @usuario o link.
+- `dcVCF(d, url, jpg)`: vCard 3.0 (CRLF, líneas de 75, foto JPEG de 240 px con `dcJpg`).
+- `dcBuildSite` + `zipBlob` (ZIP propio sin compresión con `crc32`, sin librerías): `index.html` (portada con los datos de `tpl`), `404.html` y `<slug>/index.html` + `<slug>/contacto.vcf` de cada tarjeta publicada. Cloudflare reemplaza todo el sitio en cada subida, por eso siempre se exporta completo.
+- Ventana: vista previa en un iframe tipo celular (`srcdoc`, se actualiza 250 ms después de escribir), Copiar link, Usar en Soportes (QR), Guardar en su última venta (`v.links`), Abrir vista previa (blob) y Quitar tarjeta. En el historial, botón "Crear tarjeta digital" / "Tarjeta digital ✓" (`data-ca="card"`).
+- Límites de Cloudflare (verificados en 2026-11): gratis con 20 000 archivos por sitio y 25 MiB por archivo; arrastrando desde el panel, 1 000 archivos por subida (≈ 490 tarjetas: 2 archivos cada una); con Wrangler, 20 000. Un .com en Cloudflare Registrar cuesta ≈ US$ 10.5 al año.
+
 ### Descargas
 - Todo pasa por `downloadBlob(blob, name, named)`: abre el cuadro `#fn` (`askFileName`) para escribir el nombre; la extensión se conserva y `fnClean` quita caracteres inválidos. Los PDF usan `savePDF(doc, name)` (no `doc.save`). El PNG de Foto (`#resultdl`) también pregunta.
 - El video pide el nombre **antes** de grabar (`recordVideo(mime, ext, fname)`) y al terminar descarga directo.
@@ -287,6 +299,7 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
 - **Negocio:** el usuario aún no registra sus compras de material (solo está el equipo de S/ 357.78), así que el stock sale incompleto. El precio del laminado sigue sin confirmar (S/ 0.50 por stand).
   - Planes actualizados a la propuesta comercial (49/88/120/148/78/18) y se quitó "Promo 4 stands". `loadBiz` migra una sola vez (`plansV: 2`) solo los planes que seguían con el precio anterior; si el usuario los había editado, se respetan.
 - **Posible:** ajuste de desplazamiento si la impresión sale corrida, y tamaño 50 × 25 para fotos.
+- **Tarjetas digitales en Cloudflare:** el usuario aún no crea la cuenta ni el proyecto. Falta probar con él la primera subida del ZIP, el botón "Guardar contacto" (.vcf con foto) en Android y en iPhone, el fondo claro y decidir si compra un dominio propio antes de grabar chips. Su tarjeta personal sigue en GitHub Pages (`perfil/`).
 - **Sistema de marcaciones NFC:** solo está planificado, falta que el usuario decida:
   1. lector (tablet Android, PC con lector USB o celular);
   2. almacenamiento (Google Sheets con Apps Script recomendado, Supabase o M365);
