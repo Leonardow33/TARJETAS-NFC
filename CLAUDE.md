@@ -81,6 +81,9 @@ Enlaces:
   - Giro `#t-3dyaw` de −180 a 180 (arrastrar da la vuelta completa). Encuadre fijo calculado con todos los giros, para que no cambie de tamaño. Mesa `#t-3dtable`, PNG `#t-3ddl`.
   - Texturas en caché `t3dTex` (se borra en `renderTpl`, que además refresca la maqueta). `o` acepta { cv, yaw, pose, side, table, tex {front, back}, zoom, caption }.
   - Video (`t-3dv*`): en el soporte, vuelta completa con easing (frente, reverso, frente) si hay reverso; si no, o sobre la mesa, vaivén suave.
+- **Logo** (`tpl.logo` { img, cache }, no se guarda al recargar; `tpl.logoMode` sí, en `TPL_SAVE`): seg `#tpllogomode` con "color" (colores originales, dibuja la imagen tal cual con su transparencia), "logo" (un color con `logoMask`, más "Invertir logo") y "photo" (tramado).
+  - En la térmica (`t.thermal`), "color" cae a `logoMask`. `#t-logonote` lo explica; "Invertir" se oculta en modo color.
+  - Solo las plantillas Bloque, Banda y "Logo / imagen" usan el logo.
 - **Material** (`tpl.material`, `#tplmat`): white, black o wood. Reemplaza a "Invertir".
   - `tpl.invert` queda en sync para compatibilidad.
   - Madera solo en tamaño tarjeta y no en térmica.

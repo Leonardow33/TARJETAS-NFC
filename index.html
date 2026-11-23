@@ -616,12 +616,14 @@
         </div>
         <div class="field hidden" id="t-logoopts">
           <div class="seg" id="tpllogomode">
-            <button data-m="logo" aria-pressed="true">Logo</button>
+            <button data-m="color" aria-pressed="false">Colores originales</button>
+            <button data-m="logo" aria-pressed="true">Un color</button>
             <button data-m="photo" aria-pressed="false">Foto (tramado)</button>
           </div>
-          <label class="check" style="margin-top:10px">
+          <label class="check" style="margin-top:10px" id="t-logoinvwrap">
             <input type="checkbox" id="t-logoinv"> Invertir logo
           </label>
+          <p class="note hidden" id="t-logonote" style="margin-top:8px"></p>
         </div>
         <label class="check hidden" style="margin-top:12px" id="t-roundedwrap">
           <input type="checkbox" id="t-rounded" checked> Esquinas redondeadas
@@ -2674,7 +2676,7 @@
     mono: "'Courier New', Courier, monospace"
   };
   var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link", "short", "chiplink", "short2"];
-  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded", "chipInset"].concat(TPL_FIELDS);
+  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded", "chipInset", "logoMode"].concat(TPL_FIELDS);
   var tpl = {
     template: "clasica", backTemplate: "nfc", side: "front", size: "card", font: "sans",
     name: "", role: "", company: "", phone: "", email: "", link: "",
@@ -2913,7 +2915,12 @@
       var img = t.logo.img, iw = img.naturalWidth, ih = img.naturalHeight;
       var sc = Math.min(w / iw, h / ih), dw = iw * sc, dh = ih * sc;
       var dx = align === "center" ? x + (w - dw) / 2 : x, dy = y + (h - dh) / 2;
-      if (t.logoMode === "photo") {
+      if (t.logoMode === "color" && !t.thermal) {
+        // colores originales del logo (con su transparencia); en la térmica pasa a un color
+        c.save(); c.imageSmoothingQuality = "high";
+        c.drawImage(img, dx * S, dy * S, dw * S, dh * S);
+        c.restore();
+      } else if (t.logoMode === "photo") {
         // foto: tramado a la resolución exacta de salida
         var pw = Math.max(1, Math.round(dw * S)), ph = Math.max(1, Math.round(dh * S));
         var tmp = document.createElement("canvas");
@@ -3280,6 +3287,12 @@
     $("t-logolabel").textContent = tpl.logo ? "Cambiar logo" : "Subir logo";
     $("t-logodel").classList.toggle("hidden", !tpl.logo);
     $("t-logoopts").classList.toggle("hidden", !tpl.logo);
+    var lcol = tpl.logoMode === "color";
+    $("t-logoinvwrap").classList.toggle("hidden", lcol);
+    $("t-logonote").classList.toggle("hidden", !lcol);
+    $("t-logonote").textContent = tpl.size === "card"
+      ? "El logo sale con sus colores en la vista previa, la hoja A4, el PDF y la maqueta 3D. Si tiene fondo blanco y la tarjeta es negra o de madera, usa un PNG sin fondo."
+      : "En la impresora térmica todo sale en blanco y negro: el logo se imprime en un color. Sus colores se ven en la hoja A4 si lo pasas a tarjeta.";
     var card = tpl.size === "card", d = TPL_SIZES[tpl.size];
     $("t-thermal").classList.toggle("hidden", card);
     $("t-cardthermal").classList.toggle("hidden", !card);
