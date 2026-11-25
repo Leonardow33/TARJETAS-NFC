@@ -388,6 +388,25 @@
   .kpi b { display: block; font-size: 1.35rem; font-weight: 680; letter-spacing: -0.01em; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .kpi small { display: block; font-size: .74rem; color: var(--muted); margin-top: 2px; }
   .neg { color: var(--danger); }
+  .lchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .lchip { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; }
+  .lchip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .llist { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-top: 14px; }
+  .lcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .lcard h3 { margin: 0; font-size: .98rem; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; }
+  .lcard h3 span { flex: none; font-size: .7rem; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 99px; padding: 2px 8px; }
+  .lcard .lurl { font-size: .78rem; color: var(--accent); word-break: break-all; text-decoration: none; }
+  .lcard .lpara { font-size: .8rem; color: var(--muted); margin: 0; }
+  .lcard .lmsg { font-size: .8rem; color: var(--muted); white-space: pre-wrap; margin: 0; border-left: 3px solid var(--line); padding-left: 8px;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .ltools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
+  .ltools .btn { width: auto; padding: 7px 10px; font-size: .8rem; }
+  .lauto { margin-top: 10px; display: grid; gap: 10px; }
+  .lauto .lrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: .84rem; }
+  .lauto .lrow b { min-width: 140px; }
+  .lauto .lrow a { color: var(--accent); word-break: break-all; flex: 1; min-width: 160px; }
+  .lauto .lrow .btn { width: auto; padding: 5px 9px; font-size: .78rem; }
+  #l-msg { width: 100%; min-height: 96px; resize: vertical; font: inherit; font-size: .9rem; }
   .btable tr.qon td { background: color-mix(in srgb, var(--accent) 10%, transparent); font-weight: 650; }
   .btable td.n input.qn { width: 72px; min-width: 0; text-align: right; }
   #b-qneed { margin: 8px 0 0; padding-left: 18px; font-size: .84rem; color: var(--muted); }
@@ -482,6 +501,7 @@
     <button data-v="sup" aria-pressed="false">Soportes</button>
     <button data-v="print" aria-pressed="false">Hoja A4 <span class="badge zero" id="qbadge">0</span></button>
     <button data-v="biz" aria-pressed="false">Negocio</button>
+    <button data-v="links" aria-pressed="false">Links</button>
   </nav>
 
   <!-- ================= VISTA: PLANTILLAS ================= -->
@@ -1598,6 +1618,42 @@
     </div>
   </div>
 
+  <!-- ================= VISTA: LINKS ================= -->
+  <div class="hidden" id="view-links">
+    <div class="group">
+      <div class="glabel">Links para compartir (muestras, cartas, tarjetas…)</div>
+      <div class="opts">
+        <div class="field"><label for="l-to">Para qué negocio (opcional)</label><select id="l-to"></select></div>
+        <div class="field"><label for="l-q">Buscar</label><input type="search" id="l-q" placeholder="Carta, tarjeta, restaurante…" autocomplete="off"></div>
+      </div>
+      <div class="lchips" id="l-cats"></div>
+      <p class="note" style="margin-top:8px">Toca <b>Copiar mensaje</b> y pégalo en WhatsApp. Si eliges un negocio, el mensaje lleva su nombre y el botón <b>WhatsApp</b> abre su chat directo; si no, WhatsApp te deja elegir el contacto.</p>
+    </div>
+    <div class="llist" id="l-list"></div>
+
+    <div class="group" style="margin-top:14px" id="l-form">
+      <div class="glabel" id="l-formt">Agregar un link</div>
+      <div class="opts">
+        <div class="field"><label for="l-tit">Nombre</label><input type="text" id="l-tit" maxlength="80" placeholder="Ej.: Carta de muestra para pollerías"></div>
+        <div class="field"><label for="l-url">Link</label><input type="url" id="l-url" maxlength="400" placeholder="https://…"></div>
+        <div class="field"><label for="l-cat">Categoría</label><input type="text" id="l-cat" maxlength="40" list="l-catlist" placeholder="Cartas, Tarjetas digitales, Reseñas…"><datalist id="l-catlist"></datalist></div>
+        <div class="field"><label for="l-para">Para quién es (nota)</label><input type="text" id="l-para" maxlength="120" placeholder="Ej.: Restaurantes y cafeterías"></div>
+      </div>
+      <div class="field" style="margin-top:8px"><label for="l-msg">Mensaje para enviar (opcional)</label>
+        <textarea id="l-msg" maxlength="1200" placeholder="Hola {negocio}, te comparto…&#10;{link}"></textarea></div>
+      <p class="note">En el mensaje, <b>{negocio}</b> se cambia por el nombre del negocio elegido y <b>{link}</b> por el link. Si no pones {link}, va al final.</p>
+      <div class="s-tools" style="margin-top:8px">
+        <button class="btn primary" id="l-save">Guardar link</button>
+        <button class="btn hidden" id="l-cancel">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:14px">
+      <div class="glabel">Links de tus negocios (se arman solos con el historial)</div>
+      <div class="lauto" id="l-auto"></div>
+    </div>
+  </div>
+
   <p class="foot">Las imágenes se procesan en tu dispositivo. Nada se sube a internet.</p>
 </div>
 
@@ -2230,12 +2286,14 @@
     $("view-tpl").classList.toggle("hidden", v !== "tpl");
     $("view-sup").classList.toggle("hidden", v !== "sup");
     $("view-biz").classList.toggle("hidden", v !== "biz");
+    $("view-links").classList.toggle("hidden", v !== "links");
     document.querySelector(".sizepill").classList.toggle("hidden", v !== "design");
     setSeg("tabs", document.querySelector('#tabs button[data-v="' + v + '"]'));
     if (v === "print") renderSheet();
     else if (v === "tpl") renderTpl();
     else if (v === "sup") { syncSupSize(); syncSupEl(); renderSup(); }
     else if (v === "biz") renderBiz();
+    else if (v === "links") renderLinks();
     else render();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -6306,6 +6364,18 @@
     { id: "rs2611-4", fecha: "2026-11-23", item: "Temu: chips NFC 215 blancos, 3 packs × 6 (S/ 7.49 c/u)", mat: "nfc", piezas: 18, costo: 22.47, tipo: "stock" },
     { id: "rs2611-5", fecha: "2026-11-23", item: "Temu: 60 soportes transparentes pequeños (para tarjetas)", mat: "soporte", piezas: 60, costo: 14.79, tipo: "stock" }
   ];
+  // Links de muestra que se agregan una vez a la pestaña Links (editables; si se borran no vuelven)
+  var LINK_HOME = "https://leonardow33.github.io/TARJETAS-NFC/";
+  var LINK_SEED = [
+    { id: "lk-cartas", titulo: "Cartas virtuales de muestra (las dos)", url: LINK_HOME + "cartas-demo/", cat: "Cartas", para: "Restaurantes, cevicherías, cafeterías y juguerías: para que comparen las dos",
+      msg: "Hola {negocio}, te comparto dos cartas virtuales de muestra para que veas la diferencia:\n{link}\n\nLa estándar cuesta S/ 150 y la personalizada S/ 250. Tus clientes la abren tocando el stand NFC o escaneando el QR, y yo la actualizo cuando cambies platos o precios, sin cambiar el link." },
+    { id: "lk-estandar", titulo: "Carta estándar (muestra)", url: LINK_HOME + "cartas-demo/estandar/", cat: "Cartas", para: "Negocios que solo quieren su lista de platos y precios",
+      msg: "Hola {negocio}, así se ve la carta virtual estándar (S/ 150):\n{link}\n\nSimple y ordenada: platos y precios por categoría, con botón de pedidos por WhatsApp." },
+    { id: "lk-personalizada", titulo: "Carta personalizada (muestra)", url: LINK_HOME + "cartas-demo/personalizada/", cat: "Cartas", para: "Restaurantes que quieren verse más pro: con su logo, colores y fotos",
+      msg: "Hola {negocio}, así se ve la carta virtual personalizada (S/ 250):\n{link}\n\nVa con tu logo, tus colores y fotos de tus platos, con categorías, buscador, horario, ubicación y WhatsApp para pedidos." },
+    { id: "lk-perfil", titulo: "Tarjeta digital (mi ejemplo)", url: LINK_HOME + "perfil/", cat: "Tarjetas digitales", para: "Profesionales y negocios que quieren su tarjeta digital NFC",
+      msg: "Hola {negocio}, así funciona una tarjeta digital: acercas el celular a la tarjeta NFC (o escaneas el QR) y se abre esto:\n{link}\n\nCon botones de WhatsApp, llamada, redes y guardar contacto." }
+  ];
   function bizSeed(o) {
     if (!Array.isArray(o.seeds)) o.seeds = [];
     var n = 0;
@@ -6318,6 +6388,12 @@
         if (m) o.mats.push(Object.assign({}, m));
       }
       o.invs.push(Object.assign({}, r)); n++;
+    });
+    if (!Array.isArray(o.links)) o.links = [];
+    LINK_SEED.forEach(function (l) {
+      if (o.seeds.indexOf(l.id) >= 0) return;
+      o.seeds.push(l.id); n++;
+      if (!o.links.some(function (x) { return x.id === l.id; })) o.links.push(Object.assign({}, l));
     });
     return n;
   }
@@ -6771,6 +6847,105 @@
     function ok() { $("b-qcopy").textContent = "Copiado ✓"; setTimeout(function () { $("b-qcopy").textContent = "Copiar cotización para WhatsApp"; }, 1600); }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, function () { prompt("Copia la cotización:", txt); });
     else prompt("Copia la cotización:", txt);
+  });
+
+  // ---- Pestaña Links: links guardados para copiar y enviar (biz.links, entra en el respaldo) ----
+  var lCat = "", lEdit = null;
+  function copyTxt(txt, btn, label) {
+    function ok() { if (!btn) return; btn.textContent = "Copiado ✓"; setTimeout(function () { btn.textContent = label; }, 1500); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, function () { prompt("Copia el texto:", txt); });
+    else prompt("Copia el texto:", txt);
+  }
+  function lClient() { return bizCli($("l-to").value); }
+  function lMsg(l) {
+    var c = lClient(), t = String(l.msg || "").trim() || "{link}";
+    if (t.indexOf("{link}") < 0) t += "\n{link}";
+    return t.replace(/\{link\}/g, l.url).replace(/\{negocio\}/g, c ? c.nombre : "").replace(/[ \t]+([,.!?])/g, "$1").replace(/[ \t]{2,}/g, " ");
+  }
+  function lFind(id) { return (biz.links || []).filter(function (x) { return x.id === id; })[0] || null; }
+  function renderLinks() {
+    if (!biz) return;
+    if (!Array.isArray(biz.links)) biz.links = [];
+    var sel = $("l-to"), cur = sel.value;
+    sel.innerHTML = '<option value="">— Ninguno (solo copiar) —</option>' + biz.clientes.slice().sort(function (a, b) { return cliKey(a.nombre).localeCompare(cliKey(b.nombre)); }).map(function (c) {
+      return '<option value="' + bizEsc(c.id) + '">' + bizEsc(c.nombre) + (c.tel ? " · " + bizEsc(c.tel) : "") + "</option>";
+    }).join("");
+    if (cur && bizCli(cur)) sel.value = cur;
+    var cats = []; biz.links.forEach(function (l) { var k = (l.cat || "Otros").trim() || "Otros"; if (cats.indexOf(k) < 0) cats.push(k); });
+    if (lCat && cats.indexOf(lCat) < 0) lCat = "";
+    $("l-cats").innerHTML = ['<button class="lchip' + (lCat ? "" : " on") + '" data-lc="">Todos (' + biz.links.length + ")</button>"].concat(cats.map(function (k) {
+      return '<button class="lchip' + (lCat === k ? " on" : "") + '" data-lc="' + bizEsc(k) + '">' + bizEsc(k) + "</button>";
+    })).join("");
+    $("l-catlist").innerHTML = cats.map(function (k) { return '<option value="' + bizEsc(k) + '">'; }).join("");
+    var q = cliKey($("l-q").value), c = lClient();
+    var L = biz.links.filter(function (l) {
+      return (!lCat || ((l.cat || "Otros").trim() || "Otros") === lCat) && (!q || cliKey([l.titulo, l.url, l.cat, l.para, l.msg].join(" ")).indexOf(q) >= 0);
+    });
+    $("l-list").innerHTML = L.length ? L.map(function (l) {
+      return '<div class="lcard"><h3>' + bizEsc(l.titulo || linkKind(l.url)) + "<span>" + bizEsc(l.cat || "Otros") + "</span></h3>" +
+        '<a class="lurl" href="' + bizEsc(l.url) + '" target="_blank" rel="noopener">' + bizEsc(l.url) + "</a>" +
+        (l.para ? '<p class="lpara">👥 ' + bizEsc(l.para) + "</p>" : "") +
+        '<p class="lmsg">' + bizEsc(lMsg(l)) + "</p>" +
+        '<div class="ltools">' +
+        '<button class="btn primary" data-la="msg" data-id="' + bizEsc(l.id) + '">Copiar mensaje</button>' +
+        '<button class="btn" data-la="copy" data-id="' + bizEsc(l.id) + '">Copiar link</button>' +
+        '<button class="btn" data-la="wa" data-id="' + bizEsc(l.id) + '" title="' + (c && waLink(c.tel) ? "Abrir el chat de " + bizEsc(c.nombre) : "Elegir el contacto en WhatsApp") + '">WhatsApp</button>' +
+        '<button class="btn" data-la="qr" data-id="' + bizEsc(l.id) + '" title="Pone este link en los QR de Soportes (para grabarlo o imprimirlo)">Al QR</button>' +
+        '<button class="btn" data-la="edit" data-id="' + bizEsc(l.id) + '" title="Editar">✎</button>' +
+        '<button class="btn" data-la="del" data-id="' + bizEsc(l.id) + '" title="Quitar">×</button>' +
+        "</div></div>";
+    }).join("") : '<p class="note">' + (biz.links.length ? "Ningún link coincide con la búsqueda." : "Aún no tienes links guardados. Agrégalos abajo.") + "</p>";
+    // links de cada negocio: reseñas, tarjeta digital y los usados en sus ventas
+    var rows = [];
+    biz.clientes.slice().sort(function (a, b) { return cliKey(a.nombre).localeCompare(cliKey(b.nombre)); }).forEach(function (cl) {
+      var us = [];
+      if (cl.link) us.push(linkNorm(cl.link));
+      var card = cl.card && cl.card.on ? dcURL(cl.card) : ""; if (card) us.push(card);
+      biz.ventas.forEach(function (v) { if (v.clienteId === cl.id) (v.links || []).forEach(function (u) { us.push(u); }); });
+      us = linkList(us);
+      us.forEach(function (u) {
+        if (q && cliKey(cl.nombre + " " + u).indexOf(q) < 0) return;
+        rows.push('<div class="lrow"><b>' + bizEsc(cl.nombre) + '</b><span class="note">' + bizEsc(u === card ? "Tarjeta digital" : linkKind(u)) + '</span><a href="' + bizEsc(u) + '" target="_blank" rel="noopener">' + bizEsc(u) + "</a>" +
+          '<button class="btn" data-lu="' + bizEsc(u) + '">Copiar</button></div>');
+      });
+    });
+    $("l-auto").innerHTML = rows.join("") || '<p class="note">Cuando registres ventas con links (o el link de reseñas y la tarjeta digital de un negocio), aparecen aquí.</p>';
+  }
+  function lFormReset() {
+    lEdit = null; ["l-tit", "l-url", "l-cat", "l-para", "l-msg"].forEach(function (id) { $(id).value = ""; });
+    $("l-formt").textContent = "Agregar un link"; $("l-save").textContent = "Guardar link"; $("l-cancel").classList.add("hidden");
+  }
+  $("l-to").addEventListener("change", renderLinks);
+  $("l-q").addEventListener("input", renderLinks);
+  $("l-cats").addEventListener("click", function (ev) { var b = ev.target.closest("[data-lc]"); if (!b) return; lCat = b.dataset.lc; renderLinks(); });
+  $("l-list").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-la]"); if (!b) return;
+    var l = lFind(b.dataset.id); if (!l) return;
+    var a = b.dataset.la;
+    if (a === "msg") copyTxt(lMsg(l), b, "Copiar mensaje");
+    else if (a === "copy") copyTxt(l.url, b, "Copiar link");
+    else if (a === "wa") { var c = lClient(), w = (c && waLink(c.tel)) || "https://wa.me/"; window.open(w + "?text=" + encodeURIComponent(lMsg(l)), "_blank", "noopener"); }
+    else if (a === "qr") { $("s-link").value = l.url; $("s-link").dispatchEvent(new Event("input")); b.textContent = "En Soportes ✓"; setTimeout(function () { b.textContent = "Al QR"; }, 1500); }
+    else if (a === "edit") {
+      lEdit = l.id; $("l-tit").value = l.titulo || ""; $("l-url").value = l.url; $("l-cat").value = l.cat || ""; $("l-para").value = l.para || ""; $("l-msg").value = l.msg || "";
+      $("l-formt").textContent = "Editar link"; $("l-save").textContent = "Guardar cambios"; $("l-cancel").classList.remove("hidden");
+      $("l-form").scrollIntoView({ behavior: "smooth", block: "start" }); $("l-tit").focus();
+    }
+    else if (a === "del") {
+      if (!confirm("¿Quitar \"" + (l.titulo || l.url) + "\" de tus links?")) return;
+      biz.links = biz.links.filter(function (x) { return x.id !== l.id; }); if (lEdit === l.id) lFormReset(); saveBiz(); renderLinks();
+    }
+  });
+  $("l-auto").addEventListener("click", function (ev) { var b = ev.target.closest("[data-lu]"); if (b) copyTxt(b.dataset.lu, b, "Copiar"); });
+  $("l-cancel").addEventListener("click", lFormReset);
+  $("l-save").addEventListener("click", function () {
+    var u = linkNorm($("l-url").value);
+    if (!u) { alert("Pega el link."); $("l-url").focus(); return; }
+    var rec = { titulo: $("l-tit").value.replace(/\s+/g, " ").trim() || linkKind(u), url: u, cat: $("l-cat").value.replace(/\s+/g, " ").trim() || "Otros",
+      para: $("l-para").value.replace(/\s+/g, " ").trim(), msg: $("l-msg").value.trim() };
+    var l = lEdit && lFind(lEdit);
+    if (l) Object.assign(l, rec); else { rec.id = "lk" + bizId(); biz.links.unshift(rec); }
+    saveBiz(); lFormReset(); renderLinks();
   });
 
   // ---- Historial de negocios (clientes): se arma solo con las ventas ----

@@ -38,7 +38,7 @@ Enlaces:
 ## Código (`index.html`, ~6000 líneas)
 - JS ES5 dentro de una IIFE (`var`, `function`, sin flechas). CSS con tokens y modo oscuro.
 - Librerías por cdnjs: jsPDF 2.5.1 (`window.jspdf.jsPDF`) y qrcode-generator 1.4.4.
-- Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes), `#view-print` (Hoja A4) y `#view-biz` (Negocio). `showView(v)` las cambia.
+- Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes), `#view-print` (Hoja A4), `#view-biz` (Negocio) y `#view-links` (Links). `showView(v)` las cambia.
 - **Calidad de impresión** (`.q-dpi`: `#q-dpi1` en Hoja A4 y `#q-dpi2` en Soportes → Imprimir, localStorage `nfc-dpi`): `PRINT_DPI` 300 o 600 y `EXPORT_PPMM = PRINT_DPI / 25.4`. Afecta A4, PDF y PNG a tamaño real; la térmica usa sus 203 DPI y no cambia.
 - **Acabado del sticker** (solo en pantalla; no cambia A4, PDF, PNG ni térmica), junto a `texTri`:
   - `stickerOutline(w,h,r,circle)` da el contorno en mm; `supOutline()` el del soporte; `stickerPath`, `stickerEdge` (canto y sombra, antes del diseño) y `stickerGloss` (brillo del laminado y bisel, después).
@@ -220,6 +220,13 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
   - **Compras precargadas** (`BIZ_SEED`, `BIZ_SEED_MATS`, `bizSeed(o)` en `loadBiz`): se agregan una sola vez con id fijo y quedan en `biz.seeds`, así que si se borran no vuelven. Si un material no está en el catálogo, se agrega. Primer lote: restock de Temu del 23 nov 2026 (tarjetas llave 24, stand blanco 10, stand negro 5, chips 18, soportes pequeños 60; S/ 172.02, con el precio de Temu tomado como precio por pack × cantidad).
   - Catálogo: "Agregar material" (`#b-madd`, `prompt()`) y × solo en los materiales propios (los de `BIZ_BASE_MATS` usan las recetas y no se quitan). Los materiales nuevos no entran en el costo de los productos.
 - CSV (`bizCSV`, con BOM, separador coma) de ventas (con nombres de archivos), inversiones, catálogo, planes y negocios; respaldo y restauración en JSON.
+
+### Links (`#view-links`, ids `l-*`)
+- Links guardados para copiar y enviar a los negocios: `biz.links` = [{ id, titulo, url, cat, para, msg }] (va en `nfc-negocio`, así entra en el respaldo JSON).
+- `LINK_SEED` (`LINK_HOME` + `cartas-demo/`, `estandar/`, `personalizada/` y `perfil/`) se agrega una vez desde `bizSeed` con su id en `biz.seeds`; si se borra, no vuelve.
+- `renderLinks`: selector `#l-to` (negocio del historial), buscador `#l-q`, chips de categoría `#l-cats` (`lCat`) y tarjetas `.lcard` con Copiar mensaje, Copiar link, WhatsApp (chat del negocio con `waLink(c.tel)` o `wa.me/` para elegir contacto), "Al QR" (pone el link en `#s-link`), ✎ y ×.
+- `lMsg(l)`: cambia `{negocio}` y `{link}` (si falta `{link}`, va al final) y limpia "Hola ," → "Hola,". `copyTxt(txt, btn, label)` copia con respaldo `prompt()`.
+- Formulario `#l-form` para agregar o editar (`lEdit`, `lFormReset`). Abajo, `#l-auto` arma solo los links de cada negocio: reseñas (`c.link`), tarjeta digital (`dcURL`) y los de sus ventas.
 
 ### Tarjetas digitales de clientes (Negocio → `#b-site`, ventana `#dc`)
 - Para vender tarjetas digitales como `perfil/`, alojadas en **Cloudflare Pages** (plan gratis). La guía paso a paso, los costos y el dominio propio están en `details.howto` dentro de `#b-site`.
