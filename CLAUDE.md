@@ -21,7 +21,7 @@ Enlaces:
 - **Tarjeta digital del usuario** (para grabar en el chip NFC o en un QR): https://leonardow33.github.io/TARJETAS-NFC/perfil/
   - `perfil/index.html` (página aparte, oscura con dorado, sin librerías) y `perfil/doriant-cardenas.vcf` (botón "Guardar contacto").
   - WhatsApp y llamada al +51 910236424, LinkedIn `linkedin.com/in/doriant-cardenas-fernandez-72b071240`, Instagram `@cf.leonardo`. El usuario no pidió poner su correo.
-- **Cartas virtuales de muestra** (para mandar por WhatsApp o grabar en un NFC de muestra; spec local `cartas-virtuales-demo.md`, sin subir):
+- **Cartas virtuales de muestra** (para mandar por WhatsApp o grabar en un NFC de muestra; spec en `cartas-virtuales-demo.md`):
   - `cartas-demo/` = portada oscura con dorado (como `perfil/`) que presenta las dos: estándar S/ 150 y personalizada S/ 250, con "Quiero mi carta" a su WhatsApp. https://leonardow33.github.io/TARJETAS-NFC/cartas-demo/
   - `cartas-demo/estandar/`: lista blanca y negra (nombre … precio), HTML fijo con `<!-- EDITAR -->`.
   - `cartas-demo/personalizada/`: plantilla reutilizable; todo sale del objeto `CARTA` (nombre, lema, WhatsApp, horario, dirección, mapa, categorías y platos con `tags` "top"/"hot" y `foto` emoji o archivo .jpg/.png/.webp). Portada azul marino con olas, abierto/cerrado según el horario, chips de categoría que siguen el scroll, buscador, filtros (más pedidos, picantes), tarjetas con aparición suave, horario y ubicación, WhatsApp flotante y volver arriba.
@@ -33,7 +33,8 @@ Enlaces:
 - Push por https a `origin main`. No hay `gh` CLI.
 - Commits en español, con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - El usuario espera push tras cada cambio terminado y probado.
-- No subir `guia-costos-nfc.md` (costos y márgenes del negocio): el repo es público.
+- No subir `guia-costos-nfc.md` (costos y márgenes del negocio): el repo es público. El usuario la guarda aparte (privado) y la copia a la carpeta del proyecto en cada equipo.
+- **Equipo nuevo:** clonar el repo y abrir la carpeta con Claude Code. Los datos del negocio (ventas, compras, clientes, adjuntos, links) y los diseños guardados viven en el navegador, no en el repo: se recuperan con Negocio → Restaurar del respaldo JSON (nunca subir ese respaldo al repo). Tras restaurar, las compras y links precargados no se duplican (`biz.seeds`).
 
 ## Código (`index.html`, ~7900 líneas)
 - JS ES5 dentro de una IIFE (`var`, `function`, sin flechas). CSS con tokens y modo oscuro.
