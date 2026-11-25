@@ -388,6 +388,10 @@
   .kpi b { display: block; font-size: 1.35rem; font-weight: 680; letter-spacing: -0.01em; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .kpi small { display: block; font-size: .74rem; color: var(--muted); margin-top: 2px; }
   .neg { color: var(--danger); }
+  .btable tr.qon td { background: color-mix(in srgb, var(--accent) 10%, transparent); font-weight: 650; }
+  .btable td.n input.qn { width: 72px; min-width: 0; text-align: right; }
+  #b-qneed { margin: 8px 0 0; padding-left: 18px; font-size: .84rem; color: var(--muted); }
+  #b-qneed b { color: var(--ink); }
   .pos { color: var(--ok); }
   .meter { height: 12px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 999px; transition: width .3s; }
@@ -1422,6 +1426,28 @@
       <div class="glabel">Recuperación del equipo (impresora, lectora NFC y otros)</div>
       <div class="meter"><i id="b-recbar"></i></div>
       <p class="note" id="b-rectxt" style="margin-top:8px"></p>
+    </div>
+    <div class="group" style="margin-top:14px" id="b-quote">
+      <div class="glabel">Cotizador por volumen (pedidos grandes)</div>
+      <div class="opts">
+        <div class="field"><label for="b-qprod">Producto</label>
+          <select id="b-qprod"><option value="stand">Stand NFC blanco con sticker</option><option value="standneg">Stand NFC negro con sticker</option><option value="tarjeta">Tarjeta NFC con soporte pequeño</option></select>
+        </div>
+        <div class="field"><label for="b-qqty">Cantidad del pedido</label><input type="number" id="b-qqty" min="1" step="1" value="10" inputmode="numeric"></div>
+        <div class="field"><label for="b-qbase">Precio normal por unidad (S/)</label><input type="number" id="b-qbase" min="0" step="0.5" inputmode="decimal"></div>
+        <div class="field"><label for="b-qmin">Margen mínimo que aceptas (%)</label><input type="number" id="b-qmin" min="0" max="90" step="1" inputmode="numeric"></div>
+      </div>
+      <div class="kpis" id="b-qkpis" style="margin-top:12px"></div>
+      <p class="note" id="b-qcost" style="margin-top:10px"></p>
+      <ul id="b-qneed"></ul>
+      <div class="glabel" style="margin-top:14px">Escala de precios (descuento según la cantidad)</div>
+      <div class="tscroll"><table class="btable" id="b-qtbl"></table></div>
+      <div class="s-tools" style="margin-top:10px">
+        <button class="btn" id="b-qadd">+ Escalón</button>
+        <button class="btn" id="b-qreset">Escala por defecto</button>
+        <button class="btn primary" id="b-qcopy">Copiar cotización para WhatsApp</button>
+      </div>
+      <p class="note" style="margin-top:8px">El costo sale del catálogo y de tus tiempos (Costos, precios y tiempos). El <b>precio mínimo</b> es lo más bajo que puedes dejarlo sin bajar de tu margen mínimo; por debajo del <b>costo</b> pierdes plata. Los escalones en rojo quedan bajo el mínimo.</p>
     </div>
     <div class="bizcols">
       <div class="bizcol">
@@ -6233,11 +6259,14 @@
   var MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
   function mesLabel(ym) { return MESES[+ym.slice(5, 7) - 1] + " " + ym.slice(0, 4); }
 
+  // Escala de descuentos por volumen (desde N unidades → % menos que el precio normal); coincide con los planes de 1 a 4 stands
+  var BIZ_QTIERS = [{ min: 1, desc: 0 }, { min: 2, desc: 10 }, { min: 3, desc: 18 }, { min: 4, desc: 24 }, { min: 10, desc: 30 }, { min: 20, desc: 35 }, { min: 50, desc: 40 }, { min: 100, desc: 45 }];
   // Valores de la guía de costos (todos editables desde la pestaña)
   function bizDefaults() {
     var hoy = todayISO();
     return {
-      cfg: { hora: 20, minStand: 6, minTarjeta: 4, stkStand: 4, stkTarjeta: 11, impresion: 0, impuesto: 0, tiempo: true, umbral: 5 },
+      cfg: { hora: 20, minStand: 6, minTarjeta: 4, stkStand: 4, stkTarjeta: 11, impresion: 0, impuesto: 0, tiempo: true, umbral: 5,
+        qmin: 35, qbase: {}, qtiers: BIZ_QTIERS.map(function (t) { return { min: t.min, desc: t.desc }; }) },
       mats: [
         { id: "stand", name: "Stand acrílico grande (mostrador)", pack: 5, price: 47.47 },
         { id: "soporte", name: "Soporte pequeño acrílico", pack: 60, price: 14.79 },
@@ -6594,13 +6623,7 @@
       }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Sin compras en este periodo.</td></tr></tbody>';
 
     // stock (todo el historial): comprado − usado en las ventas
-    var bought = {}, used = {};
-    biz.invs.forEach(function (r) { if (r.tipo === "stock" && r.mat) bought[r.mat] = (bought[r.mat] || 0) + num(r.piezas); });
-    var rs = bizRecipe("stand"), rt = bizRecipe("tarjeta");
-    biz.ventas.forEach(function (v) {
-      Object.keys(rs).forEach(function (k) { used[k] = (used[k] || 0) + rs[k] * num(v.stands); });
-      Object.keys(rt).forEach(function (k) { used[k] = (used[k] || 0) + rt[k] * num(v.tarjetas); });
-    });
+    var stk = bizStock(), bought = stk.bought, used = stk.used;
     var rows = biz.mats.filter(function (m) { return bought[m.id] || used[m.id]; });
     function f1(n) { return Math.round(n * 10) / 10; }
     $("b-stock").innerHTML = rows.length ? "<thead><tr><th>Material</th><th class=\"n\">Comprado</th><th class=\"n\">Usado</th><th class=\"n\">Queda</th></tr></thead><tbody>" +
@@ -6609,6 +6632,7 @@
         return "<tr><td>" + bizEsc(m.name) + '</td><td class="n">' + (b ? f1(b) : "—") + '</td><td class="n">' + f1(u) + '</td><td class="n ' + (low ? "neg" : "") + '">' +
           (b ? f1(q) + (low ? " ⚠ comprar" : "") : '<span class="note">sin compras registradas</span>') + "</td></tr>";
       }).join("") + "</tbody>" : '<tbody><tr><td class="bempty">Registra tus compras de material (tipo "Material") para ver el stock.</td></tr></tbody>';
+    renderQuote();
     renderClients();
     renderSite();
     bizEditorNums();
@@ -6630,6 +6654,123 @@
   $("b-invs").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-di]"); if (!b || !confirm("¿Borrar esta compra?")) return;
     biz.invs = biz.invs.filter(function (r) { return r.id !== b.dataset.di; }); saveBiz(); renderBiz();
+  });
+
+  // ---- Stock: comprado − usado en las ventas (todo el historial) ----
+  function bizStock() {
+    var bought = {}, used = {};
+    biz.invs.forEach(function (r) { if (r.tipo === "stock" && r.mat) bought[r.mat] = (bought[r.mat] || 0) + num(r.piezas); });
+    var rs = bizRecipe("stand"), rt = bizRecipe("tarjeta");
+    biz.ventas.forEach(function (v) {
+      Object.keys(rs).forEach(function (k) { used[k] = (used[k] || 0) + rs[k] * num(v.stands); });
+      Object.keys(rt).forEach(function (k) { used[k] = (used[k] || 0) + rt[k] * num(v.tarjetas); });
+    });
+    return { bought: bought, used: used };
+  }
+
+  // ---- Cotizador por volumen ----
+  var QPROD = {
+    stand: { name: "Stand NFC blanco", plural: "stands NFC blancos", kind: "stand", incl: "stand de acrílico, sticker personalizado laminado y chip NFC grabado con tu link (también lleva QR)" },
+    standneg: { name: "Stand NFC negro", plural: "stands NFC negros", kind: "stand", swap: "standneg", incl: "stand de acrílico negro, sticker personalizado laminado y chip NFC grabado con tu link (también lleva QR)" },
+    tarjeta: { name: "Tarjeta NFC con soporte", plural: "tarjetas NFC con soporte", kind: "tarjeta", incl: "tarjeta NFC con sticker personalizado y su soporte pequeño" }
+  };
+  function qRecipe(id) {
+    var P = QPROD[id], r = Object.assign({}, bizRecipe(P.kind));
+    if (P.swap && bizMat(P.swap)) { r[P.swap] = r.stand; delete r.stand; }
+    return r;
+  }
+  function qCost(id) {
+    var P = QPROD[id], r = qRecipe(id), mat = num(biz.cfg.impresion), time = bizTimeCost(P.kind);
+    Object.keys(r).forEach(function (k) { mat += r[k] * bizUnit(bizMat(k)); });
+    return { mat: mat, time: time, total: mat + (biz.cfg.tiempo ? time : 0) };
+  }
+  function qBaseDefault(id) {
+    var k = QPROD[id].kind, p = biz.plans.filter(function (x) { return k === "stand" ? num(x.stands) === 1 && !num(x.tarjetas) : !num(x.stands) && num(x.tarjetas) === 1; })[0];
+    return p ? num(p.price) : k === "stand" ? 49 : 18;
+  }
+  function qBase(id) { var b = biz.cfg.qbase || {}; return b[id] > 0 ? num(b[id]) : qBaseDefault(id); }
+  function qTiers() {
+    if (!Array.isArray(biz.cfg.qtiers) || !biz.cfg.qtiers.length) biz.cfg.qtiers = BIZ_QTIERS.map(function (t) { return { min: t.min, desc: t.desc }; });
+    return biz.cfg.qtiers.slice().sort(function (a, b) { return num(a.min) - num(b.min); });
+  }
+  function qTierFor(q) { var t = qTiers(), r = t[0]; t.forEach(function (x) { if (q >= num(x.min)) r = x; }); return r; }
+  function qPrice(id, desc) { return Math.round(qBase(id) * (1 - num(desc) / 100)); }   // a soles enteros: 2, 3 y 4 stands dan 88, 120 y 148 como los planes
+  function qFloor(c) { var m = Math.min(90, Math.max(0, num(biz.cfg.qmin))); return c.total / (1 - m / 100); }
+  function qState() {
+    var id = $("b-qprod").value, q = Math.max(1, parseInt($("b-qqty").value, 10) || 1), c = qCost(id), t = qTierFor(q), pu = qPrice(id, t ? t.desc : 0);
+    return { id: id, q: q, c: c, t: t, pu: pu, base: qBase(id), floor: qFloor(c), total: pu * q, gain: (pu - c.total) * q };
+  }
+  function renderQuote() {
+    if (!$("b-quote")) return;
+    var st = qState(), P = QPROD[st.id], mg = st.pu ? (st.pu - st.c.total) / st.pu : 0, low = st.pu < st.floor - 0.001;
+    if (document.activeElement !== $("b-qbase")) $("b-qbase").value = st.base;
+    if (document.activeElement !== $("b-qmin")) $("b-qmin").value = num(biz.cfg.qmin);
+    function tile(l, v, sub, cls) { return '<div class="kpi"><span>' + l + '</span><b class="' + (cls || "") + '">' + v + "</b><small>" + sub + "</small></div>"; }
+    $("b-qkpis").innerHTML =
+      tile("Precio sugerido c/u", money(st.pu), (st.t && num(st.t.desc) ? num(st.t.desc) + " % menos que " + money(st.base) : "precio normal"), low ? "neg" : "") +
+      tile("Total del pedido", money(st.total), st.q + " " + (st.q === 1 ? P.name.toLowerCase() : P.plural)) +
+      tile("Tu ganancia", money(st.gain), Math.round(mg * 100) + " % de margen" + (biz.cfg.tiempo ? " (con tu tiempo)" : ""), st.gain < 0 ? "neg" : "pos") +
+      tile("Lo más bajo que puedes dejarlo", money(Math.ceil(st.floor * 10) / 10) + " c/u", "con " + num(biz.cfg.qmin) + " % de margen mínimo");
+    $("b-qcost").innerHTML = "Te cuesta hacer cada uno <b>" + money(st.c.total) + "</b> (materiales " + money(st.c.mat) + (biz.cfg.tiempo ? " + tu tiempo " + money(st.c.time) : "; tu tiempo no se cuenta") + ")." +
+      (low ? ' <b class="neg">Ojo: con este descuento quedas bajo tu margen mínimo.</b>' : "");
+    // material que falta comprar para este pedido (según el stock registrado)
+    var stk = bizStock(), r = qRecipe(st.id), need = [], buy = 0;
+    Object.keys(r).forEach(function (k) {
+      var m = bizMat(k); if (!m) return;
+      var n = r[k] * st.q, left = Math.max(0, (stk.bought[k] || 0) - (stk.used[k] || 0)), miss = Math.ceil(n - left - 1e-9);
+      if (miss <= 0) return;
+      var packs = Math.ceil(miss / Math.max(1, num(m.pack))), cost = packs * num(m.price); buy += cost;
+      need.push("<li><b>" + bizEsc(m.name) + "</b>: faltan " + miss + (num(m.pack) > 1 ? " → " + packs + (packs === 1 ? " pack" : " packs") + " de " + num(m.pack) : "") + " (" + money(cost) + ")</li>");
+    });
+    $("b-qneed").innerHTML = need.length ? '<li style="list-style:none;margin-left:-18px">Para este pedido te falta comprar (según tu stock registrado), unos <b>' + money(buy) + "</b>:</li>" + need.join("")
+      : '<li style="list-style:none;margin-left:-18px">Con tu stock registrado te alcanza para este pedido.</li>';
+    // escala
+    var tiers = qTiers(), cur = st.t;
+    $("b-qtbl").innerHTML = "<thead><tr><th class=\"n\">Desde</th><th class=\"n\">Descuento %</th><th class=\"n\">Precio c/u</th><th class=\"n\">Costo c/u</th><th class=\"n\">Ganas c/u</th><th class=\"n\">Margen</th><th class=\"n\">Ejemplo</th><th></th></tr></thead><tbody>" +
+      tiers.map(function (t) {
+        var i = biz.cfg.qtiers.indexOf(t), pu = qPrice(st.id, t.desc), g = pu - st.c.total, bad = pu < st.floor - 0.001, n = Math.max(1, num(t.min));
+        return '<tr class="' + (t === cur ? "qon" : "") + '">' +
+          '<td class="n"><input class="qn" type="number" min="1" step="1" data-qi="' + i + '" data-k="min" value="' + num(t.min) + '" aria-label="Desde cuántas unidades"></td>' +
+          '<td class="n"><input class="qn" type="number" min="0" max="90" step="1" data-qi="' + i + '" data-k="desc" value="' + num(t.desc) + '" aria-label="Descuento en %"></td>' +
+          '<td class="n ' + (bad ? "neg" : "") + '">' + money(pu) + (bad ? " ⚠" : "") + '</td><td class="n">' + money(st.c.total) + '</td><td class="n ' + (g < 0 ? "neg" : "") + '">' + money(g) + "</td>" +
+          '<td class="n">' + (pu ? Math.round(g / pu * 100) : 0) + ' %</td><td class="n">' + n + " = " + money(pu * n) + "</td>" +
+          "<td>" + (tiers.length > 1 ? '<button class="x" data-qdel="' + i + '" title="Quitar escalón">×</button>' : "") + "</td></tr>";
+      }).join("") + "</tbody>";
+  }
+  ["b-qprod", "b-qqty"].forEach(function (id) { $(id).addEventListener("input", renderQuote); $(id).addEventListener("change", renderQuote); });
+  $("b-qbase").addEventListener("input", function () {
+    var v = num($("b-qbase").value); biz.cfg.qbase = biz.cfg.qbase || {};
+    if (v > 0) biz.cfg.qbase[$("b-qprod").value] = v; else delete biz.cfg.qbase[$("b-qprod").value];
+    saveBiz(); renderQuote();
+  });
+  $("b-qmin").addEventListener("input", function () { biz.cfg.qmin = Math.min(90, Math.max(0, num($("b-qmin").value))); saveBiz(); renderQuote(); });
+  $("b-qtbl").addEventListener("change", function (ev) {
+    var f = ev.target.closest("[data-qi]"); if (!f) return;
+    var t = biz.cfg.qtiers[+f.dataset.qi]; if (!t) return;
+    t[f.dataset.k] = f.dataset.k === "min" ? Math.max(1, parseInt(f.value, 10) || 1) : Math.min(90, Math.max(0, num(f.value)));
+    saveBiz(); renderQuote();
+  });
+  $("b-qtbl").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-qdel]"); if (!b) return;
+    biz.cfg.qtiers.splice(+b.dataset.qdel, 1); saveBiz(); renderQuote();
+  });
+  $("b-qadd").addEventListener("click", function () {
+    var t = qTiers(), last = t[t.length - 1];
+    biz.cfg.qtiers.push({ min: last ? num(last.min) * 2 : 1, desc: last ? Math.min(90, num(last.desc) + 5) : 0 }); saveBiz(); renderQuote();
+  });
+  $("b-qreset").addEventListener("click", function () {
+    if (!confirm("¿Volver a la escala de descuentos por defecto?")) return;
+    biz.cfg.qtiers = BIZ_QTIERS.map(function (t) { return { min: t.min, desc: t.desc }; }); saveBiz(); renderQuote();
+  });
+  $("b-qcopy").addEventListener("click", function () {
+    var st = qState(), P = QPROD[st.id];
+    var txt = "*Cotización NFC*\n" + st.q + " × " + P.name + "\n" +
+      "Precio por unidad: S/ " + st.pu.toFixed(2) + (st.t && num(st.t.desc) ? " (precio normal S/ " + st.base.toFixed(2) + ", " + num(st.t.desc) + " % de descuento por volumen)" : "") + "\n" +
+      "*Total: S/ " + st.total.toFixed(2) + "*\n" +
+      "Incluye: " + P.incl + ".";
+    function ok() { $("b-qcopy").textContent = "Copiado ✓"; setTimeout(function () { $("b-qcopy").textContent = "Copiar cotización para WhatsApp"; }, 1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, function () { prompt("Copia la cotización:", txt); });
+    else prompt("Copia la cotización:", txt);
   });
 
   // ---- Historial de negocios (clientes): se arma solo con las ventas ----

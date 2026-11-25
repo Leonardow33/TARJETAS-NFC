@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- EDITAR: nombre del restaurante -->
+<title>Cevichería Demo · Carta</title>
+<meta name="description" content="Carta de Cevichería Demo.">
+<meta name="theme-color" content="#ffffff">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #fff; color: #111;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.4; -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) 18px 30px; }
+  .demo { text-align: center; font-size: .72rem; color: #888; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 18px; }
+  header { text-align: center; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 8px; }
+  h1 { margin: 0; font-size: 1.7rem; letter-spacing: -.01em; }
+  header p { margin: 4px 0 0; color: #555; font-size: .95rem; letter-spacing: .2em; text-transform: uppercase; }
+  h2 { margin: 24px 0 6px; font-size: 1.02rem; text-transform: uppercase; letter-spacing: .06em; }
+  .row { padding: 8px 0; border-bottom: 1px solid #eee; }
+  .line { display: flex; align-items: baseline; gap: 8px; }
+  .line span { font-weight: 600; }
+  .line i { flex: 1; border-bottom: 1px dotted #bbb; transform: translateY(-4px); }
+  .line b { white-space: nowrap; }
+  .row small { display: block; color: #777; font-size: .84rem; margin-top: 1px; }
+  .wa {
+    display: block; text-align: center; margin: 28px 0 10px; padding: 14px; border-radius: 10px;
+    background: #111; color: #fff; text-decoration: none; font-weight: 700;
+  }
+  footer { text-align: center; color: #999; font-size: .76rem; }
+  footer a { color: #555; }
+</style>
+</head>
+<body>
+<main>
+  <div class="demo">Carta de muestra</div>
+  <header>
+    <h1>Cevichería Demo</h1>   <!-- EDITAR: nombre -->
+    <p>Carta</p>
+  </header>
+
+  <!-- EDITAR: categorías, platos y precios. Cada plato es un bloque .row -->
+  <h2>Entradas</h2>
+  <div class="row"><div class="line"><span>Causa limeña</span><i></i><b>S/ 18</b></div><small>Papa amarilla con ají, limón y relleno de pollo o atún.</small></div>
+  <div class="row"><div class="line"><span>Jalea mixta personal</span><i></i><b>S/ 25</b></div><small>Pescado y mariscos crocantes con sarsa criolla y yuca.</small></div>
+  <div class="row"><div class="line"><span>Choritos a la chalaca</span><i></i><b>S/ 20</b></div><small>Choritos con cebolla, tomate, choclo y limón.</small></div>
+
+  <h2>Ceviches</h2>
+  <div class="row"><div class="line"><span>Ceviche clásico de pescado</span><i></i><b>S/ 28</b></div><small>Pescado del día, limón, ají limo, camote y choclo.</small></div>
+  <div class="row"><div class="line"><span>Ceviche mixto</span><i></i><b>S/ 34</b></div><small>Pescado, pulpo, calamar y langostinos en leche de tigre.</small></div>
+  <div class="row"><div class="line"><span>Ceviche de conchas negras</span><i></i><b>S/ 38</b></div><small>Conchas negras frescas con su jugo, cebolla y ají.</small></div>
+  <div class="row"><div class="line"><span>Leche de tigre</span><i></i><b>S/ 15</b></div><small>El jugo del ceviche con trocitos de pescado y cancha.</small></div>
+
+  <h2>Platos de fondo</h2>
+  <div class="row"><div class="line"><span>Arroz con mariscos</span><i></i><b>S/ 32</b></div><small>Arroz norteño con mariscos, culantro y sarsa.</small></div>
+  <div class="row"><div class="line"><span>Chicharrón de pescado</span><i></i><b>S/ 30</b></div><small>Trozos crocantes con yuca frita y salsa tártara.</small></div>
+  <div class="row"><div class="line"><span>Sudado de pescado</span><i></i><b>S/ 29</b></div><small>Pescado al vapor en caldo de tomate, cebolla y chicha de jora.</small></div>
+  <div class="row"><div class="line"><span>Tacu tacu con mariscos</span><i></i><b>S/ 35</b></div><small>Tacu tacu dorado con salsa de mariscos. Pídelo picante.</small></div>
+
+  <h2>Bebidas</h2>
+  <div class="row"><div class="line"><span>Chicha morada (jarra)</span><i></i><b>S/ 12</b></div><small>Hecha en casa con maíz morado, piña y canela.</small></div>
+  <div class="row"><div class="line"><span>Limonada frozen</span><i></i><b>S/ 10</b></div><small>Limón, hielo y un toque de hierbabuena.</small></div>
+  <div class="row"><div class="line"><span>Gaseosa personal</span><i></i><b>S/ 5</b></div><small>Inca Kola o Coca-Cola, 500 ml.</small></div>
+  <div class="row"><div class="line"><span>Cerveza</span><i></i><b>S/ 10</b></div><small>Botella de 620 ml bien helada.</small></div>
+
+  <h2>Postres</h2>
+  <div class="row"><div class="line"><span>Suspiro a la limeña</span><i></i><b>S/ 12</b></div><small>Manjar blanco con merengue al oporto.</small></div>
+  <div class="row"><div class="line"><span>Mazamorra morada</span><i></i><b>S/ 10</b></div><small>Con frutas secas y canela.</small></div>
+
+  <!-- EDITAR: número de WhatsApp del restaurante (51 + número) y mensaje -->
+  <a class="wa" href="https://wa.me/51910236424?text=Hola%2C%20vi%20la%20carta%20y%20quiero%20hacer%20un%20pedido" target="_blank" rel="noopener">Pedidos por WhatsApp</a>
+
+  <footer>
+    Carta de muestra con datos ficticios.<br>
+    <!-- Pie del vendedor: se puede quitar en la carta de un cliente real -->
+    ¿Quieres una para tu negocio? <a href="https://wa.me/51910236424?text=Hola%20Doriant%2C%20vi%20la%20carta%20est%C3%A1ndar%20de%20muestra%20y%20quiero%20una%20para%20mi%20negocio" target="_blank" rel="noopener">Escríbeme</a> · <a href="../">Ver las dos cartas</a>
+  </footer>
+</main>
+</body>
+</html>

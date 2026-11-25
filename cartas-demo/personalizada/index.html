@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- EDITAR: nombre del restaurante en el título y la descripción -->
+<title>Cevichería Demo · Carta</title>
+<meta name="description" content="Carta digital de Cevichería Demo: ceviches, entradas, platos de fondo, bebidas y postres.">
+<meta name="theme-color" content="#0b2545">
+<meta property="og:title" content="Cevichería Demo · Carta digital">
+<meta property="og:description" content="Mira la carta y pide por WhatsApp.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b2545'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle'%3E%F0%9F%90%9F%3C/text%3E%3C/svg%3E">
+<style>
+  /* EDITAR: colores de la marca */
+  :root {
+    --navy: #0b2545; --navy-2: #13315c; --sea: #1d5c8c;
+    --accent: #f26b1d; --accent-2: #ff9a3c; --lime: #c6d930;
+    --cream: #fbf6ec; --card: #ffffff; --ink: #14213d; --muted: #6b7385; --line: #ece4d4;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 118px; }
+  body {
+    margin: 0; background: var(--cream); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; line-height: 1.45;
+  }
+  .serif { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif; }
+  a { color: inherit; }
+
+  /* ---- Portada ---- */
+  .hero {
+    position: relative; overflow: hidden; color: #fff; text-align: center;
+    padding: max(34px, env(safe-area-inset-top)) 20px 92px;
+    /* EDITAR: para usar una foto real, cambia el fondo por:
+       background: linear-gradient(rgba(11,37,69,.55), rgba(11,37,69,.85)), url("portada.jpg") center/cover; */
+    background:
+      radial-gradient(500px 260px at 85% 10%, rgba(255,154,60,.35), transparent 70%),
+      radial-gradient(420px 240px at 0% 100%, rgba(198,217,48,.22), transparent 70%),
+      linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 55%, var(--sea) 100%);
+  }
+  .hero .waves { position: absolute; left: 0; right: 0; bottom: -1px; width: 100%; height: 70px; display: block; }
+  .hero .bubbles { position: absolute; inset: 0; pointer-events: none; opacity: .5; }
+  .demo-pill {
+    display: inline-block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 5px 12px; margin-bottom: 18px;
+  }
+  .logo {
+    width: 96px; height: 96px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center;
+    background: radial-gradient(circle at 30% 25%, #fff, #f3ead8); color: var(--navy);
+    box-shadow: 0 0 0 4px rgba(255,255,255,.18), 0 14px 30px rgba(0,0,0,.35);
+    position: relative; z-index: 1;
+  }
+  .logo svg { width: 58px; height: 58px; }
+  .hero h1 { position: relative; z-index: 1; margin: 0; font-size: 2.1rem; line-height: 1.1; letter-spacing: -.01em; }
+  .hero h1 em { font-style: normal; color: var(--accent-2); }
+  .hero p.lema { position: relative; z-index: 1; margin: 8px auto 0; max-width: 300px; color: #dbe6f3; font-size: 1rem; }
+  .status {
+    position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px; margin-top: 16px;
+    background: rgba(0,0,0,.22); border-radius: 99px; padding: 6px 13px; font-size: .84rem; font-weight: 600;
+  }
+  .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 4px rgba(198,217,48,.25); }
+  .status.closed i { background: #ff7a7a; box-shadow: 0 0 0 4px rgba(255,122,122,.25); }
+  .hero-actions { position: relative; z-index: 1; display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+  .hbtn {
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 700; font-size: .95rem;
+    padding: 12px 18px; border-radius: 14px; border: 0; cursor: pointer;
+  }
+  .hbtn.main { background: linear-gradient(135deg, var(--accent-2), var(--accent)); color: #fff; box-shadow: 0 10px 22px rgba(242,107,29,.4); }
+  .hbtn.ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.28); }
+  .hbtn svg { width: 18px; height: 18px; }
+
+  /* ---- Barra de categorías ---- */
+  .bar {
+    position: sticky; top: 0; z-index: 20; background: rgba(251,246,236,.94);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line); padding: 10px 0 8px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  .search {
+    display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px;
+  }
+  .search svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+  .search input { flex: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; padding: 10px 0; color: var(--ink); min-width: 0; }
+  .chips { position: relative; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 9px 16px 2px; margin: 0 -16px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 99px;
+    padding: 7px 13px; font: inherit; font-size: .86rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .chip.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .chip.f.on { background: var(--accent); border-color: var(--accent); }
+  .chip.sep { border: 0; background: none; padding: 7px 2px; color: var(--line); cursor: default; }
+
+  /* ---- Secciones y platos ---- */
+  main { padding: 6px 0 40px; }
+  section.cat { padding-top: 18px; }
+  .cat h2 { display: flex; align-items: center; gap: 10px; margin: 6px 0 12px; font-size: 1.45rem; letter-spacing: -.01em; }
+  .cat h2 .ce { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 1.3rem; background: #fff; border: 1px solid var(--line); }
+  .cat h2 small { margin-left: auto; font: 600 .78rem/1 -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 620px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .dish {
+    display: flex; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 10px; box-shadow: 0 6px 18px rgba(20,33,61,.06); position: relative;
+  }
+  .photo {
+    /* EDITAR: para una foto real, usa <img src="plato.jpg" alt=""> dentro de .photo (ocupa el mismo cuadro) */
+    width: 104px; height: 104px; flex: none; border-radius: 14px; display: grid; place-items: center;
+    font-size: 2.9rem; position: relative; overflow: hidden;
+  }
+  .photo img { width: 100%; height: 100%; object-fit: cover; }
+  .photo::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.45), transparent 55%); }
+  .photo span { position: relative; z-index: 1; filter: drop-shadow(0 6px 8px rgba(0,0,0,.25)); }
+  .info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .info h3 { margin: 2px 0 3px; font-size: 1.04rem; line-height: 1.25; }
+  .info p { margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.4; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .tag { font-size: .72rem; font-weight: 700; border-radius: 99px; padding: 3px 8px; }
+  .tag.top { background: #fff1d6; color: #9a5b00; }
+  .tag.hot { background: #ffe1d6; color: #b33a00; }
+  .price { margin-top: auto; padding-top: 6px; display: flex; align-items: baseline; justify-content: space-between; }
+  .price b { font-size: 1.12rem; color: var(--navy); }
+  .price b small { font-size: .75rem; font-weight: 700; margin-right: 2px; }
+  .dish.star { border-color: #f6c56b; box-shadow: 0 8px 22px rgba(242,154,29,.18); }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; display: none; }
+
+  /* aparición suave */
+  .rv { opacity: 0; transform: translateY(14px); transition: opacity .5s ease, transform .5s ease; }
+  .rv.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+
+  /* ---- Información ---- */
+  .infobox { margin-top: 30px; background: var(--navy); color: #fff; border-radius: 22px; padding: 22px 18px; position: relative; overflow: hidden; }
+  .infobox h2 { margin: 0 0 12px; font-size: 1.3rem; }
+  .infobox .cols { display: grid; gap: 16px; }
+  @media (min-width: 620px) { .infobox .cols { grid-template-columns: 1fr 1fr; } }
+  .hours { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  .hours td { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .hours td:last-child { text-align: right; color: #dbe6f3; }
+  .hours tr.today td { color: var(--accent-2); font-weight: 700; }
+  .infobox p { margin: 0 0 12px; color: #dbe6f3; font-size: .92rem; }
+  .ibtns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ibtn { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; padding: 9px 12px; font-weight: 600; font-size: .88rem; }
+  .ibtn svg { width: 16px; height: 16px; }
+  footer { text-align: center; color: var(--muted); font-size: .78rem; padding: 26px 16px calc(96px + env(safe-area-inset-bottom)); }
+  footer a { color: var(--sea); font-weight: 600; }
+
+  /* ---- Botones flotantes ---- */
+  .wa {
+    position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 30;
+    display: flex; align-items: center; gap: 8px; text-decoration: none; color: #fff; font-weight: 700;
+    background: #25d366; border-radius: 99px; padding: 13px 18px 13px 14px; box-shadow: 0 12px 26px rgba(37,211,102,.45);
+  }
+  .wa svg { width: 24px; height: 24px; }
+  .top {
+    position: fixed; left: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 30; width: 46px; height: 46px; border-radius: 50%;
+    border: 0; background: var(--navy); color: #fff; display: grid; place-items: center; cursor: pointer;
+    box-shadow: 0 10px 22px rgba(11,37,69,.35); opacity: 0; transform: translateY(12px); pointer-events: none; transition: .25s;
+  }
+  .top.show { opacity: 1; transform: none; pointer-events: auto; }
+  .top svg { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <svg class="bubbles" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <g fill="none" stroke="#fff" stroke-opacity=".25"><circle cx="40" cy="60" r="10"/><circle cx="70" cy="30" r="5"/><circle cx="350" cy="80" r="14"/><circle cx="320" cy="40" r="6"/><circle cx="370" cy="200" r="8"/><circle cx="30" cy="190" r="6"/></g>
+  </svg>
+  <span class="demo-pill">Carta de muestra</span>
+  <!-- EDITAR: logo del restaurante (reemplaza el SVG por <img src="logo.png" alt="Logo" style="width:70px">) -->
+  <div class="logo" aria-hidden="true">
+    <svg viewBox="0 0 64 64" fill="none"><path d="M6 32c8-12 20-17 32-14 6 1.5 11 5 15 9l7-6v22l-7-6c-4 4-9 7.5-15 9-12 3-24-2-32-14z" fill="#0b2545"/><circle cx="40" cy="29" r="3" fill="#fff"/><path d="M24 24c3 5 3 11 0 16" stroke="#f26b1d" stroke-width="3" stroke-linecap="round"/></svg>
+  </div>
+  <h1 class="serif" id="h-name"></h1>
+  <p class="lema" id="h-lema"></p>
+  <div class="status" id="h-status"><i></i><span></span></div>
+  <div class="hero-actions">
+    <a class="hbtn main" href="#carta">Ver la carta</a>
+    <a class="hbtn ghost" id="h-wa" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 11.9 11.9 0 004.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 001.8-1.3 2.3 2.3 0 00.2-1.3c-.1-.1-.2-.2-.5-.3z"/></svg>
+      Reservar
+    </a>
+  </div>
+  <svg class="waves" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 64c120 28 240 40 360 24S600 24 720 32s240 48 360 52 240-20 360-36v72H0z" fill="#fbf6ec" opacity=".35"/>
+    <path d="M0 88c160 18 320 24 480 8s320-44 480-32 320 40 480 32v24H0z" fill="#fbf6ec"/>
+  </svg>
+</header>
+
+<div class="bar" id="carta">
+  <div class="wrap">
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Buscar un plato…" autocomplete="off" aria-label="Buscar un plato">
+    </label>
+    <nav class="chips" id="chips" aria-label="Categorías"></nav>
+  </div>
+</div>
+
+<main class="wrap">
+  <div id="menu"></div>
+  <p class="empty" id="empty">No encontramos ese plato. Prueba con otra palabra.</p>
+
+  <section class="infobox rv" id="info">
+    <div class="cols">
+      <div>
+        <h2 class="serif">Horario</h2>
+        <table class="hours" id="hours"></table>
+      </div>
+      <div>
+        <h2 class="serif">Ubicación</h2>
+        <p id="addr"></p>
+        <div class="ibtns">
+          <a class="ibtn" id="maps" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>Cómo llegar</a>
+          <a class="ibtn" id="call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.8 2z"/></svg>Llamar</a>
+          <a class="ibtn" id="ig" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/></svg>Instagram</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Carta digital de muestra con datos ficticios.<br>
+  <!-- Pie del vendedor: se puede quitar en la carta de un cliente real -->
+  ¿Quieres una así para tu negocio? <a href="https://wa.me/51910236424?text=Hola%20Doriant%2C%20vi%20la%20carta%20personalizada%20de%20muestra%20y%20quiero%20una%20para%20mi%20negocio" target="_blank" rel="noopener">Escríbeme</a> · <a href="../">Ver las dos cartas</a>
+</footer>
+
+<a class="wa" id="wa" target="_blank" rel="noopener" aria-label="Pedir por WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 11.9 11.9 0 004.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 001.8-1.3 2.3 2.3 0 00.2-1.3c-.1-.1-.2-.2-.5-.3z"/></svg>
+  Pedir
+</a>
+<button class="top" id="top" aria-label="Volver arriba"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+
+<!-- EDITAR: todos los datos de la carta están aquí abajo (nombre, WhatsApp, horario, platos y precios) -->
+<script>
+var CARTA = {
+  nombre: "Cevichería <em>Demo</em>",           // EDITAR: nombre (lo que va entre <em> sale en naranja)
+  lema: "Del mar a tu mesa, fresquito todos los días", // EDITAR
+  whatsapp: "51910236424",                       // EDITAR: número del restaurante con 51 adelante
+  mensaje: "Hola, vi la carta y quiero hacer un pedido", // EDITAR
+  telefono: "+51910236424",                      // EDITAR
+  instagram: "https://www.instagram.com/",       // EDITAR
+  direccion: "Av. del Mar 123, Miraflores, Lima (dirección de muestra)", // EDITAR
+  mapa: "https://www.google.com/maps/search/?api=1&query=Miraflores%2C%20Lima", // EDITAR: link de Google Maps del local
+  // EDITAR: horario (0 = domingo … 6 = sábado), en horas de 24
+  horario: [
+    { dia: "Lunes",     abre: "11:30", cierra: "17:00" },
+    { dia: "Martes",    abre: "11:30", cierra: "17:00" },
+    { dia: "Miércoles", abre: "11:30", cierra: "17:00" },
+    { dia: "Jueves",    abre: "11:30", cierra: "17:00" },
+    { dia: "Viernes",   abre: "11:30", cierra: "18:00" },
+    { dia: "Sábado",    abre: "11:00", cierra: "18:00" },
+    { dia: "Domingo",   abre: "11:00", cierra: "17:00" }
+  ],
+  // EDITAR: categorías y platos. tags: "top" = ⭐ El más pedido, "hot" = 🌶️ Picante.
+  // foto: emoji de muestra; para una foto real usa foto: "img/ceviche.jpg"
+  categorias: [
+    { id: "entradas", nombre: "Entradas", icono: "🥔", color: ["#ffe7a3", "#ffc86b"], platos: [
+      { n: "Causa limeña", d: "Papa amarilla con ají, limón y relleno de pollo o atún.", p: 18, foto: "🥔" },
+      { n: "Jalea mixta personal", d: "Pescado y mariscos crocantes con sarsa criolla y yuca.", p: 25, foto: "🍤" },
+      { n: "Choritos a la chalaca", d: "Choritos con cebolla, tomate, choclo y limón.", p: 20, foto: "🦪" }
+    ]},
+    { id: "ceviches", nombre: "Ceviches", icono: "🐟", color: ["#c9ecff", "#7cc8f2"], platos: [
+      { n: "Ceviche clásico de pescado", d: "Pescado del día, limón, ají limo, camote y choclo.", p: 28, foto: "🐟", tags: ["top"] },
+      { n: "Ceviche mixto", d: "Pescado, pulpo, calamar y langostinos en leche de tigre.", p: 34, foto: "🦐" },
+      { n: "Ceviche de conchas negras", d: "Conchas negras frescas con su jugo, cebolla y ají.", p: 38, foto: "🐚" },
+      { n: "Leche de tigre", d: "El jugo del ceviche con trocitos de pescado y cancha.", p: 15, foto: "🍋" }
+    ]},
+    { id: "fondo", nombre: "Platos de fondo", icono: "🍲", color: ["#ffd9c2", "#ffa776"], platos: [
+      { n: "Arroz con mariscos", d: "Arroz norteño con mariscos, culantro y sarsa.", p: 32, foto: "🥘" },
+      { n: "Chicharrón de pescado", d: "Trozos crocantes con yuca frita y salsa tártara.", p: 30, foto: "🍗" },
+      { n: "Sudado de pescado", d: "Pescado al vapor en caldo de tomate, cebolla y chicha de jora.", p: 29, foto: "🍲" },
+      { n: "Tacu tacu con mariscos", d: "Tacu tacu dorado con salsa de mariscos. Pídelo picante.", p: 35, foto: "🍛", tags: ["hot"] }
+    ]},
+    { id: "bebidas", nombre: "Bebidas", icono: "🥤", color: ["#e6dcff", "#b9a4f5"], platos: [
+      { n: "Chicha morada (jarra)", d: "Hecha en casa con maíz morado, piña y canela.", p: 12, foto: "🍇" },
+      { n: "Limonada frozen", d: "Limón, hielo y un toque de hierbabuena.", p: 10, foto: "🍋" },
+      { n: "Gaseosa personal", d: "Inca Kola o Coca-Cola, 500 ml.", p: 5, foto: "🥤" },
+      { n: "Cerveza", d: "Botella de 620 ml bien helada.", p: 10, foto: "🍺" }
+    ]},
+    { id: "postres", nombre: "Postres", icono: "🍮", color: ["#ffe0ea", "#f7a8c0"], platos: [
+      { n: "Suspiro a la limeña", d: "Manjar blanco con merengue al oporto.", p: 12, foto: "🍮" },
+      { n: "Mazamorra morada", d: "Con frutas secas y canela.", p: 10, foto: "🍧" }
+    ]}
+  ]
+};
+</script>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function norm(t) { t = String(t).toLowerCase(); return t.normalize ? t.normalize("NFD").replace(/[̀-ͯ]/g, "") : t; }
+  function money(n) { return "<small>S/ </small>" + (n % 1 ? n.toFixed(2) : n); }
+  var wa = "https://wa.me/" + CARTA.whatsapp + "?text=" + encodeURIComponent(CARTA.mensaje);
+
+  // portada e información
+  $("h-name").innerHTML = CARTA.nombre;
+  $("h-lema").textContent = CARTA.lema;
+  $("wa").href = wa;
+  $("h-wa").href = "https://wa.me/" + CARTA.whatsapp + "?text=" + encodeURIComponent("Hola, quiero reservar una mesa");
+  $("addr").textContent = CARTA.direccion;
+  $("maps").href = CARTA.mapa; $("call").href = "tel:" + CARTA.telefono; $("ig").href = CARTA.instagram;
+
+  // horario y estado (abierto / cerrado) según la hora del celular
+  var now = new Date(), dow = now.getDay(), idx = (dow + 6) % 7, h = CARTA.horario[idx];
+  function mins(s) { var p = s.split(":"); return +p[0] * 60 + +p[1]; }
+  var cur = now.getHours() * 60 + now.getMinutes(), open = h && cur >= mins(h.abre) && cur < mins(h.cierra);
+  $("h-status").classList.toggle("closed", !open);
+  $("h-status").querySelector("span").textContent = open ? "Abierto ahora · hasta las " + h.cierra : "Cerrado ahora · hoy de " + h.abre + " a " + h.cierra;
+  $("hours").innerHTML = CARTA.horario.map(function (x, i) {
+    return '<tr' + (i === idx ? ' class="today"' : "") + "><td>" + esc(x.dia) + "</td><td>" + esc(x.abre) + " – " + esc(x.cierra) + "</td></tr>";
+  }).join("");
+
+  // carta
+  $("menu").innerHTML = CARTA.categorias.map(function (c) {
+    return '<section class="cat" id="c-' + c.id + '"><h2 class="serif"><span class="ce">' + c.icono + "</span>" + esc(c.nombre) + "<small>" + c.platos.length + " platos</small></h2><div class=\"grid\">" +
+      c.platos.map(function (p) {
+        var tags = p.tags || [], img = /\.(jpe?g|png|webp)$/i.test(p.foto || "") ? '<img src="' + esc(p.foto) + '" alt="" loading="lazy">' : "<span>" + (p.foto || c.icono) + "</span>";
+        return '<article class="dish rv' + (tags.indexOf("top") >= 0 ? " star" : "") + '" data-k="' + esc(norm(p.n + " " + p.d)) + '" data-t="' + tags.join(" ") + '">' +
+          '<div class="photo" style="background:linear-gradient(135deg,' + c.color[0] + "," + c.color[1] + ')">' + img + "</div>" +
+          '<div class="info"><h3>' + esc(p.n) + "</h3><p>" + esc(p.d) + "</p>" +
+          (tags.length ? '<div class="tags">' + (tags.indexOf("top") >= 0 ? '<span class="tag top">⭐ El más pedido</span>' : "") + (tags.indexOf("hot") >= 0 ? '<span class="tag hot">🌶️ Picante</span>' : "") + "</div>" : "") +
+          '<div class="price"><b>' + money(p.p) + "</b></div></div></article>";
+      }).join("") + "</div></section>";
+  }).join("");
+
+  // chips: categorías + filtros
+  $("chips").innerHTML = CARTA.categorias.map(function (c, i) {
+    return '<button class="chip' + (i ? "" : " on") + '" data-c="' + c.id + '">' + c.icono + " " + esc(c.nombre) + "</button>";
+  }).join("") + '<span class="chip sep">|</span><button class="chip f" data-f="top">⭐ Más pedidos</button><button class="chip f" data-f="hot">🌶️ Picantes</button>';
+
+  var filtro = "";
+  function apply() {
+    var q = norm($("q").value.trim()), any = false;
+    [].forEach.call(document.querySelectorAll(".cat"), function (sec) {
+      var vis = 0;
+      [].forEach.call(sec.querySelectorAll(".dish"), function (d) {
+        var ok = (!q || d.dataset.k.indexOf(q) >= 0) && (!filtro || d.dataset.t.indexOf(filtro) >= 0);
+        d.style.display = ok ? "" : "none"; if (ok) { vis++; d.classList.add("in"); }
+      });
+      sec.style.display = vis ? "" : "none"; if (vis) any = true;
+    });
+    $("empty").style.display = any ? "none" : "block";
+  }
+  $("q").addEventListener("input", apply);
+  $("chips").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".chip"); if (!b || b.classList.contains("sep")) return;
+    if (b.dataset.f) {
+      filtro = filtro === b.dataset.f ? "" : b.dataset.f;
+      [].forEach.call(document.querySelectorAll(".chip.f"), function (x) { x.classList.toggle("on", x.dataset.f === filtro); });
+      apply(); $("carta").scrollIntoView(); return;
+    }
+    var sec = $("c-" + b.dataset.c); if (sec && sec.style.display !== "none") sec.scrollIntoView();
+  });
+
+  // categoría activa al hacer scroll + botón volver arriba
+  var chips = [].slice.call(document.querySelectorAll(".chip[data-c]")), lastAct = null;
+  function onScroll() {
+    var y = window.scrollY + 130, act = chips[0];
+    chips.forEach(function (c) { var s = $("c-" + c.dataset.c); if (s.style.display !== "none" && s.offsetTop <= y) act = c; });
+    chips.forEach(function (c) { c.classList.toggle("on", c === act); });
+    if (act && act !== lastAct) {   // centra el chip activo sin mover la página
+      lastAct = act; var box = $("chips");
+      box.scrollTo({ left: act.offsetLeft - (box.clientWidth - act.offsetWidth) / 2, behavior: "smooth" });
+    }
+    $("top").classList.toggle("show", window.scrollY > 600);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
+  $("top").addEventListener("click", function () { window.scrollTo(0, 0); });
+
+  // aparición suave
+  var items = document.querySelectorAll(".rv");
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }); }, { rootMargin: "0px 0px -8% 0px" });
+    [].forEach.call(items, function (el) { io.observe(el); });
+  } else [].forEach.call(items, function (el) { el.classList.add("in"); });
+})();
+</script>
+</body>
+</html>

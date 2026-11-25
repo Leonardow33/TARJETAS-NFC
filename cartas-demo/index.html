@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cartas virtuales NFC · Muestras</title>
+<meta name="description" content="Dos cartas virtuales de muestra: estándar y personalizada. Se abren con un toque NFC o un QR.">
+<meta name="theme-color" content="#0d1117">
+<meta property="og:title" content="Cartas virtuales NFC · Muestras">
+<meta property="og:description" content="Mira la carta estándar y la personalizada desde tu celular.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1117'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='26' fill='%23d9b45b' text-anchor='middle'%3EDC%3C/text%3E%3C/svg%3E">
+<style>
+  :root { --bg: #0b0e14; --card: #121722; --line: #232b3a; --ink: #f2f4f8; --muted: #9aa4b6; --gold: #d9b45b; --gold-2: #f1d58e; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; min-height: 100dvh; color: var(--ink);
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(217,180,91,.16), transparent 60%), var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;
+    display: flex; justify-content: center; padding: max(28px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  }
+  main { width: 100%; max-width: 440px; }
+  .kick { color: var(--gold-2); font-weight: 700; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; text-align: center; margin: 0; }
+  h1 { text-align: center; font-size: 1.6rem; line-height: 1.2; margin: 8px 0 8px; }
+  .sub { text-align: center; color: var(--muted); margin: 0 auto 22px; max-width: 340px; font-size: .94rem; line-height: 1.5; }
+  .opt {
+    display: block; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-radius: 22px; overflow: hidden;
+    background: var(--card); margin-bottom: 14px; box-shadow: 0 20px 40px rgba(0,0,0,.35); transition: transform .15s, border-color .15s;
+  }
+  .opt:hover, .opt:focus-visible { border-color: var(--gold); outline: none; }
+  .opt:active { transform: scale(.985); }
+  .prev { height: 150px; position: relative; overflow: hidden; }
+  .body { padding: 16px 18px 18px; }
+  .body h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .body h2 b { color: var(--gold-2); font-size: 1rem; white-space: nowrap; }
+  .body ul { margin: 10px 0 14px; padding-left: 18px; color: var(--muted); font-size: .9rem; line-height: 1.55; }
+  .go { display: flex; justify-content: center; align-items: center; gap: 8px; border-radius: 14px; padding: 12px; font-weight: 700; background: rgba(255,255,255,.06); border: 1px solid var(--line); }
+  .opt.pro .go { background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: #1a1406; border: 0; }
+  /* mini vista previa: estándar */
+  .p-std { background: #f4f4f4; display: flex; justify-content: center; padding-top: 16px; }
+  .p-std .paper { width: 64%; background: #fff; border-radius: 8px 8px 0 0; padding: 12px 12px 0; box-shadow: 0 6px 16px rgba(0,0,0,.15); color: #111; font-size: 8px; }
+  .p-std .paper b { display: block; text-align: center; font-size: 11px; border-bottom: 1.5px solid #111; padding-bottom: 5px; margin-bottom: 6px; }
+  .p-std .l { display: flex; gap: 4px; margin: 5px 0; } .p-std .l i { flex: 1; border-bottom: 1px dotted #bbb; transform: translateY(-3px); }
+  .p-std .h { font-weight: 700; margin-top: 8px; }
+  /* mini vista previa: personalizada */
+  .p-pro { background: linear-gradient(160deg, #0b2545, #13315c 55%, #1d5c8c); color: #fff; padding: 14px 16px; }
+  .p-pro .t { font-family: Georgia, serif; font-weight: 700; font-size: 17px; } .p-pro .t em { font-style: normal; color: #ff9a3c; }
+  .p-pro .chips { display: flex; gap: 5px; margin: 9px 0; } .p-pro .chips span { background: rgba(255,255,255,.14); border-radius: 99px; padding: 3px 8px; font-size: 9px; }
+  .p-pro .chips span:first-child { background: #fbf6ec; color: #0b2545; font-weight: 700; }
+  .p-pro .cardx { display: flex; gap: 8px; background: #fff; color: #14213d; border-radius: 10px; padding: 6px; font-size: 9px; align-items: center; }
+  .p-pro .cardx .ph { width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #c9ecff, #7cc8f2); display: grid; place-items: center; font-size: 20px; }
+  .p-pro .cardx b { display: block; font-size: 10px; } .p-pro .cardx .pr { margin-left: auto; font-weight: 800; color: #0b2545; font-size: 11px; }
+  .p-pro .wa { position: absolute; right: 12px; bottom: 10px; background: #25d366; border-radius: 99px; padding: 4px 10px; font-size: 9px; font-weight: 700; }
+  .how { border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; color: var(--muted); font-size: .88rem; line-height: 1.55; margin-top: 4px; }
+  .how b { color: var(--ink); }
+  .cta { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; text-decoration: none; color: #fff; background: #25d366; border-radius: 16px; padding: 14px; font-weight: 700; }
+  .cta svg { width: 22px; height: 22px; }
+  .foot { text-align: center; color: #5f6a7d; font-size: .75rem; margin-top: 16px; }
+  .foot a { color: #8a94a7; }
+</style>
+</head>
+<body>
+<main>
+  <p class="kick">Cartas virtuales NFC</p>
+  <h1>Mira las dos cartas de muestra</h1>
+  <p class="sub">Tus clientes acercan el celular al stand o escanean el QR y ven tu carta al instante. Yo la actualizo cuando cambies platos o precios, sin cambiar el link.</p>
+
+  <!-- EDITAR: precios de cada nivel -->
+  <a class="opt" href="estandar/">
+    <div class="prev p-std" aria-hidden="true">
+      <div class="paper"><b>Cevichería Demo</b>
+        <div class="h">ENTRADAS</div><div class="l">Causa limeña<i></i>S/ 18</div><div class="l">Jalea mixta<i></i>S/ 25</div>
+        <div class="h">CEVICHES</div><div class="l">Ceviche clásico<i></i>S/ 28</div><div class="l">Ceviche mixto<i></i>S/ 34</div>
+      </div>
+    </div>
+    <div class="body">
+      <h2>Carta estándar <b>S/ 150</b></h2>
+      <ul><li>Platos y precios ordenados por categoría</li><li>Diseño sobrio y fácil de leer</li><li>Botón de pedidos por WhatsApp</li></ul>
+      <span class="go">Ver carta estándar →</span>
+    </div>
+  </a>
+
+  <a class="opt pro" href="personalizada/">
+    <div class="prev p-pro" aria-hidden="true">
+      <div class="t">Cevichería <em>Demo</em></div>
+      <div class="chips"><span>🐟 Ceviches</span><span>🥔 Entradas</span><span>🍲 Fondos</span></div>
+      <div class="cardx"><span class="ph">🐟</span><span><b>Ceviche clásico</b>⭐ El más pedido</span><span class="pr">S/ 28</span></div>
+      <span class="wa">Pedir</span>
+    </div>
+    <div class="body">
+      <h2>Carta personalizada <b>S/ 250</b></h2>
+      <ul><li>Con tu logo, tus colores y fotos de tus platos</li><li>Categorías, buscador y filtros (más pedidos, picantes)</li><li>Abierto/cerrado según tu horario, ubicación y WhatsApp siempre a la mano</li></ul>
+      <span class="go">Ver carta personalizada →</span>
+    </div>
+  </a>
+
+  <div class="how"><b>¿Cómo funciona?</b> Tu carta tiene un link fijo que se graba en el chip NFC del stand y en un QR. Cuando cambias un precio o un plato, actualizo la carta y el stand sigue funcionando igual.</div>
+
+  <a class="cta" href="https://wa.me/51910236424?text=Hola%20Doriant%2C%20vi%20las%20cartas%20de%20muestra%20y%20quiero%20una%20para%20mi%20negocio" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 11.9 11.9 0 004.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 001.8-1.3 2.3 2.3 0 00.2-1.3c-.1-.1-.2-.2-.5-.3z"/></svg>
+    Quiero mi carta
+  </a>
+  <p class="foot">Muestras con datos ficticios · <a href="../perfil/">Doriant Cardenas</a></p>
+</main>
+</body>
+</html>

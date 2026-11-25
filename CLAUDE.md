@@ -21,6 +21,12 @@ Enlaces:
 - **Tarjeta digital del usuario** (para grabar en el chip NFC o en un QR): https://leonardow33.github.io/TARJETAS-NFC/perfil/
   - `perfil/index.html` (página aparte, oscura con dorado, sin librerías) y `perfil/doriant-cardenas.vcf` (botón "Guardar contacto").
   - WhatsApp y llamada al +51 910236424, LinkedIn `linkedin.com/in/doriant-cardenas-fernandez-72b071240`, Instagram `@cf.leonardo`. El usuario no pidió poner su correo.
+- **Cartas virtuales de muestra** (para mandar por WhatsApp o grabar en un NFC de muestra; spec local `cartas-virtuales-demo.md`, sin subir):
+  - `cartas-demo/` = portada oscura con dorado (como `perfil/`) que presenta las dos: estándar S/ 150 y personalizada S/ 250, con "Quiero mi carta" a su WhatsApp. https://leonardow33.github.io/TARJETAS-NFC/cartas-demo/
+  - `cartas-demo/estandar/`: lista blanca y negra (nombre … precio), HTML fijo con `<!-- EDITAR -->`.
+  - `cartas-demo/personalizada/`: plantilla reutilizable; todo sale del objeto `CARTA` (nombre, lema, WhatsApp, horario, dirección, mapa, categorías y platos con `tags` "top"/"hot" y `foto` emoji o archivo .jpg/.png/.webp). Portada azul marino con olas, abierto/cerrado según el horario, chips de categoría que siguen el scroll, buscador, filtros (más pedidos, picantes), tarjetas con aparición suave, horario y ubicación, WhatsApp flotante y volver arriba.
+  - Mismos 17 platos y precios ficticios (Cevichería Demo) en las dos. Sin librerías ni archivos externos; rutas relativas. El pie dice "carta de muestra" y lleva a su WhatsApp (quitarlo en la carta de un cliente real).
+  - Para un cliente real: copiar `personalizada/` a otra carpeta (p. ej. `cartas/<cliente>/`) y editar `CARTA`.
 
 ## Git
 - Usa solo el repo de esta carpeta. NUNCA el repo externo de `C:/Users/elirg` (es todo el home).
@@ -186,6 +192,12 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
   - Catálogo con los precios del restock del 23 nov 2026 (`matsV: 2`; `loadBiz` los aplica una vez y luego respeta lo que edite el usuario): stand 5 × S/ 47.47 → 9.49, chip NFC 6 × S/ 7.49 → 1.25 y soporte pequeño 60 × S/ 14.79 → 0.25.
     - Con esto, un stand cuesta ≈ S/ 12.43 en materiales y una tarjeta ≈ S/ 1.71. El plan con menos margen es "4 stands + 2 tarjetas" (≈ 57 %, contando el tiempo).
   - Materiales del restock que no entran en las recetas: "Tarjeta NFC RFID tipo llave" (`tarjllave`, S/ 0.67) y "Stand acrílico negro mate" (`standneg`, S/ 4.76). Solo suman al stock; la receta del stand usa el precio del blanco (`stand`).
+- **Cotizador por volumen** (`#b-quote`, arriba de Registrar venta; `renderQuote` se llama en `renderBiz`):
+  - Producto `#b-qprod` (`QPROD`: stand blanco, stand negro con `swap: "standneg"`, tarjeta con soporte), cantidad `#b-qqty`, precio normal `#b-qbase` (`cfg.qbase[producto]`; si no hay, el plan de 1 stand o de 1 tarjeta) y margen mínimo `#b-qmin` (`cfg.qmin`, 35 %).
+  - `qCost` = receta (`qRecipe`) × catálogo + tiempo si `cfg.tiempo`. `qFloor` = costo ÷ (1 − margen mínimo) es "lo más bajo que puedes dejarlo".
+  - Escala `cfg.qtiers` [{min, desc}] (por defecto `BIZ_QTIERS`: 1 → 0 %, 2 → 10, 3 → 18, 4 → 24, 10 → 30, 20 → 35, 50 → 40, 100 → 45), editable en la tabla `#b-qtbl` (+ Escalón, ×, "Escala por defecto"). `qPrice` redondea a soles enteros, así 2, 3 y 4 stands dan 88, 120 y 148 como los planes. Los escalones bajo el mínimo salen en rojo con ⚠.
+  - Lista `#b-qneed`: lo que falta comprar para el pedido según `bizStock()` (comprado − usado, compartido con la tabla de stock), en packs y soles.
+  - "Copiar cotización para WhatsApp" (`#b-qcopy`): texto con cantidad, precio c/u, descuento, total e "Incluye".
 - `bizRecipe("stand"|"tarjeta")`: materiales por producto (la hoja A4 en fracción). `bizProdCost`, `bizTimeCost`, `bizCalc(v)` → mat, time, cost, util, utilMat, margin. Usa siempre el catálogo actual: si cambia un precio, cambian todos los márgenes.
 - Venta: fecha, cliente, clienteId, plan (nombre), cant, total, stands, tarjetas (totales), notas, `adj` (metadatos de archivos) y `links` (lista de URL). El plan llena stands, tarjetas y precio (editables). "Otro (manual)".
 - **Historial de negocios** (`#b-hist`, `renderClients`): `biz.clientes` = { id, nombre, tel, contacto, dir, link, notas, creado }.
