@@ -222,6 +222,11 @@
   input[type="text"]:focus, input[type="search"]:focus, input[type="tel"]:focus, input[type="url"]:focus, input[type="email"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 
   .swatches { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .texsw { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin-top: 8px; }
+  .tex { border: 1px solid var(--line-strong); border-radius: 10px; padding: 0; background: var(--panel); cursor: pointer; overflow: hidden; text-align: center; font: inherit; color: var(--ink); }
+  .tex i { display: block; height: 40px; background-size: cover; background-position: center; }
+  .tex span { display: block; font-size: .7rem; padding: 4px 2px; font-weight: 600; line-height: 1.2; }
+  .tex[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .swatch { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line-strong); cursor: pointer; padding: 0; }
   .swatch[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
   .colorbtn { position: relative; width: 28px; height: 28px; border-radius: 7px; overflow: hidden; border: 1px solid var(--line-strong); cursor: pointer; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); }
@@ -639,8 +644,9 @@
           <div class="seg" id="tplmat">
             <button data-m="white" aria-pressed="true">Blanco</button>
             <button data-m="black" aria-pressed="false">Negro</button>
-            <button data-m="wood" aria-pressed="false" id="tplmatwood">Madera</button>
+            <button data-m="tex" aria-pressed="false" id="tplmattex">Con textura</button>
           </div>
+          <div class="texsw hidden" id="tpltex"></div>
         </div>
         <div class="field">
           <label>Logo o imagen (opcional)</label>
@@ -884,8 +890,9 @@
           <button data-m="free" aria-pressed="true">Libre</button>
           <button data-m="white" aria-pressed="false">Blanco</button>
           <button data-m="black" aria-pressed="false">Negro</button>
-          <button data-m="wood" aria-pressed="false">Madera</button>
+          <button data-m="tex" aria-pressed="false">Textura</button>
         </div>
+        <div class="texsw hidden" id="s-tex"></div>
         <p class="note" style="margin:8px 0 14px">Con un material, los modelos usan el color del plástico de fondo y ajustan textos e íconos para que resalten. "Libre" deja los colores propios de cada modelo.</p>
         <div class="glabel">Modelos prediseñados</div>
         <div class="s-tplgrid" id="s-tplgrid"></div>
@@ -986,6 +993,9 @@
             <input type="color" id="s-bgcustom" value="#ffffff">
           </span>
         </div>
+        <div class="glabel" style="margin-top:14px">Fondo con textura</div>
+        <div class="texsw" id="s-bgtex"></div>
+        <p class="note" style="margin-top:6px">La textura sale igual en la vista previa, el A4, el PDF y el PNG. Textos e íconos cambian a un color que resalte encima.</p>
       </div>
 
       <!-- Elemento seleccionado -->
@@ -2946,43 +2956,172 @@
     return (logo.cache[key] = cv);
   }
 
-  // ---- Madera: color base, tinta y veta dibujada (en mm, igual a cualquier resolución) ----
-  var WOOD_BG = "#c4915c", WOOD_INK = "#3a2412";
-  function drawWood(c, x, y, w, h, S) {
-    var seed = 7;
-    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-    c.save();
-    c.beginPath(); c.rect(x * S, y * S, w * S, h * S); c.clip();
-    // la veta corre a lo largo del lado más largo
-    var len = Math.max(w, h), wid = Math.min(w, h);
-    c.translate(x * S, y * S);
-    if (h > w) { c.translate(w * S, 0); c.rotate(Math.PI / 2); }
-    var g = c.createLinearGradient(0, 0, 0, wid * S);
-    g.addColorStop(0, "#c99a66"); g.addColorStop(0.45, "#bc8752"); g.addColorStop(1, "#c79560");
-    c.fillStyle = g; c.fillRect(0, 0, len * S, wid * S);
-    var n = Math.round(wid / 0.9);
+  // ---- Texturas de fondo (madera, mármol, kraft, lino, cemento, pizarra) ----
+  // Todo se dibuja en mm con semilla fija: sale igual en pantalla, A4, PDF y PNG a cualquier resolución.
+  // bg = color promedio (para contrastes y temas), ink = tinta que resalta encima, dark = textura oscura.
+  var TEX = {
+    honey: { name: "Madera miel", bg: "#c97d36", ink: "#fbf0dc", kind: "wood", g: ["#d38b45", "#c4772f", "#cf8640"], v: "118,55,12", hl: "255,214,160",
+      sp: 0.3, amp: [0.03, 0.18], fr: [0.02, 0.04], wob: 0.08, al: [0.04, 0.13], lw: [0.04, 0.16], dir: "short", bands: 0.05, seed: 11 },
+    wood: { name: "Madera natural", bg: "#c4915c", ink: "#3a2412", kind: "wood", g: ["#c99a66", "#bc8752", "#c79560"], v: "105,62,28",
+      sp: 0.9, amp: [0.2, 0.9], fr: [0.03, 0.05], wob: 0.35, al: [0.07, 0.2], lw: [0.12, 0.45], seed: 7 },
+    oak: { name: "Roble claro", bg: "#dbbd92", ink: "#3b2a17", kind: "wood", g: ["#e3c79f", "#d6b487", "#dfc095"], v: "150,105,60", hl: "250,235,210",
+      sp: 0.55, amp: [0.2, 0.6], fr: [0.03, 0.05], wob: 0.3, al: [0.06, 0.16], lw: [0.08, 0.3], bands: 0.04, seed: 13 },
+    walnut: { name: "Nogal oscuro", bg: "#5c3c27", ink: "#f3e3c7", dark: true, kind: "wood", g: ["#654330", "#553621", "#61402b"], v: "28,14,6", hl: "190,140,95",
+      sp: 0.6, amp: [0.2, 0.7], fr: [0.03, 0.05], wob: 0.3, al: [0.1, 0.25], lw: [0.1, 0.35], bands: 0.06, seed: 17 },
+    marble: { name: "Mármol blanco", bg: "#eeece7", ink: "#262626", kind: "marble", base: "#f2f0eb", cl: "190,188,182", v: "110,108,102", seed: 19 },
+    marbleBlack: { name: "Mármol negro", bg: "#1f1f21", ink: "#f2eee6", dark: true, kind: "marble", base: "#1b1b1d", cl: "80,80,86", v: "225,225,220", gold: "212,175,95", seed: 23 },
+    linen: { name: "Lino", bg: "#e7dfcd", ink: "#3a3226", kind: "linen", base: "#e9e1cf", d: "125,108,80", seed: 31 },
+    kraft: { name: "Kraft", bg: "#c6a378", ink: "#2b1d10", kind: "paper", base: "#c8a57a", d: "92,64,34", l: "238,218,188", seed: 29 },
+    concrete: { name: "Cemento", bg: "#a8a7a3", ink: "#1c1c1c", kind: "concrete", base: "#a9a8a4", seed: 37 },
+    slate: { name: "Pizarra", bg: "#2b2f2e", ink: "#f3f0e6", dark: true, kind: "slate", base: "#2a2e2d", seed: 41 }
+  };
+  var TEX_ORDER = ["honey", "wood", "oak", "walnut", "marble", "marbleBlack", "linen", "kraft", "concrete", "slate"];
+  var WOOD_BG = TEX.wood.bg, WOOD_INK = TEX.wood.ink;
+  function texRand(seed) { return function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
+  function texCloud(g, R, S, w, h, n, rgb, a0, a1, r0, r1) {
     for (var i = 0; i < n; i++) {
-      var y0 = (i + rnd() * 0.8) * wid / n, amp = 0.2 + rnd() * 0.9, fr = 0.03 + rnd() * 0.05, ph = rnd() * 6.28;
-      c.strokeStyle = "rgba(105,62,28," + (0.07 + rnd() * 0.2).toFixed(3) + ")";
-      c.lineWidth = (0.12 + rnd() * 0.45) * S;
-      c.beginPath();
-      for (var xx = -2; xx <= len + 2; xx += 2) {
-        var yy = y0 + amp * Math.sin(xx * fr + ph) + 0.35 * Math.sin(xx * fr * 3.1 + ph * 2);
-        c[xx === -2 ? "moveTo" : "lineTo"](xx * S, yy * S);
-      }
-      c.stroke();
+      var cx = R() * w, cy = R() * h, r = r0 + R() * (r1 - r0), col = typeof rgb === "function" ? rgb() : rgb, a = (a0 + R() * (a1 - a0)).toFixed(3);
+      var gr = g.createRadialGradient(cx * S, cy * S, 0, cx * S, cy * S, r * S);
+      gr.addColorStop(0, "rgba(" + col + "," + a + ")"); gr.addColorStop(1, "rgba(" + col + ",0)");
+      g.fillStyle = gr; g.fillRect((cx - r) * S, (cy - r) * S, 2 * r * S, 2 * r * S);
     }
+  }
+  // Puntitos agrupados por color y opacidad (rápido aunque sean miles)
+  function texDots(g, R, S, w, h, n, cols, r0, r1) {
+    var paths = cols.map(function () { return []; });
+    for (var i = 0; i < n; i++) { var k = Math.floor(R() * cols.length), r = r0 + R() * (r1 - r0); paths[k].push(R() * w, R() * h, r); }
+    cols.forEach(function (col, k) {
+      var P = paths[k]; g.fillStyle = col; g.beginPath();
+      for (var j = 0; j < P.length; j += 3) { var rr = Math.max(0.35, P[j + 2] * S); g.rect(P[j] * S - rr, P[j + 1] * S - rr, 2 * rr, 2 * rr); }
+      g.fill();
+    });
+  }
+  function texPaint(g, T, w, h, S) {
+    var R = texRand(T.seed);
+    g.fillStyle = T.base || T.bg; g.fillRect(0, 0, w * S, h * S);
+    g.lineCap = "round"; g.lineJoin = "round";
+    if (T.kind === "wood") {
+      // la veta corre a lo largo del lado más largo (o del más corto, si dir = "short")
+      var rot = T.dir === "short" ? h <= w : h > w, len = rot ? h : w, wid = rot ? w : h;
+      g.save();
+      if (rot) { g.translate(w * S, 0); g.rotate(Math.PI / 2); }
+      var gr = g.createLinearGradient(0, 0, 0, wid * S);
+      gr.addColorStop(0, T.g[0]); gr.addColorStop(0.45, T.g[1]); gr.addColorStop(1, T.g[2]);
+      g.fillStyle = gr; g.fillRect(0, 0, len * S, wid * S);
+      if (T.bands) for (var bI = 0, nb = Math.max(2, Math.round(wid / 5)); bI < nb; bI++) {
+        g.fillStyle = "rgba(" + T.v + "," + (R() * T.bands).toFixed(3) + ")"; g.fillRect(0, R() * wid * S, len * S, (0.8 + R() * 4) * S);
+      }
+      var n = Math.round(wid / T.sp);
+      for (var i = 0; i < n; i++) {
+        var y0 = (i + R() * 0.8) * wid / n, amp = T.amp[0] + R() * T.amp[1], fr = T.fr[0] + R() * T.fr[1], ph = R() * 6.28;
+        var light = T.hl && R() < 0.25;
+        g.strokeStyle = "rgba(" + (light ? T.hl : T.v) + "," + (T.al[0] + R() * T.al[1]).toFixed(3) + ")";
+        g.lineWidth = (T.lw[0] + R() * T.lw[1]) * S;
+        g.beginPath();
+        for (var xx = -2; xx <= len + 2; xx += 2) {
+          var yy = y0 + amp * Math.sin(xx * fr + ph) + T.wob * Math.sin(xx * fr * 3.1 + ph * 2);
+          g[xx === -2 ? "moveTo" : "lineTo"](xx * S, yy * S);
+        }
+        g.stroke();
+      }
+      g.restore();
+    } else if (T.kind === "marble") {
+      texCloud(g, R, S, w, h, Math.min(30, 6 + Math.round(w * h / 300)), T.cl, 0.05, 0.13, 6, 30);
+      var nv = 2 + Math.round((w + h) / 45);
+      for (var v = 0; v < nv; v++) {
+        var pts = [], x = R() < 0.5 ? -2 : R() * w, y = x < 0 ? R() * h : -2, base = 0.25 + R() * 1.1, ang = base, steps = Math.round((w + h) * 0.8 / 1.5);
+        for (var st = 0; st < steps; st++) { pts.push(x, y); ang += (R() - 0.5) * 0.55 + (base - ang) * 0.08; x += Math.cos(ang) * 1.5; y += Math.sin(ang) * 1.5; }
+        var col = T.gold && v % 3 === 1 ? T.gold : T.v;
+        [[1.6, 0.05], [0.55, 0.1], [0.12 + R() * 0.25, 0.3 + R() * 0.3]].forEach(function (pass) {
+          g.strokeStyle = "rgba(" + col + "," + pass[1].toFixed(3) + ")"; g.lineWidth = pass[0] * S; g.beginPath();
+          for (var j = 0; j < pts.length; j += 2) g[j ? "lineTo" : "moveTo"](pts[j] * S, pts[j + 1] * S);
+          g.stroke();
+        });
+        for (var bj = 0; bj < pts.length; bj += 2) if (R() < 0.035) {   // ramitas finas
+          var bx = pts[bj], by = pts[bj + 1], ba = base + (R() < 0.5 ? 1 : -1) * (0.5 + R() * 0.6), bl = 8 + R() * 14;
+          g.strokeStyle = "rgba(" + col + ",0.22)"; g.lineWidth = 0.1 * S; g.beginPath(); g.moveTo(bx * S, by * S);
+          for (var q = 0; q < bl; q += 1.5) { ba += (R() - 0.5) * 0.5; bx += Math.cos(ba) * 1.5; by += Math.sin(ba) * 1.5; g.lineTo(bx * S, by * S); }
+          g.stroke();
+        }
+      }
+    } else if (T.kind === "paper") {
+      texCloud(g, R, S, w, h, Math.min(60, Math.round(w * h / 150) + 4), function () { return R() < 0.5 ? T.d : T.l; }, 0.03, 0.07, 4, 15);
+      var cols = ["rgba(" + T.d + ",.10)", "rgba(" + T.d + ",.2)", "rgba(" + T.l + ",.14)", "rgba(" + T.l + ",.24)"], fb = cols.map(function () { return []; });
+      for (var f = 0, nf = Math.round(w * h * 0.5); f < nf; f++) { var k = Math.floor(R() * 4), fx = R() * w, fy = R() * h, fl = 0.4 + R() * 1.6, fa = R() * Math.PI; fb[k].push(fx, fy, fx + Math.cos(fa) * fl, fy + Math.sin(fa) * fl); }
+      g.lineWidth = Math.max(0.6, 0.07 * S);
+      cols.forEach(function (c0, k) { g.strokeStyle = c0; g.beginPath(); var P = fb[k]; for (var j = 0; j < P.length; j += 4) { g.moveTo(P[j] * S, P[j + 1] * S); g.lineTo(P[j + 2] * S, P[j + 3] * S); } g.stroke(); });
+      texDots(g, R, S, w, h, Math.round(w * h * 0.06), ["rgba(" + T.d + ",.35)", "rgba(" + T.d + ",.2)"], 0.04, 0.12);
+    } else if (T.kind === "linen") {
+      for (var ly = 0; ly < h; ly += 0.2) { g.fillStyle = "rgba(" + T.d + "," + (0.03 + R() * 0.08).toFixed(3) + ")"; g.fillRect(0, ly * S, w * S, Math.max(0.5, (0.05 + R() * 0.06) * S)); }
+      for (var lx = 0; lx < w; lx += 0.2) { g.fillStyle = "rgba(" + T.d + "," + (0.03 + R() * 0.07).toFixed(3) + ")"; g.fillRect(lx * S, 0, Math.max(0.5, (0.05 + R() * 0.06) * S), h * S); }
+      for (var sl = 0, ns = Math.round(w * h * 0.05); sl < ns; sl++) {
+        var hz = R() < 0.5, sx = R() * w, sy = R() * h, sL = 0.6 + R() * 1.9;
+        g.fillStyle = R() < 0.6 ? "rgba(" + T.d + "," + (0.1 + R() * 0.08).toFixed(3) + ")" : "rgba(255,250,240,.25)";
+        if (hz) g.fillRect(sx * S, sy * S, sL * S, Math.max(0.6, 0.1 * S)); else g.fillRect(sx * S, sy * S, Math.max(0.6, 0.1 * S), sL * S);
+      }
+    } else if (T.kind === "concrete") {
+      texCloud(g, R, S, w, h, Math.min(160, Math.round(w * h / 40) + 6), function () { return R() < 0.55 ? "60,60,58" : "235,235,230"; }, 0.04, 0.1, 2, 12);
+      texDots(g, R, S, w, h, Math.round(w * h * 0.8), ["rgba(40,40,38,.12)", "rgba(40,40,38,.22)", "rgba(245,245,240,.15)", "rgba(245,245,240,.26)"], 0.03, 0.1);
+      texDots(g, R, S, w, h, Math.round(w * h * 0.015), ["rgba(30,30,28,.35)"], 0.08, 0.22);
+    } else if (T.kind === "slate") {
+      texCloud(g, R, S, w, h, Math.min(40, Math.round(w * h / 120) + 4), "255,255,250", 0.02, 0.05, 6, 25);
+      for (var sc = 0, nsc = Math.round(w * h / 80); sc < nsc; sc++) {
+        var ax = R() * w, ay = R() * h, aa = (R() - 0.5) * 0.6, aL = 3 + R() * 11;
+        g.strokeStyle = "rgba(255,255,250," + (0.02 + R() * 0.035).toFixed(3) + ")"; g.lineWidth = (0.05 + R() * 0.1) * S;
+        g.beginPath(); g.moveTo(ax * S, ay * S); g.lineTo((ax + Math.cos(aa) * aL) * S, (ay + Math.sin(aa) * aL) * S); g.stroke();
+      }
+      texDots(g, R, S, w, h, Math.round(w * h * 0.25), ["rgba(255,255,250,.07)"], 0.02, 0.06);
+    }
+  }
+  var texCache = [];
+  function texCanvas(id, w, h, S) {
+    var key = id + "|" + w.toFixed(2) + "|" + h.toFixed(2) + "|" + S.toFixed(3);
+    for (var i = 0; i < texCache.length; i++) if (texCache[i].key === key) return texCache[i].cv;
+    var cv = document.createElement("canvas"); cv.width = Math.max(1, Math.ceil(w * S)); cv.height = Math.max(1, Math.ceil(h * S));
+    texPaint(cv.getContext("2d"), TEX[id], w, h, S);
+    texCache.push({ key: key, cv: cv }); if (texCache.length > 8) texCache.shift();
+    return cv;
+  }
+  // Dibuja la textura id en el rectángulo (x, y, w, h) en mm, a S px/mm
+  function drawTexture(c, id, x, y, w, h, S) {
+    if (!TEX[id] || !(w > 0) || !(h > 0)) return;
+    var cv = texCanvas(id, w, h, S);
+    c.save(); c.beginPath(); c.rect(x * S, y * S, w * S, h * S); c.clip();
+    c.drawImage(cv, x * S, y * S, cv.width, cv.height);
     c.restore();
   }
+  function drawWood(c, x, y, w, h, S) { drawTexture(c, "wood", x, y, w, h, S); }
+  // Botones de textura con su muestra (los usan Plantillas y Soportes)
+  var texThumbs = {};
+  function texThumb(id) {
+    if (texThumbs[id]) return texThumbs[id];
+    var cv = document.createElement("canvas"); cv.width = 120; cv.height = 72;
+    texPaint(cv.getContext("2d"), TEX[id], 30, 18, 4);
+    return (texThumbs[id] = cv.toDataURL("image/png"));
+  }
+  function texPicker(el, cur) {
+    if (!el.dataset.built) {
+      el.innerHTML = TEX_ORDER.map(function (id) {
+        return '<button class="tex" data-t="' + id + '" title="' + TEX[id].name + '" aria-pressed="false"><i style="background-image:url(' + texThumb(id) + ')"></i><span>' + TEX[id].name + "</span></button>";
+      }).join("");
+      el.dataset.built = "1";
+    }
+    Array.prototype.forEach.call(el.querySelectorAll(".tex"), function (b) { b.setAttribute("aria-pressed", String(b.dataset.t === cur)); });
+  }
+  // Plantillas: texturas en tarjeta y chips (no en etiquetas térmicas ni al imprimir en térmica)
+  function tplTexOK(t) { var z = TPL_SIZES[t.size] || {}; return !t.thermal && (t.size === "card" || !!z.chip); }
+  // Vista previa en B/N (como la térmica) para etiquetas y chips, salvo un chip con textura (ese va a color, en A4)
+  function tplMonoPV(t) { return t.size !== "card" && !(TEX[t.material] && tplTexOK(t)); }
 
   // Dibuja la plantilla t a S px/mm; bleed (mm) extiende al sangrado los bloques que tocan el borde
   function drawTemplate(c, S, bleed, t) {
     var sz = tplDims(t), W = sz.w, H = sz.h, b = bleed || 0;
     // Material: blanco, negro o madera (la madera no aplica a la térmica ni a las etiquetas)
     var mat = t.material || (t.invert ? "black" : "white");
-    if (mat === "wood" && (t.thermal || t.size !== "card")) mat = "white";
-    var INK = mat === "black" ? "#ffffff" : mat === "wood" ? WOOD_INK : "#000000";
-    var PAPER = mat === "black" ? "#000000" : mat === "wood" ? WOOD_BG : "#ffffff";
+    if (TEX[mat] && !tplTexOK(t)) mat = "white";
+    var TX = TEX[mat] || null;
+    var INK = mat === "black" ? "#ffffff" : TX ? TX.ink : "#000000";
+    var PAPER = mat === "black" ? "#000000" : TX ? TX.bg : "#ffffff";
     var family = FONTS[t.font] || FONTS.sans;
     // Etiquetas: el contenido crece hasta llenar el espacio. Térmica: trazos más gruesos para que no salgan grises.
     var FILL = t.size !== "card", BOLDEN = !!t.thermal;
@@ -3138,7 +3277,7 @@
     else if (t.size === "card" && t.rounded && !b) { roundRect(c, 0, 0, W * S, H * S, CORNER_MM * S); c.clip(); }
     c.fillStyle = PAPER;
     c.fillRect(-b * S, -b * S, (W + 2 * b) * S, (H + 2 * b) * S);
-    if (mat === "wood") drawWood(c, -b, -b, W + 2 * b, H + 2 * b, S);
+    if (TX) drawTexture(c, mat, -b, -b, W + 2 * b, H + 2 * b, S);
     c.textBaseline = "middle";
     if (circ) {   // redonda: el contenido va en el cuadrado inscrito
       var side = Math.min(W, H) * 0.72;
@@ -3340,7 +3479,7 @@
         oc.imageSmoothingEnabled = false;
         oc.drawImage(raw, 0, 0, out.width, out.height);
       } else {
-        out = renderTemplate(cur, sharpPPMM, 0, !card);
+        out = renderTemplate(cur, sharpPPMM, 0, tplMonoPV(cur));   // chip con textura: a color (va en A4)
       }
       var mock = !dots && $("t-mock").checked;
       if (mock) out = tplMock(out, cur);
@@ -3390,7 +3529,7 @@
         btn.setAttribute("aria-pressed", btn.dataset.t === selected ? "true" : "false");
         var cv = btn.querySelector("canvas");
         if (!cv) return;
-        var tt = Object.assign({}, tpl, { template: btn.dataset.t }), th = renderTemplate(tt, tp, 0, !card);
+        var tt = Object.assign({}, tpl, { template: btn.dataset.t }), th = renderTemplate(tt, tp, 0, tplMonoPV(tt));
         if ($("t-mock").checked) th = tplMock(th, tt);
         cv.classList.toggle("mock", $("t-mock").checked);
         cv.width = th.width; cv.height = th.height;
@@ -3460,8 +3599,11 @@
     $("t-chipinset").value = String(tpl.chipInset == null ? 1 : tpl.chipInset);
     $("t-qr").checked = tpl.qr;
     if (!tpl.material) tpl.material = tpl.invert ? "black" : "white";
-    $("tplmatwood").classList.toggle("hidden", tpl.size !== "card");
-    setSeg("tplmat", document.querySelector('#tplmat button[data-m="' + (tpl.material === "wood" && tpl.size !== "card" ? "white" : tpl.material) + '"]'));
+    var texOK = tplTexOK({ size: tpl.size }), isTex = !!TEX[tpl.material] && texOK;
+    $("tplmattex").classList.toggle("hidden", !texOK);
+    setSeg("tplmat", document.querySelector('#tplmat button[data-m="' + (isTex ? "tex" : TEX[tpl.material] ? "white" : tpl.material) + '"]'));
+    $("tpltex").classList.toggle("hidden", !isTex);
+    if (isTex) texPicker($("tpltex"), tpl.material);
     $("t-rounded").checked = tpl.rounded;
     $("t-logoinv").checked = tpl.logoInv;
     $("t-logolabel").textContent = tpl.logo ? "Cambiar logo" : "Subir logo";
@@ -3559,7 +3701,12 @@
   });
   $("tplmat").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
-    tpl.material = b.dataset.m; tpl.invert = tpl.material === "black";
+    tpl.material = b.dataset.m === "tex" ? (TEX[tpl.material] ? tpl.material : "honey") : b.dataset.m; tpl.invert = tpl.material === "black";
+    saveTpl(); syncTplUI();
+  });
+  $("tpltex").addEventListener("click", function (e) {
+    var b = e.target.closest(".tex"); if (!b) return;
+    tpl.material = b.dataset.t; tpl.invert = false;
     saveTpl(); syncTplUI();
   });
   $("tplgrid").addEventListener("click", function (e) {
@@ -3880,7 +4027,7 @@
     c.clip();
     c.fillStyle = sup.bg;
     c.fillRect(-B, -B, W + 2 * B, H + 2 * B);
-    if (sup.texture === "wood") drawWood(c, -(bleed || 0), -(bleed || 0), sup.w + 2 * (bleed || 0), sup.h + 2 * (bleed || 0), S);
+    if (sup.texture && TEX[sup.texture]) drawTexture(c, sup.texture, -(bleed || 0), -(bleed || 0), sup.w + 2 * (bleed || 0), sup.h + 2 * (bleed || 0), S);
     sup.els.forEach(function (e) { supDrawEl(c, e, S); });
     c.restore();
   }
@@ -4479,7 +4626,7 @@
     v.getContext("2d").drawImage(b, 0, 0);
     IE.view = recolor(v, IE.ed);
     // Logo de un tono sin fondo que no resalta sobre el soporte: se verá teñido (como en logoFor)
-    var ed = IE.ed, bgc = ieBgv === "sup" ? (sup.texture === "wood" ? WOOD_BG : sup.bg) : ieBgv === "black" ? "#000000" : ieBgv === "white" ? "#ffffff" : null;
+    var ed = IE.ed, bgc = ieBgv === "sup" ? (TEX[sup.texture] ? TEX[sup.texture].bg : sup.bg) : ieBgv === "black" ? "#000000" : ieBgv === "white" ? "#ffffff" : null;
     IE.tinted = !!(bgc && IE.ink && ed.mode === "orig" && ed.cut && !IE.info.pal.length && Math.abs(lum(IE.ink) - lum(bgc)) < 0.3);
     if (IE.tinted) logoTint(IE.view, ieBgv === "sup" ? inkFor(sup) : lum(bgc) < 0.5 ? "#ffffff" : "#111318");
   }
@@ -4519,7 +4666,7 @@
         c.fillRect(P + xx, P + yy, Math.min(q, v.width - xx), Math.min(q, v.height - yy));
       }
     } else {
-      c.fillStyle = ieBgv === "sup" ? (sup.texture === "wood" ? WOOD_BG : sup.bg) : ieBgv === "black" ? "#000000" : "#ffffff";
+      c.fillStyle = ieBgv === "sup" ? (TEX[sup.texture] ? TEX[sup.texture].bg : sup.bg) : ieBgv === "black" ? "#000000" : "#ffffff";
       c.fillRect(P, P, v.width, v.height);
     }
     c.drawImage(v, P, P);
@@ -4670,7 +4817,7 @@
 
   // El logo listo para un fondo: si es negro/gris y no se distingue, se tiñe de blanco o negro
   // Color de tinta que resalta sobre un fondo (en madera, café oscuro)
-  function inkFor(d) { return d.texture === "wood" ? WOOD_INK : lum(d.bg) < 0.5 ? "#ffffff" : "#111318"; }
+  function inkFor(d) { return TEX[d.texture] ? TEX[d.texture].ink : lum(d.bg) < 0.5 ? "#ffffff" : "#111318"; }
 
   function logoFor(d, needSrc) {
     var lg = supLogo, bg = d.bg;
@@ -4836,8 +4983,9 @@
     $("s-circle").checked = sup.shape === "circle";
     $("s-rounded").disabled = sup.shape === "circle";
     Array.prototype.forEach.call(document.querySelectorAll("#s-bgsw .swatch"), function (b) {
-      b.setAttribute("aria-pressed", String(b.dataset.c === sup.bg));
+      b.setAttribute("aria-pressed", String(!sup.texture && b.dataset.c === sup.bg));
     });
+    if (typeof supTexUI === "function" && $("s-bgtex")) supTexUI();
   }
   function supApplyLA(L, A, portrait) {
     var big = Math.max(L, A), small = Math.min(L, A);
@@ -5053,7 +5201,7 @@
     });
     var chip = sup.shape === "circle" || Math.max(sup.w, sup.h) < 50;   // los chips guardan su medida y forma
     if (chip) ref = [W, H];
-    return { id: id, name: name, bg: sup.texture === "wood" ? WOOD_BG : sup.bg, ref: ref, els: els,
+    return { id: id, name: name, bg: TEX[sup.texture] ? TEX[sup.texture].bg : sup.bg, ref: ref, els: els,
       fit: chip ? { w: W, h: H, shape: sup.shape || null, preset: sup.preset } : undefined };
   }
 
@@ -5084,7 +5232,8 @@
   }
 
   // Material del plástico: fija el fondo y pasa textos/íconos neutros a la tinta que resalta
-  var MATS = { white: { bg: "#ffffff" }, black: { bg: "#111318" }, wood: { bg: WOOD_BG, texture: "wood" } };
+  var MATS = { white: { bg: "#ffffff" }, black: { bg: "#111318" } };
+  TEX_ORDER.forEach(function (id) { MATS[id] = { bg: TEX[id].bg, texture: id }; });
   function applyMaterial(d, mat) {
     d.material = mat || "free";
     if (!MATS[mat]) { d.texture = null; return; }
@@ -5105,7 +5254,18 @@
   }
   $("s-mat").addEventListener("click", function (ev) {
     var b = ev.target.closest("button"); if (!b) return;
-    var m = b.dataset.m;
+    supSetMaterial(b.dataset.m === "tex" ? (TEX[sup.material] ? sup.material : "honey") : b.dataset.m);
+  });
+  ["s-tex", "s-bgtex"].forEach(function (id) {
+    $(id).addEventListener("click", function (ev) { var b = ev.target.closest(".tex"); if (b) supSetMaterial(b.dataset.t); });
+  });
+  function supTexUI() {
+    var isTex = !!TEX[sup.material];
+    $("s-tex").classList.toggle("hidden", !isTex);
+    texPicker($("s-tex"), isTex ? sup.material : null);
+    texPicker($("s-bgtex"), sup.texture || null);
+  }
+  function supSetMaterial(m) {
     if (m === "free") {
       sup.material = "free"; sup.texture = null;
       // vuelve a los colores del modelo elegido, si hay uno
@@ -5115,11 +5275,12 @@
     } else applyMaterial(sup, m);
     if (supLogo && $("s-logotheme").checked) supApplyTheme(supLogo.pal);
     else if (m === "free") supApplyTheme(null);
-    refreshLogo(); syncSupPal(); syncSupEl(); renderSup(); buildSupTplGrid(); saveSup();
-  });
+    refreshLogo(); syncSupPal(); syncSupEl(); syncSupSize(); renderSup(); buildSupTplGrid(); saveSup();
+  }
 
   function buildSupTplGrid() {
-    setSeg("s-mat", document.querySelector('#s-mat button[data-m="' + (sup.material || "free") + '"]'));
+    setSeg("s-mat", document.querySelector('#s-mat button[data-m="' + (TEX[sup.material] ? "tex" : sup.material || "free") + '"]'));
+    supTexUI();
     var grid = $("s-tplgrid"), W = 76, H = 127.5, S = 1.7;
     grid.innerHTML = "";
     supModels().forEach(function (t) {
@@ -5596,7 +5757,8 @@
     var yaw = (o.yaw != null ? o.yaw : parseFloat($("s-3dyaw").value) || 0) * Math.PI / 180, pitch = 20 * Math.PI / 180;
     var acr = $("s-3dacr").value;   // color del soporte elegido para la maqueta y el video
     var mat = o.mat || (acr === "white" || acr === "black" ? acr : sup.material || "free");
-    var edge = mat === "black" ? "#1d1f25" : mat === "wood" ? "#a87443" : "#eef0f2";
+    var darkMat = mat === "black" || !!(TEX[mat] && TEX[mat].dark);
+    var edge = darkMat ? "#1d1f25" : mat === "wood" ? "#a87443" : "#eef0f2";
     var ct = Math.cos(tilt), st = Math.sin(tilt);
     function P(x, y, z) { return [x, y, z]; }
     function add(a, b, k) { return [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]; }
@@ -5651,7 +5813,7 @@
       { p: [TL, TR, bTR, bTL], c: shade(edge, 0.15) }
     ];
     faces.sort(function (a, b) { return depth(a.p) - depth(b.p); });
-    var dark = mat === "black";   // acrílico negro: reflejo fino en las aristas para que no se pierda en la mesa oscura
+    var dark = darkMat;   // acrílico negro: reflejo fino en las aristas para que no se pierda en la mesa oscura
     faces.forEach(function (f) {
       poly(f.p, f.c);
       if (dark) { c.strokeStyle = "rgba(255,255,255,.13)"; c.lineWidth = Math.max(1, 0.8 * U); c.lineJoin = "round"; c.stroke(); }
@@ -5814,7 +5976,7 @@
   function card3DOK() { var d = TPL_SIZES[tpl.size]; return !!d && (tpl.size === "card" || !!d.chip); }
   function card3DTex(ppmm) {
     var card = tpl.size === "card";
-    function one(side) { var st = sideTpl(tpl, side); return st ? renderTemplate(st, ppmm, 0, !card) : null; }
+    function one(side) { var st = sideTpl(tpl, side); return st ? renderTemplate(st, ppmm, 0, tplMonoPV(st)) : null; }
     return { front: one("front"), back: one("back") };
   }
   // o: { cv, yaw (grados), pose ("stand" | "flat"), side ("front" | "back"), table, tex { front, back }, zoom, caption }

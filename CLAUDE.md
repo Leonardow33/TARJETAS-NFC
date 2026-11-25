@@ -46,7 +46,10 @@ Enlaces:
     - En tarjeta y chip el sticker se muestra al menos 0.9 mm más chico por lado que el PVC (`vi`, solo en pantalla) y lleva una línea fina en el filo, para que se note el corte del sticker blanco sobre el PVC blanco.
   - Soportes: vista previa y miniaturas de modelos con canto y brillo. Casilla `#s-fx` ("Relieve y laminado").
 - Utilidades de color, junto al código de Soportes: `hex2rgb`, `rgb2hex`, `lum`, `sat`, `mix`, `contrastOn`, `vivid` e `inkFor`. Para medir imagen o canvas: `iw` e `ih`.
-- Madera compartida: `WOOD_BG`, `WOOD_INK` y `drawWood(c, x, y, w, h, S)`, con veta en mm y semilla fija para que salga igual a cualquier resolución.
+- **Texturas de fondo** (compartidas por Plantillas y Soportes), antes de `drawTemplate`:
+  - `TEX` = { honey (madera miel, la de referencia del usuario, veta a lo largo del lado corto), wood (madera natural, la original), oak, walnut, marble, marbleBlack, linen, kraft, concrete, slate } con `bg` (color promedio para contrastes y temas), `ink` (tinta que resalta), `dark` y los parámetros de su `kind` (wood, marble, paper, linen, concrete, slate). Orden de los botones: `TEX_ORDER`.
+  - `texPaint(g, T, w, h, S)` dibuja en mm con semilla fija (`texRand`), así sale igual a cualquier resolución; helpers `texCloud` y `texDots`. `texCanvas` la guarda en caché (8 entradas, por id + medida + S) y `drawTexture(c, id, x, y, w, h, S)` la pega. `drawWood` = `drawTexture("wood")`; `WOOD_BG`/`WOOD_INK` siguen como alias.
+  - `texPicker(el, cur)` arma los botones `.tex` con su muestra (`texThumb`) y marca el elegido.
 - Maquetas 3D (soporte y tarjeta) comparten `drawTable3D`, `drawCaption3D`, `shadeCol` y `sticker3D(c, outl, sw, sh, F3, scr, tS, tex, k, bp, cut)` (sombra, canto blanco, malla `texTri`, brillo y bisel). Los videos usan `startVideo(p, nombre, makeFrame)` + `recordVideo` con los controles `p-3dv*` (p = "s" o "t").
 
 ### Foto
@@ -92,9 +95,10 @@ Enlaces:
 - **Logo** (`tpl.logo` { img, cache }, no se guarda al recargar; `tpl.logoMode` sí, en `TPL_SAVE`): seg `#tpllogomode` con "color" (colores originales, dibuja la imagen tal cual con su transparencia), "logo" (un color con `logoMask`, más "Invertir logo") y "photo" (tramado).
   - En la térmica (`t.thermal`), "color" cae a `logoMask`. `#t-logonote` lo explica; "Invertir" se oculta en modo color.
   - Solo las plantillas Bloque, Banda y "Logo / imagen" usan el logo.
-- **Material** (`tpl.material`, `#tplmat`): white, black o wood. Reemplaza a "Invertir".
+- **Material** (`tpl.material`, `#tplmat`): white, black o el id de una textura de `TEX` ("Con textura" abre `#tpltex`; por defecto honey). Reemplaza a "Invertir".
   - `tpl.invert` queda en sync para compatibilidad.
-  - Madera solo en tamaño tarjeta y no en térmica.
+  - `tplTexOK(t)`: texturas en tarjeta y chips, no en las etiquetas 70 × 40 / 50 × 25 ni cuando se dibuja para la térmica (ahí cae a blanco).
+  - `tplMonoPV(t)`: la vista previa, las miniaturas y la maqueta 3D de los chips van en B/N como la térmica, salvo un chip con textura, que va a color (se imprime en A4).
 - Datos por defecto: Doriant Cardenas / Analista de Inteligencia Comercial / Ingeniero A / +51 910236424 / doriantleodor@gmail.com / linkedin.com/in/doriantcardenas.
   - `loadTpl` cambia los antiguos de ejemplo (Ana Torres…) guardados en localStorage.
 
@@ -144,8 +148,9 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Estrellas de color: doradas (`GOLD`); blancas o negras siguen la tinta. El QR y los elementos `lock` no cambian.
   - Textos e íconos neutros siguen la tinta, según su rol ink o soft.
   - Logo sin colores: estilo monocromo con acento dorado.
-- **Material del soporte** (`#s-mat`): free, white, black o wood.
-  - `applyMaterial(d, mat)` fija el fondo; madera usa `texture "wood"`.
+- **Material del soporte** (`#s-mat`): free, white, black o "Textura" (abre `#s-tex`; `sup.material` = id de `TEX`). En la pestaña Fondo, `#s-bgtex` aplica la textura igual. Los dos llaman `supSetMaterial(m)`; `supTexUI` marca los botones.
+  - `applyMaterial(d, mat)` fija el fondo; `MATS` incluye cada textura con `texture: id`, e `inkFor` usa su `ink`.
+  - En la maqueta 3D, una textura `dark` usa acrílico negro (`darkMat`).
   - Recalcula desde `e.orig` los textos e íconos neutros a `inkFor` y marca `base.role`.
   - Elegir un color de fondo a mano vuelve a "free".
 - **Maqueta 3D** (`render3D`, `#s-3d`):
