@@ -830,8 +830,7 @@
           <div class="field">
             <label for="s-3dacr">Soporte de acrílico</label>
             <select id="s-3dacr" title="Color del soporte en la maqueta y en el video. El sticker se sigue viendo pegado encima, con su canto y su brillo.">
-              <option value="auto">Según el material</option>
-              <option value="white">Blanco</option>
+              <option value="white" selected>Blanco</option>
               <option value="black">Negro</option>
             </select>
           </div>
@@ -885,7 +884,7 @@
         <button data-tab="print" aria-pressed="false">Imprimir</button>
       </nav>
       <div class="group on" data-tab="model">
-        <div class="glabel">Material del soporte</div>
+        <div class="glabel">Fondo del sticker</div>
         <div class="seg" id="s-mat">
           <button data-m="free" aria-pressed="true">Libre</button>
           <button data-m="white" aria-pressed="false">Blanco</button>
@@ -893,7 +892,7 @@
           <button data-m="tex" aria-pressed="false">Textura</button>
         </div>
         <div class="texsw hidden" id="s-tex"></div>
-        <p class="note" style="margin:8px 0 14px">Con un material, los modelos usan el color del plástico de fondo y ajustan textos e íconos para que resalten. "Libre" deja los colores propios de cada modelo.</p>
+        <p class="note" style="margin:8px 0 14px">Blanco, negro o una textura (madera, mármol…) para el fondo del sticker: los modelos lo usan y ajustan textos e íconos para que resalten. "Libre" deja los colores propios de cada modelo. El color del acrílico (blanco o negro) se elige aparte, en la maqueta 3D: así combinas, por ejemplo, un sticker de madera sobre un soporte negro.</p>
         <div class="glabel">Modelos prediseñados</div>
         <div class="s-tplgrid" id="s-tplgrid"></div>
         <div class="glabel" style="margin-top:14px">Link del cliente (QR y chip NFC)</div>
@@ -5756,9 +5755,9 @@
     var W = o.w || sup.w, H = o.h || sup.h, th = 3, tilt = 10 * Math.PI / 180, D = Math.min(50, Math.min(W, H) * 0.66);   // pie de 5 cm, como el soporte de 7.6 × 12.75
     var yaw = (o.yaw != null ? o.yaw : parseFloat($("s-3dyaw").value) || 0) * Math.PI / 180, pitch = 20 * Math.PI / 180;
     var acr = $("s-3dacr").value;   // color del soporte elegido para la maqueta y el video
-    var mat = o.mat || (acr === "white" || acr === "black" ? acr : sup.material || "free");
-    var darkMat = mat === "black" || !!(TEX[mat] && TEX[mat].dark);
-    var edge = darkMat ? "#1d1f25" : mat === "wood" ? "#a87443" : "#eef0f2";
+    // el acrílico es blanco o negro y no depende del fondo del sticker (madera, mármol… van solo en el sticker)
+    var darkMat = (o.mat || acr) === "black";
+    var edge = darkMat ? "#1d1f25" : "#eef0f2";
     var ct = Math.cos(tilt), st = Math.sin(tilt);
     function P(x, y, z) { return [x, y, z]; }
     function add(a, b, k) { return [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]; }

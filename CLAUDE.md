@@ -150,12 +150,12 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Logo sin colores: estilo monocromo con acento dorado.
 - **Material del soporte** (`#s-mat`): free, white, black o "Textura" (abre `#s-tex`; `sup.material` = id de `TEX`). En la pestaña Fondo, `#s-bgtex` aplica la textura igual. Los dos llaman `supSetMaterial(m)`; `supTexUI` marca los botones.
   - `applyMaterial(d, mat)` fija el fondo; `MATS` incluye cada textura con `texture: id`, e `inkFor` usa su `ink`.
-  - En la maqueta 3D, una textura `dark` usa acrílico negro (`darkMat`).
+  - El selector `#s-mat` se llama "Fondo del sticker" en pantalla: cambia solo el sticker, no el acrílico de la maqueta.
   - Recalcula desde `e.orig` los textos e íconos neutros a `inkFor` y marca `base.role`.
   - Elegir un color de fondo a mano vuelve a "free".
 - **Maqueta 3D** (`render3D`, `#s-3d`):
   - Soporte en L de acrílico con inclinación de 10° y pie detrás de 5 cm. Bordes y pie del color del material.
-  - "Soporte de acrílico" (`#s-3dacr`, localStorage `nfc-3dacr`): según el material, blanco o negro; vale para la maqueta, el PNG y el video (`o.mat` del brochure manda). El negro lleva un reflejo fino en las aristas para no perderse en la mesa oscura; el sticker conserva su canto blanco, sombra y brillo.
+  - "Soporte de acrílico" (`#s-3dacr`, localStorage `nfc-3dacr`): blanco (por defecto) o negro, **independiente del fondo del sticker** (el usuario quiere combinar, p. ej., sticker de madera sobre acrílico negro); vale para la maqueta, el PNG y el video (`o.mat` del brochure manda). Ya no existe "según el material" ni el acrílico color madera. El negro lleva un reflejo fino en las aristas para no perderse en la mesa oscura; el sticker conserva su canto blanco, sombra y brillo.
   - El frente es un sticker laminado pegado sobre el acrílico: 1.5 mm más chico por lado (se ve el marco del acrílico), con grosor de ~0.8 mm (exagerado para que se note), canto blanco, sombra, bisel y una franja de brillo que se mueve con el giro (en el video recorre el sticker).
   - El diseño va en perspectiva real, con una malla de triángulos afines (`texTri`) recortada al contorno del sticker.
   - Se gira con el deslizador o arrastrando (yaw de ±60°). Mesa oscura, clara o de madera, y descarga en PNG.
