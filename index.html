@@ -222,6 +222,12 @@
   input[type="text"]:focus, input[type="search"]:focus, input[type="tel"]:focus, input[type="url"]:focus, input[type="email"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 
   .swatches { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .xbtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .xbtn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); border-radius: 99px; padding: 5px 10px 5px 6px; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
+  .xbtn img { width: 20px; height: 20px; display: block; }
+  .xbtn:hover { border-color: var(--accent); }
+  #t-xpanel { margin-top: 12px; padding: 12px; border: 1px dashed var(--accent); border-radius: 12px; }
+  canvas#tplpreview.xedit { touch-action: none; cursor: grab; }
   .texsw { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin-top: 8px; }
   .tex { border: 1px solid var(--line-strong); border-radius: 10px; padding: 0; background: var(--panel); cursor: pointer; overflow: hidden; text-align: center; font: inherit; color: var(--ink); }
   .tex i { display: block; height: 40px; background-size: cover; background-position: center; }
@@ -670,6 +676,37 @@
         <label class="check hidden" style="margin-top:12px" id="t-roundedwrap">
           <input type="checkbox" id="t-rounded" checked> Esquinas redondeadas
         </label>
+      </div>
+
+      <div class="group" id="t-free">
+        <div class="glabel">Tamaño de letras y logo</div>
+        <div class="opts">
+          <div class="field"><label for="t-tscale">Letras: <b id="t-tscalev">100 %</b></label><input type="range" id="t-tscale" min="60" max="170" step="5" value="100"></div>
+          <div class="field"><label for="t-lscale">Logo: <b id="t-lscalev">100 %</b></label><input type="range" id="t-lscale" min="40" max="160" step="5" value="100"></div>
+        </div>
+        <p class="note" style="margin-top:4px">Si una línea ya no entra a lo ancho, se achica sola para no salirse de la tarjeta.</p>
+        <div class="glabel" style="margin-top:14px">Íconos y textos libres (se mueven arrastrando)</div>
+        <div class="xbtns" id="t-xadd"></div>
+        <div id="t-xpanel" class="hidden">
+          <div class="glabel" id="t-xtitle" style="margin-bottom:6px">Elemento</div>
+          <div class="field"><label for="t-xlabel" id="t-xlabell">Texto al lado del ícono (opcional)</label><input type="text" id="t-xlabel" maxlength="60"></div>
+          <div class="opts" style="margin-top:8px">
+            <div class="field"><label for="t-xsize">Tamaño: <b id="t-xsizev"></b></label><input type="range" id="t-xsize" min="3" max="60" step="0.5"></div>
+            <div class="field"><label for="t-xcolor">Color</label>
+              <select id="t-xcolor"><option value="brand">Colores de la marca</option><option value="ink">Color del texto de la tarjeta</option><option value="custom">Otro color…</option></select>
+            </div>
+          </div>
+          <div class="s-tools" style="margin-top:8px;align-items:center">
+            <input type="color" id="t-xcustom" value="#111318" class="hidden" title="Elige el color">
+            <label class="check" style="margin:0"><input type="checkbox" id="t-xbold"> Negrita</label>
+          </div>
+          <div class="s-tools" style="margin-top:8px">
+            <button class="btn" id="t-xcenter">Centrar</button>
+            <button class="btn" id="t-xdup">Duplicar</button>
+            <button class="btn" id="t-xdel">Borrar</button>
+          </div>
+        </div>
+        <p class="note" style="margin-top:8px">Toca un ícono o texto en la vista previa para elegirlo y arrástralo donde quieras. Con el teclado: flechas para mover (con Mayús, más rápido) y Supr para borrar. Cada cara (frente y reverso) tiene los suyos.</p>
       </div>
 
       <!-- Térmica: etiqueta pequeña -->
@@ -2865,12 +2902,13 @@
     mono: "'Courier New', Courier, monospace"
   };
   var TPL_FIELDS = ["name", "role", "company", "phone", "email", "link", "short", "chiplink", "short2"];
-  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded", "chipInset", "logoMode"].concat(TPL_FIELDS);
+  var TPL_SAVE = ["template", "backTemplate", "size", "font", "qr", "invert", "material", "rounded", "chipInset", "logoMode", "tscale", "lscale", "extras"].concat(TPL_FIELDS);
   var tpl = {
     template: "clasica", backTemplate: "nfc", side: "front", size: "card", font: "sans",
     name: "", role: "", company: "", phone: "", email: "", link: "",
     qr: true, invert: false, material: "white", rounded: true, shrink: 0, chipInset: 1,
-    logo: null, logoMode: "logo", logoInv: false   // logo = { img, cache }
+    logo: null, logoMode: "logo", logoInv: false,   // logo = { img, cache }
+    tscale: 100, lscale: 100, extras: { front: [], back: [] }   // tamaño de letras y logo (%), íconos y textos libres por cara
   };
   var tplEditingId = null;
 
@@ -2889,7 +2927,7 @@
   // La plantilla con el diseño de una cara, o null si esa cara no lleva diseño
   function sideTpl(t, side) {
     var id = side === "back" ? t.backTemplate : t.template;
-    return id && id !== "none" ? Object.assign({}, t, { template: id }) : null;
+    return id && id !== "none" ? Object.assign({}, t, { template: id, xside: side }) : null;
   }
 
   function qrURL(link) {
@@ -3124,6 +3162,7 @@
     var family = FONTS[t.font] || FONTS.sans;
     // Etiquetas: el contenido crece hasta llenar el espacio. Térmica: trazos más gruesos para que no salgan grises.
     var FILL = t.size !== "card", BOLDEN = !!t.thermal;
+    var TS = Math.max(0.5, Math.min(2, (+t.tscale || 100) / 100)), LS = Math.max(0.3, Math.min(2, (+t.lscale || 100) / 100));
 
     function setFont(size, bold) { c.font = (bold ? "700 " : "400 ") + (size * S) + "px " + family; }
     function width(s, size, bold) { setFont(size, bold); return c.measureText(s).width / S; }
@@ -3158,7 +3197,7 @@
     // Línea: { t, s, b, g (espacio antes), up, li } · Raya: { rule: largo, th: grosor, g }
     function stack(lines, x, top, w, h, align, color) {
       lines = lines.filter(function (l) { return l && (l.rule || (l.t && l.t.trim())); })
-        .map(function (l) { return Object.assign({}, l); });
+        .map(function (l) { l = Object.assign({}, l); if (!l.rule) l.s *= TS; return l; });
       if (!lines.length) return;
       lines.forEach(function (l) {
         if (l.rule) return;
@@ -3231,7 +3270,7 @@
     function logo(x, y, w, h, color, align) {
       if (!t.logo) return 0;
       var img = t.logo.img, iw = img.naturalWidth, ih = img.naturalHeight;
-      var sc = Math.min(w / iw, h / ih), dw = iw * sc, dh = ih * sc;
+      var sc = Math.min(w / iw, h / ih) * LS, dw = iw * sc, dh = ih * sc;
       var dx = align === "center" ? x + (w - dw) / 2 : x, dy = y + (h - dh) / 2;
       if (t.logoMode === "color" && !t.thermal) {
         // colores originales del logo (con su transparencia); en la térmica pasa a un color
@@ -3287,8 +3326,70 @@
     var tdef = TEMPLATES.filter(function (d) { return d.id === t.template; })[0];
     if (tdef) tdef.draw({
       t: t, W: W, H: H, f: H / 25, p: chipP || (FILL ? Math.max(1.8, H * 0.06) : Math.max(1.8, H * 0.085)), fill: FILL, INK: INK, PAPER: PAPER,
-      rect: rect, stack: stack, qr: qr, hasQR: hasQR, logo: logo, handle: handle, nfc: nfc
+      rect: rect, stack: stack, qr: qr, hasQR: hasQR, logo: logo, handle: handle, nfc: nfc, ts: TS
     });
+    c.restore();
+    // Íconos y textos libres de esta cara, encima del diseño (posición y tamaño en fracción de la tarjeta)
+    var X = t.extras && t.extras[t.xside || "front"];
+    if (X && X.length) {
+      c.save();
+      c.translate(b * S, b * S);
+      if (circ) { c.beginPath(); c.arc(sz.w / 2 * S, sz.h / 2 * S, (Math.min(sz.w, sz.h) / 2 + b) * S, 0, 2 * Math.PI); c.clip(); }
+      c.textBaseline = "middle";
+      X.forEach(function (e, i) {
+        var W0 = sz.w, H0 = sz.h, cx = e.fx * W0, cy = e.fy * H0, sIc = e.fs * H0;
+        var col = t.thermal ? INK : e.color === "ink" || (!e.color && e.type === "text") ? INK : e.color === "brand" ? null : e.color;
+        var label = (e.type === "text" ? e.text : e.label || "").trim(), ls = e.type === "text" ? sIc : sIc * 0.55;
+        var lw = label ? width(label, ls, !!e.bold) : 0, gap = e.type === "icon" && label ? sIc * 0.28 : 0;
+        var iw0 = e.type === "icon" ? sIc : 0, tot = iw0 + gap + lw, x0 = cx - tot / 2, hh = Math.max(e.type === "icon" ? sIc : 0, ls * 1.2);
+        if (e.type === "icon") drawXIcon(c, e.key, x0 + sIc / 2, cy, sIc, col, S, INK, PAPER, !!t.thermal);
+        if (label) {
+          setFont(ls, !!e.bold); c.fillStyle = col || INK; c.textAlign = "left";
+          c.fillText(label, (x0 + iw0 + gap) * S, cy * S);
+          if (BOLDEN) { c.lineWidth = (e.bold ? 0.06 : 0.12) * S; c.lineJoin = "round"; c.strokeStyle = col || INK; c.strokeText(label, (x0 + iw0 + gap) * S, cy * S); }
+        }
+        if (t._boxes) t._boxes.push({ i: i, x0: x0 / W0, y0: (cy - hh / 2) / H0, x1: (x0 + tot) / W0, y1: (cy + hh / 2) / H0 });
+      });
+      c.restore();
+    }
+  }
+
+  // ---- Íconos de redes y contacto (trazos en una caja de 24 × 24) ----
+  var XICON = {
+    wa: { name: "WhatsApp", col: "#25D366", fill: "M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 11.9 11.9 0 004.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 001.8-1.3 2.3 2.3 0 00.2-1.3c-.1-.1-.2-.2-.5-.3z" },
+    fb: { name: "Facebook", col: "#1877F2", fill: "M13.4 22v-8.4h2.9l.4-3.4h-3.3V8.1c0-1 .3-1.6 1.7-1.6h1.8v-3a24 24 0 00-2.6-.1c-2.6 0-4.3 1.6-4.3 4.4v2.4H7v3.4h3v8.4z" },
+    ig: { name: "Instagram", col: "ig", stroke: "M8 3h8a5 5 0 015 5v8a5 5 0 01-5 5H8a5 5 0 01-5-5V8a5 5 0 015-5zM16.2 12a4.2 4.2 0 11-8.4 0 4.2 4.2 0 018.4 0z", dot: [17.4, 6.6, 1.2] },
+    tt: { name: "TikTok", col: "#111111", fill: "M16.6 5.8A4.3 4.3 0 0115.5 3h-3.1v12.4a2.6 2.6 0 11-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.8 5.8 0 00-.8-.1 5.7 5.7 0 105.7 5.7V9a7.4 7.4 0 004.3 1.4V7.3a4.3 4.3 0 01-3.2-1.5z" },
+    li: { name: "LinkedIn", col: "#0A66C2", fill: "M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9.75h4v11.5H3zM9.5 9.75h3.8v1.6h.1a4.2 4.2 0 013.8-2c4 0 4.8 2.6 4.8 6.1v5.8h-4v-5.1c0-1.2 0-2.8-1.7-2.8s-2 1.3-2 2.7v5.2h-4z" },
+    yt: { name: "YouTube", col: "#FF0000", fill: "M21.6 7.2a2.5 2.5 0 00-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4a2.5 2.5 0 00-1.8 1.8A26 26 0 002 12a26 26 0 00.4 4.8 2.5 2.5 0 001.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 001.8-1.8A26 26 0 0022 12a26 26 0 00-.4-4.8zM10 15V9l5.2 3z", evenodd: true },
+    x: { name: "X", col: "#111111", fill: "M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.2-8.3L1.8 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z" },
+    tel: { name: "Teléfono", col: "#2d3a52", stroke: "M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.8 2z" },
+    mail: { name: "Correo", col: "#EA4335", stroke: "M3 5h18v14H3zM3 6l9 7 9-7" },
+    web: { name: "Web", col: "#334155", stroke: "M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3c2.5 2.5 3.6 5.6 3.6 9s-1.1 6.5-3.6 9c-2.5-2.5-3.6-5.6-3.6-9S9.5 5.5 12 3z" },
+    loc: { name: "Ubicación", col: "#EA4335", stroke: "M12 22s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12zM14.5 10a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" },
+    nfc: { name: "NFC", col: "#111318", stroke: "M5 9a4.5 4.5 0 010 6M9 6.5a8 8 0 010 11M13 4a11.5 11.5 0 010 16M17 2a15 15 0 010 20" }
+  };
+  var XICON_ORDER = ["wa", "fb", "ig", "tt", "li", "yt", "x", "tel", "mail", "web", "loc", "nfc"];
+  var xPaths = {};
+  function xPath(d) { return xPaths[d] || (xPaths[d] = new Path2D(d)); }
+  // col: null = colores de la marca (círculo de color con el ícono blanco); si no, el ícono solo en ese color
+  function drawXIcon(c, key, cx, cy, s, col, S, INK, PAPER, thermal) {
+    var I = XICON[key]; if (!I || typeof Path2D !== "function") return;
+    var badge = !col, gs = (badge ? s * 0.6 : s) / 24, fg = col || "#ffffff";
+    c.save();
+    if (badge) {
+      var r = s / 2, bgc = I.col;
+      if (thermal) { bgc = INK; fg = PAPER; }
+      else if (bgc === "ig") { var gr = c.createLinearGradient((cx - r) * S, (cy + r) * S, (cx + r) * S, (cy - r) * S); gr.addColorStop(0, "#feda75"); gr.addColorStop(0.3, "#fa7e1e"); gr.addColorStop(0.6, "#d62976"); gr.addColorStop(1, "#4f5bd5"); bgc = gr; }
+      c.fillStyle = bgc; c.beginPath();
+      if (key === "ig" || key === "yt") roundRect(c, (cx - r) * S, (cy - r) * S, 2 * r * S, 2 * r * S, r * 0.45 * S); else c.arc(cx * S, cy * S, r * S, 0, 2 * Math.PI);
+      c.fill();
+    }
+    c.translate((cx - 12 * gs) * S, (cy - 12 * gs) * S); c.scale(gs * S, gs * S);
+    c.fillStyle = fg; c.strokeStyle = fg; c.lineWidth = 2; c.lineCap = "round"; c.lineJoin = "round";
+    if (I.fill) c.fill(xPath(I.fill), I.evenodd ? "evenodd" : "nonzero");
+    if (I.stroke) c.stroke(xPath(I.stroke));
+    if (I.dot) { c.beginPath(); c.arc(I.dot[0], I.dot[1], I.dot[2], 0, 2 * Math.PI); c.fill(); }
     c.restore();
   }
 
@@ -3424,7 +3525,7 @@
       ], x, p, a.W - x - p, a.H - 2 * p, "left");
     } },
     { id: "logo", name: "Logo / imagen", draw: function (a) {
-      var t = a.t, f = a.f, p = a.p, lh = t.name.trim() ? 3.4 * f : 0;
+      var t = a.t, f = a.f, p = a.p, lh = t.name.trim() ? 3.4 * f * a.ts : 0;
       var h = a.H - 2 * p - lh * 1.2;
       if (t.logo) a.logo(p, p, a.W - 2 * p, h, a.INK, "center");
       else a.stack([{ t: initials(t.company || t.name) || "LOGO", s: 9 * f, b: true }], p, p, a.W - 2 * p, h, "center");
@@ -3461,7 +3562,8 @@
       tplRaf = 0;
       if ($("view-tpl").classList.contains("hidden")) return;
       var card = tpl.size === "card", back = tpl.side === "back";
-      var cur = sideTpl(tpl, tpl.side) || Object.assign({}, tpl, { template: "__blank" });
+      var cur = sideTpl(tpl, tpl.side) || Object.assign({}, tpl, { template: "__blank", xside: tpl.side });
+      cur._boxes = [];
       var pv = $("tplpreview"), dots = !card && $("t-dots").checked;
       // Resolución de pantalla real para que la vista previa se vea nítida
       var cssW = pv.parentNode.clientWidth - 32 || 460;
@@ -3480,10 +3582,22 @@
       } else {
         out = renderTemplate(cur, sharpPPMM, 0, tplMonoPV(cur));   // chip con textura: a color (va en A4)
       }
-      var mock = !dots && $("t-mock").checked;
-      if (mock) out = tplMock(out, cur);
+      var mock = !dots && $("t-mock").checked, sdm = tplDims(cur);
+      var map = { ox: 0, oy: 0, kx: out.width / sdm.w, ky: out.height / sdm.h };
+      if (mock) { out = tplMock(out, cur); map = tplMock.last; }
       pv.width = out.width; pv.height = out.height;
       pv.getContext("2d").drawImage(out, 0, 0);
+      tplPv = { map: map, W: sdm.w, H: sdm.h, boxes: cur._boxes || [] };
+      var XS = tplX(); pv.classList.toggle("xedit", XS.length > 0);
+      if (tplSel >= XS.length) tplSel = -1;
+      var sb = tplPv.boxes.filter(function (bx) { return bx.i === tplSel; })[0];
+      if (sb) {   // marco del elemento elegido (solo en pantalla)
+        var pc = pv.getContext("2d"), pad = 0.8;
+        var X0 = map.ox + (sb.x0 * sdm.w - pad) * map.kx, Y0 = map.oy + (sb.y0 * sdm.h - pad) * map.ky;
+        var X1 = map.ox + (sb.x1 * sdm.w + pad) * map.kx, Y1 = map.oy + (sb.y1 * sdm.h + pad) * map.ky;
+        pc.save(); pc.lineWidth = Math.max(1.5, pv.width / 400); pc.setLineDash([6, 4]); pc.strokeStyle = "#2f5bd7";
+        pc.strokeRect(X0, Y0, X1 - X0, Y1 - Y0); pc.restore();
+      }
       // maqueta 3D: solo para tarjeta y chips (las etiquetas térmicas no llevan)
       var ok3 = card3DOK();
       $("t-3dbtn").classList.toggle("hidden", !ok3);
@@ -3589,6 +3703,123 @@
 
   function fmt(n) { return String(Math.round(n * 10) / 10); }
 
+  // ---- Íconos y textos libres de Plantillas ----
+  var tplSel = -1, tplSelSide = "front", tplPv = null, tplDrag = null;
+  function tplX() {
+    if (!tpl.extras || typeof tpl.extras !== "object") tpl.extras = {};
+    var sd = tpl.side === "back" ? "back" : "front";
+    if (!Array.isArray(tpl.extras[sd])) tpl.extras[sd] = [];
+    return tpl.extras[sd];
+  }
+  function xHost(u) { return String(u || "").replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, ""); }
+  function xDefaultLabel(k) {
+    if (k === "wa" || k === "tel") return tpl.phone || "";
+    if (k === "mail") return tpl.email || "";
+    if (k === "web") return xHost(tpl.link);
+    return "";
+  }
+  function tplXAdd(k) {
+    var X = tplX(), n = X.length, y = Math.min(0.88, 0.2 + (n % 6) * 0.13);
+    var e = k === "text" ? { type: "text", text: "Tu texto", fx: 0.5, fy: y, fs: 0.07, bold: true, color: "ink" }
+      : { type: "icon", key: k, fx: 0.5, fy: y, fs: 0.11, label: xDefaultLabel(k), bold: false, color: "brand" };
+    X.push(e); tplSel = X.length - 1; saveTpl(); syncXPanel(); renderTpl();
+    if (k === "text") { $("t-xlabel").focus(); $("t-xlabel").select(); }
+  }
+  function syncXPanel() {
+    var X = tplX(), e = X[tplSel];
+    $("t-xpanel").classList.toggle("hidden", !e);
+    if (!e) return;
+    var isIcon = e.type === "icon";
+    $("t-xtitle").textContent = isIcon ? "Ícono: " + (XICON[e.key] ? XICON[e.key].name : "") : "Texto libre";
+    $("t-xlabell").textContent = isIcon ? "Texto al lado del ícono (opcional)" : "Texto";
+    if (document.activeElement !== $("t-xlabel")) $("t-xlabel").value = isIcon ? e.label || "" : e.text || "";
+    var H = tplDims(tpl).h;
+    $("t-xsize").value = Math.round(e.fs * 200) / 2; $("t-xsizev").textContent = (e.fs * H).toFixed(1) + " mm";
+    $("t-xcolor").querySelector('option[value="brand"]').disabled = !isIcon;
+    var cm = e.color === "brand" ? "brand" : e.color === "ink" || !e.color ? "ink" : "custom";
+    $("t-xcolor").value = cm; $("t-xcustom").classList.toggle("hidden", cm !== "custom");
+    if (cm === "custom") $("t-xcustom").value = e.color;
+    $("t-xbold").checked = !!e.bold;
+  }
+  function xSet(fn) { var e = tplX()[tplSel]; if (!e) return; fn(e); saveTpl(); syncXPanel(); renderTpl(); }
+  (function () {
+    var host = $("t-xadd");
+    host.innerHTML = XICON_ORDER.map(function (k) {
+      var cv = document.createElement("canvas"); cv.width = cv.height = 40; drawXIcon(cv.getContext("2d"), k, 10, 10, 18, null, 2, "#000", "#fff", false);
+      return '<button class="xbtn" data-x="' + k + '"><img alt="" src="' + cv.toDataURL() + '">' + XICON[k].name + "</button>";
+    }).join("") + '<button class="xbtn" data-x="text" style="padding-left:10px">+ Texto</button>';
+    host.addEventListener("click", function (ev) { var b = ev.target.closest("[data-x]"); if (b) tplXAdd(b.dataset.x); });
+  })();
+  $("t-xlabel").addEventListener("input", function () { xSet(function (e) { if (e.type === "icon") e.label = $("t-xlabel").value; else e.text = $("t-xlabel").value; }); });
+  $("t-xsize").addEventListener("input", function () { xSet(function (e) { e.fs = Math.max(0.015, (+$("t-xsize").value || 10) / 100); }); });
+  $("t-xcolor").addEventListener("change", function () {
+    var v = $("t-xcolor").value;
+    xSet(function (e) { e.color = v === "custom" ? $("t-xcustom").value : v; });
+  });
+  $("t-xcustom").addEventListener("input", function () { xSet(function (e) { e.color = $("t-xcustom").value; }); });
+  $("t-xbold").addEventListener("change", function () { xSet(function (e) { e.bold = $("t-xbold").checked; }); });
+  $("t-xcenter").addEventListener("click", function () { xSet(function (e) { e.fx = 0.5; }); });
+  $("t-xdup").addEventListener("click", function () {
+    var X = tplX(), e = X[tplSel]; if (!e) return;
+    var c2 = JSON.parse(JSON.stringify(e)); c2.fy = Math.min(0.95, c2.fy + 0.12); X.push(c2); tplSel = X.length - 1;
+    saveTpl(); syncXPanel(); renderTpl();
+  });
+  function xDelete() { var X = tplX(); if (!X[tplSel]) return; X.splice(tplSel, 1); tplSel = -1; saveTpl(); syncXPanel(); renderTpl(); }
+  $("t-xdel").addEventListener("click", xDelete);
+  ["t-tscale", "t-lscale"].forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      tpl[id === "t-tscale" ? "tscale" : "lscale"] = +$(id).value; $(id + "v").textContent = $(id).value + " %";
+      saveTpl(); renderTpl();
+    });
+  });
+  // arrastrar en la vista previa
+  function xPoint(ev) {
+    var pv = $("tplpreview"), r = pv.getBoundingClientRect(), m = tplPv.map;
+    var px = (ev.clientX - r.left) * pv.width / r.width, py = (ev.clientY - r.top) * pv.height / r.height;
+    return { fx: (px - m.ox) / m.kx / tplPv.W, fy: (py - m.oy) / m.ky / tplPv.H };
+  }
+  $("tplpreview").addEventListener("pointerdown", function (ev) {
+    if (!tplPv || !tplX().length) return;
+    var p = xPoint(ev), padx = 1.2 / tplPv.W, pady = 1.2 / tplPv.H, hit = null;
+    tplPv.boxes.forEach(function (bx) { if (p.fx >= bx.x0 - padx && p.fx <= bx.x1 + padx && p.fy >= bx.y0 - pady && p.fy <= bx.y1 + pady) hit = bx; });
+    if (!hit) { if (tplSel >= 0) { tplSel = -1; syncXPanel(); renderTpl(); } return; }
+    ev.preventDefault();
+    var e = tplX()[hit.i]; tplSel = hit.i;
+    tplDrag = { dx: p.fx - e.fx, dy: p.fy - e.fy, moved: false };
+    try { this.setPointerCapture(ev.pointerId); } catch (err) {}
+    syncXPanel(); renderTpl();
+  });
+  $("tplpreview").addEventListener("pointermove", function (ev) {
+    if (!tplDrag) return;
+    var e = tplX()[tplSel]; if (!e) return;
+    var p = xPoint(ev), fx = Math.max(0, Math.min(1, p.fx - tplDrag.dx)), fy = Math.max(0, Math.min(1, p.fy - tplDrag.dy));
+    if (Math.abs(fx - 0.5) < 0.015) fx = 0.5;   // se pega al centro
+    if (Math.abs(fy - 0.5) < 0.02) fy = 0.5;
+    e.fx = fx; e.fy = fy; tplDrag.moved = true; renderTpl();
+  });
+  function xDragEnd() { if (tplDrag) { tplDrag = null; saveTpl(); } }
+  $("tplpreview").addEventListener("pointerup", xDragEnd);
+  $("tplpreview").addEventListener("pointercancel", xDragEnd);
+  $("tplpreview").addEventListener("wheel", function (ev) {
+    var e = tplX()[tplSel]; if (!e || !tplPv) return;
+    var p = xPoint(ev), bx = tplPv.boxes.filter(function (b) { return b.i === tplSel; })[0];
+    if (!bx || p.fx < bx.x0 - 0.05 || p.fx > bx.x1 + 0.05 || p.fy < bx.y0 - 0.08 || p.fy > bx.y1 + 0.08) return;
+    ev.preventDefault();
+    xSet(function (el) { el.fs = Math.max(0.015, Math.min(0.6, el.fs * (ev.deltaY < 0 ? 1.08 : 1 / 1.08))); });
+  }, { passive: false });
+  document.addEventListener("keydown", function (ev) {
+    if ($("view-tpl").classList.contains("hidden") || tplSel < 0) return;
+    var tag = (document.activeElement && document.activeElement.tagName) || "";
+    if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+    var e = tplX()[tplSel]; if (!e) return;
+    var st = ev.shiftKey ? 0.02 : 0.005;
+    if (ev.key === "Delete" || ev.key === "Backspace") { ev.preventDefault(); xDelete(); return; }
+    var mv = { ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st] }[ev.key];
+    if (!mv) return;
+    ev.preventDefault();
+    xSet(function (el) { el.fx = Math.max(0, Math.min(1, el.fx + mv[0])); el.fy = Math.max(0, Math.min(1, el.fy + mv[1])); });
+  });
+
   function syncTplUI() {
     TPL_FIELDS.forEach(function (k) { $("t-" + k).value = tpl[k]; });
     $("tplsize").value = tpl.size;
@@ -3596,6 +3827,11 @@
     setSeg("tplfont", document.querySelector('#tplfont button[data-f="' + tpl.font + '"]'));
     setSeg("tpllogomode", document.querySelector('#tpllogomode button[data-m="' + tpl.logoMode + '"]'));
     $("t-chipinset").value = String(tpl.chipInset == null ? 1 : tpl.chipInset);
+    $("t-tscale").value = tpl.tscale || 100; $("t-tscalev").textContent = (tpl.tscale || 100) + " %";
+    $("t-lscale").value = tpl.lscale || 100; $("t-lscalev").textContent = (tpl.lscale || 100) + " %";
+    if (tplSelSide !== tpl.side) { tplSel = -1; tplSelSide = tpl.side; }   // cada cara tiene sus elementos
+    if (tplSel >= tplX().length) tplSel = -1;
+    syncXPanel();
     $("t-qr").checked = tpl.qr;
     if (!tpl.material) tpl.material = tpl.invert ? "black" : "white";
     var texOK = tplTexOK({ size: tpl.size }), isTex = !!TEX[tpl.material] && texOK;
@@ -3829,7 +4065,7 @@
   // Copia de la plantilla para la hoja A4: los chips conservan su medida; las etiquetas pasan a tarjeta
   function tplA4Snap() {
     var d = TPL_SIZES[tpl.size];
-    return Object.assign({}, tpl, { size: d && d.chip ? tpl.size : "card", shrink: 0 });
+    return Object.assign({}, tpl, { size: d && d.chip ? tpl.size : "card", shrink: 0, extras: JSON.parse(JSON.stringify(tpl.extras || {})) });
   }
 
   function tplItem(snap, side) {
@@ -3870,7 +4106,8 @@
 
   function editTemplateItem(q) {
     tplEditingId = q.id;
-    tpl = Object.assign({}, q.t, { side: q.side || "front" });
+    tpl = Object.assign({}, q.t, { side: q.side || "front", extras: JSON.parse(JSON.stringify(q.t.extras || {})) });
+    tplSel = -1;
     $("tpladded").classList.add("hidden");
     showView("tpl");
     syncTplUI();
@@ -5645,6 +5882,7 @@
     var pts = stickerOutline(sw, sh, d.circle ? 0 : card ? (t.rounded ? Math.max(0.5, CORNER_MM - vi) : 0) : 1, d.circle);
     stickerEdge(c, pts, s, card || d.chip ? 0.45 : 0.3, "#f1f1ef");
     c.save(); stickerPath(c, pts, s); c.clip(); c.drawImage(img, 0, 0, sw * s, sh * s); c.restore();
+    tplMock.last = { ox: (m + (bw - sw) / 2) * s, oy: (m + (bh - sh) / 2) * s, kx: sw * s / sd.w, ky: sh * s / sd.h };
     if (card || d.chip) {   // las etiquetas térmicas no van laminadas
       stickerGloss(c, pts, s, sw, sh);
       c.save(); stickerPath(c, pts, s); c.strokeStyle = "rgba(0,0,0,.22)"; c.lineWidth = Math.max(1, 0.06 * s); c.stroke(); c.restore();   // filo del corte

@@ -95,6 +95,13 @@ Enlaces:
 - **Logo** (`tpl.logo` { img, cache }, no se guarda al recargar; `tpl.logoMode` sí, en `TPL_SAVE`): seg `#tpllogomode` con "color" (colores originales, dibuja la imagen tal cual con su transparencia), "logo" (un color con `logoMask`, más "Invertir logo") y "photo" (tramado).
   - En la térmica (`t.thermal`), "color" cae a `logoMask`. `#t-logonote` lo explica; "Invertir" se oculta en modo color.
   - Solo las plantillas Bloque, Banda y "Logo / imagen" usan el logo.
+- **Tamaño de letras y logo** (grupo `#t-free`): `tpl.tscale` (`#t-tscale`, 60–170 %) multiplica el tamaño de cada línea en `stack` (`TS`; si no entra a lo ancho, igual se achica) y el alto de la línea del diseño "Logo / imagen" (`a.ts`); `tpl.lscale` (`#t-lscale`, 40–160 %) agranda o achica el logo (`LS` en `logo()`).
+- **Íconos y textos libres** (`tpl.extras` = { front: [], back: [] }, por cara; se guardan en `TPL_SAVE` y se copian al agregar a la hoja A4 o editar desde ella):
+  - Elemento: { type "icon" | "text", key (de `XICON`), fx, fy (centro en fracción de la tarjeta), fs (tamaño en fracción del alto), label/text, bold, color: "brand" (círculo con el color de la marca y el ícono blanco), "ink" (tinta de la tarjeta) o un hex }.
+  - `XICON` (+ `XICON_ORDER`): wa, fb, ig, tt, li, yt, x, tel, mail, web, loc y nfc, en trazos de 24 × 24 con `Path2D` (`xPath` en caché). `drawXIcon(c, key, cx, cy, s, col, S, INK, PAPER, thermal)`; en la térmica todo va en tinta (el círculo en INK y el ícono en PAPER).
+  - `drawTemplate` los dibuja al final, encima del diseño (`t.xside` lo pone `sideTpl`), y deja sus cajas en `t._boxes`.
+  - Editor: botones `#t-xadd` (con su miniatura), panel `#t-xpanel` (texto, tamaño, color, negrita, Centrar, Duplicar y Borrar), `tplX()`, `tplSel` (se reinicia al cambiar de cara), `syncXPanel`, `xSet`.
+  - En la vista previa se toca y se arrastra (pointer events, se pega al centro), la rueda cambia el tamaño, las flechas mueven y Supr borra. `tplPv` guarda el mapa px ↔ mm (`tplMock.last` cuando está el acabado laminado) y las cajas; el marco azul punteado es solo de pantalla.
 - **Material** (`tpl.material`, `#tplmat`): white, black o el id de una textura de `TEX` ("Con textura" abre `#tpltex`; por defecto honey). Reemplaza a "Invertir".
   - `tpl.invert` queda en sync para compatibilidad.
   - `tplTexOK(t)`: texturas en tarjeta y chips, no en las etiquetas 70 × 40 / 50 × 25 ni cuando se dibuja para la térmica (ahí cae a blanco).
