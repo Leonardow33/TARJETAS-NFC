@@ -35,7 +35,7 @@ Enlaces:
 - El usuario espera push tras cada cambio terminado y probado.
 - No subir `guia-costos-nfc.md` (costos y márgenes del negocio): el repo es público.
 
-## Código (`index.html`, ~6000 líneas)
+## Código (`index.html`, ~7900 líneas)
 - JS ES5 dentro de una IIFE (`var`, `function`, sin flechas). CSS con tokens y modo oscuro.
 - Librerías por cdnjs: jsPDF 2.5.1 (`window.jspdf.jsPDF`) y qrcode-generator 1.4.4.
 - Pestañas: `#view-design` (Foto), `#view-tpl` (Plantillas), `#view-sup` (Soportes), `#view-print` (Hoja A4), `#view-biz` (Negocio) y `#view-links` (Links). `showView(v)` las cambia.
@@ -161,7 +161,7 @@ Editor libre para el sticker que se pega en el soporte de acrílico.
   - Recalcula desde `e.orig` los textos e íconos neutros a `inkFor` y marca `base.role`.
   - Elegir un color de fondo a mano vuelve a "free".
 - **Maqueta 3D** (`render3D`, `#s-3d`):
-  - Soporte en L de acrílico con inclinación de 10° y pie detrás de 5 cm. Bordes y pie del color del material.
+  - Soporte en L de acrílico con inclinación de 10° y pie detrás de 5 cm. Bordes y pie del color del acrílico elegido en `#s-3dacr` (blanco o negro), no del fondo del sticker.
   - "Soporte de acrílico" (`#s-3dacr`, localStorage `nfc-3dacr`): blanco (por defecto) o negro, **independiente del fondo del sticker** (el usuario quiere combinar, p. ej., sticker de madera sobre acrílico negro); vale para la maqueta, el PNG y el video (`o.mat` del brochure manda). Ya no existe "según el material" ni el acrílico color madera. El negro lleva un reflejo fino en las aristas para no perderse en la mesa oscura; el sticker conserva su canto blanco, sombra y brillo.
   - El frente es un sticker laminado pegado sobre el acrílico: 1.5 mm más chico por lado (se ve el marco del acrílico), con grosor de ~0.8 mm (exagerado para que se note), canto blanco, sombra, bisel y una franja de brillo que se mueve con el giro (en el video recorre el sticker).
   - El diseño va en perspectiva real, con una malla de triángulos afines (`texTri`) recortada al contorno del sticker.
@@ -271,10 +271,13 @@ Basado en `guia-costos-nfc.md` (guía local del usuario, sin subir al repo porqu
 - Capturas de la página completa: `--screenshot=archivo.png --window-size=1300,1700 --hide-scrollbars` en vez de `--dump-dom`.
 - Usa un `--user-data-dir` nuevo por prueba: si no, el localStorage de la corrida anterior se mezcla (p. ej. ventas duplicadas en Negocio).
 - Scripts del editor y de Negocio en el scratchpad: `mkt.py` (página de prueba con modos gray, wob, map, biz, dpi, shotbiz, shotie), `run.ps1 <modo>` (dump-dom + `showres.py`) y `shot.ps1 <modo>` (captura).
-- El scratchpad cambia en cada sesión: si no están los scripts, hay que rehacerlos. Los de la sesión del acabado laminado:
-  - `mktest.py <index.html>`: copia la página con una prueba por pasos (`?n=N` corre los N primeros) que escribe en `#res` los logs y las imágenes `IMG<nombre>`.
-  - `cdp.js <url> <salida> [s]`: Edge por CDP que acepta los `confirm()` y espera DONE.
-  - `ex.py <salida> <carpeta>`: extrae las imágenes en PNG.
+- El scratchpad cambia en cada sesión: si no están los scripts, hay que rehacerlos. Los de la última sesión (Negocio, Links, texturas y editor libre):
+  - `cdp.js <url> [captura.png] [selector]`: Edge headless por CDP en tiempo real; acepta los `confirm()`, espera a que `#res` diga DONE, imprime `#res` y, si se pide, guarda una captura con el selector a la vista.
+  - `mkN.py <index.html> <salida.html> [modo]`: copia la página con una prueba por pasos al final del `<body>` (mk9 compras precargadas, mk11 cotizador, mk13 Links, mk15 texturas en Plantillas y Soportes, mk17 editor libre). La prueba escribe en `#res` y termina con DONE.
+  - Para revisar varias vistas de una vez: la prueba dibuja los canvas en un canvas "collage" (`#col`) que se pone arriba de la página, y `cdp.js` lo captura.
+  - `ex.py <salida> <carpeta>`: extrae las imágenes `IMG<nombre> data:...` en PNG. `unz.py` revisa el ZIP de tarjetas digitales.
+- La vista previa de Plantillas se dibuja en `requestAnimationFrame`: en las pruebas, espera ~150 ms entre un cambio y la captura del canvas.
+- Edge headless no achica la ventana por debajo de ~500 px: para ver una página en tamaño celular, cárgala en un `<iframe>` de 390 px dentro de una página de prueba.
 - **Ojo:** aplicar un modelo de Soportes abre un `confirm()` que deja colgado el Edge headless (con `--dump-dom` nunca termina). Para pruebas que hagan clic en modelos, usa `cdp.js` (scratchpad): lanza Edge con `--remote-debugging-port`, acepta los diálogos (`Page.handleJavaScriptDialog`) y espera a que `#res` diga DONE. `--timeout` no sirve: vuelca el DOM al cargar.
 - Las cargas de archivos (FileReader, toBlob) a veces no terminan dentro del tiempo virtual: dales 1.5–2.5 s y repite antes de suponer un error.
 - Los parches grandes van en un `.py` del scratchpad (Write + `python archivo.py`). Los heredoc largos en Bash fallan con las comillas.
@@ -321,7 +324,9 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
 - **Links acortados de reseñas (p. ej. `reviewthis.biz/...`):** respondido, sin implementar. Son un 302 a `search.google.com/local/writereview?placeid=…` (verificado con curl). Desde la app (GitHub Pages) no se puede leer la redirección por CORS. Opciones ofrecidas: campo que acepte el link final pegado y saque el `placeid`, o un proxy propio (Google Apps Script o Cloudflare Worker gratis) para resolverlo solo. Recomendado grabar en el chip el link directo de Google, no el acortador.
 - **Ofrecido, sin respuesta del usuario:**
   - "Reducir sticker" (0.5–1 mm por lado) en Soportes, como en tarjetas, para cuando el fondo coincide con el plástico;
-  - estrellas doradas brillantes con borde oscuro sobre madera (hoy salen en dorado oscuro).
+  - estrellas doradas brillantes con borde oscuro sobre madera (hoy salen en dorado oscuro);
+  - un botón "Ver cartas de muestra" en su tarjeta personal (`perfil/`);
+  - más íconos en el editor libre de Plantillas (Telegram, Yape, Google Maps…).
 - **Por probar con el usuario:**
   - escanear con el celular el QR impreso de los chips NFC (no se pudo verificar sin OpenCV);
   - el brochure con un negocio real: los nombres de los botones de Google ("Pedir reseñas") pueden cambiar;
@@ -329,7 +334,12 @@ El usuario prefiere no instalar nada: antes de recomendar un repo o herramienta,
   - foto en vertical con la mejora automática, Density 8 y márgenes en Ninguno;
   - el editor de imagen en el celular (recortar con el dedo) y volver a subir su logo "Industry Secrets" (el guardado se procesó con el método anterior);
   - imprimir un A4 a 600 DPI y comparar con 300;
-  - el relieve y el brillo del sticker en pantalla (maqueta, video y vistas previas): ajustar si lo quiere más fino o con menos brillo (`tS`, `ins` y la franja `bp` en `render3D`; `stickerGloss`).
+  - el relieve y el brillo del sticker en pantalla (maqueta, video y vistas previas): ajustar si lo quiere más fino o con menos brillo (`tS`, `ins` y la franja `bp` en `render3D`; `stickerGloss`);
+  - las cartas de muestra (`cartas-demo/`) abiertas desde su celular y grabadas en un NFC de muestra;
+  - la pestaña Links en el celular (Copiar mensaje y el botón WhatsApp);
+  - las texturas impresas en su vinil (si alguna sale muy oscura o muy marcada, aclararla o bajarle la veta en `TEX`);
+  - el editor libre de Plantillas en el celular (arrastrar con el dedo) y con su diseño "Logo / imagen" (tarjeta de Camel Logística);
+  - el cotizador con el redondeo a soles enteros: se verificó a mano, no en Edge.
 - **Calidad:** el usuario quiere la mejor calidad (HD) en A4, PDF y PNG; en la térmica, solo si se puede mejorar sin romper nada.
 - **Negocio:** las compras de material anteriores al restock del 23 nov 2026 siguen sin registrar, así que el stock de antes sale incompleto. Falta confirmar con el total del pedido de Temu si el precio era por pack (se cargó así) o por línea. También hay que ver si las "tarjetas llave RFID" son NTAG21x: si son MIFARE Classic, el iPhone no las lee. El precio del laminado sigue sin confirmar (S/ 0.50 por stand).
   - Ofrecido, sin respuesta: que una venta pueda indicar stand negro o blanco (o tarjeta tipo llave), para descontar el stock y el costo correctos.
