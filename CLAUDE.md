@@ -21,6 +21,9 @@ Enlaces:
 - **Tarjeta digital del usuario** (para grabar en el chip NFC o en un QR): https://leonardow33.github.io/TARJETAS-NFC/perfil/
   - `perfil/index.html` (página aparte, oscura con dorado, sin librerías) y `perfil/doriant-cardenas.vcf` (botón "Guardar contacto").
   - WhatsApp y llamada al +51 910236424, LinkedIn `linkedin.com/in/doriant-cardenas-fernandez-72b071240`, Instagram `@cf.leonardo`. El usuario no pidió poner su correo.
+- **Tarjeta digital de cliente: Camel Logística** (hecha a mano por urgencia, copia del estilo de `perfil/` en naranja y arena): https://leonardow33.github.io/TARJETAS-NFC/camel/
+  - `camel/index.html`, `logo.png` (recortado, fondo blanqueado), `icono.png` (hexágono, favicon) y `juan-gabriel-salazar.vcf` (con el hexágono como foto).
+  - Juan Gabriel Salazar, +51 982244523 (WhatsApp y llamada), sitio https://camel.com.pe/. Sin redes ni cargo (no los dio).
 - **Cartas virtuales de muestra** (para mandar por WhatsApp o grabar en un NFC de muestra; spec en `cartas-virtuales-demo.md`):
   - `cartas-demo/` = portada oscura con dorado (como `perfil/`) que presenta las dos: estándar S/ 150 y personalizada S/ 250, con "Quiero mi carta" a su WhatsApp. https://leonardow33.github.io/TARJETAS-NFC/cartas-demo/
   - `cartas-demo/estandar/`: lista blanca y negra (nombre … precio), HTML fijo con `<!-- EDITAR -->`.
